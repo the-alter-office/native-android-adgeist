@@ -1,6 +1,8 @@
 jdk:
   - openjdk17
+
+before_install:
+  - chmod +x gradlew
+
 build:
   - ./gradlew :adgeistkit:assembleRelease
-install:
-  - ./gradlew :adgeistkit:publishToMavenLocal
