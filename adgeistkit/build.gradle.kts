@@ -53,8 +53,8 @@ afterEvaluate {
             create<MavenPublication>("release") {
                 from(components["release"])
                 groupId = "com.github.the-alter-office"
-                artifactId = "adgeistkit"
-                version = "0.0.2"
+                artifactId = "native-android-adgeist"
+                version = "0.0.3"
             }
         }
     }
