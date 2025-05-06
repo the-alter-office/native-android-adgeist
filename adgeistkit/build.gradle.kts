@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     id("maven-publish")
+    id("com.vanniktech.maven.publish") version "0.29.0"
 }
 
 android {
@@ -53,8 +54,8 @@ afterEvaluate {
             create<MavenPublication>("release") {
                 from(components["release"])
                 groupId = "com.github.the-alter-office"
-                artifactId = "native-android-adgeist"
-                version = "0.0.3"
+                artifactId = "adgeistkit"
+                version = "0.0.4"
             }
         }
     }
