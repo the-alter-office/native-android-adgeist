@@ -1,8 +1,10 @@
+import com.vanniktech.maven.publish.SonatypeHost
+
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
-    id("maven-publish")
-    id("com.vanniktech.maven.publish") version "0.29.0"
+    // id("maven-publish")
+    id("com.vanniktech.maven.publish")
 }
 
 android {
@@ -48,15 +50,15 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>("release") {
-                from(components["release"])
-                groupId = "com.github.the-alter-office"
-                artifactId = "adgeistkit"
-                version = "0.0.4"
-            }
-        }
-    }
-}
+// afterEvaluate {
+//     publishing {
+//         publications {
+//             create<MavenPublication>("release") {
+//                 from(components["release"])
+//                 groupId = "com.github.the-alter-office"
+//                 artifactId = "adgeistkit"
+//                 version = "0.0.4"
+//             }
+//         }
+//     }
+// }
