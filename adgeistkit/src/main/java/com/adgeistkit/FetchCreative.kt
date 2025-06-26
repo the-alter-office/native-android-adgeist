@@ -35,8 +35,9 @@ class FetchCreative(
             // Prepare JSON body
             val jsonBody = """
                 {
-                    "siteDto": {
-                        "page": "https://beta.adgeist.ai/publisher/edit-adspace"
+                    "appDto": {
+                        "name": "itwcrm",
+                        "bundle": "com.itwcrm" 
                     }
                 }
             """.trimIndent()
@@ -49,7 +50,7 @@ class FetchCreative(
                 .header("Content-Type", "application/json")
                 .header("Origin", origin)
                 .header("x-user-id", deviceId)
-                .header("x-platform", "website")
+                .header("x-platform", "mobile_app")
                 .header("x-api-key", apiKey)
                 .header("x-forwarded-for", userIP)
                 .build()

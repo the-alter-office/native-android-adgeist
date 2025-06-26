@@ -57,7 +57,7 @@ class CreativeAnalytics(
                 .header("Content-Type", "application/json")
                 .header("Origin", origin)
                 .header("x-user-id", deviceId)
-                .header("x-platform", "website")
+                .header("x-platform", "mobile_app")
                 .header("x-api-key", apiKey)
                 .header("x-forwarded-for", userIP)
                 .post(requestBody)
