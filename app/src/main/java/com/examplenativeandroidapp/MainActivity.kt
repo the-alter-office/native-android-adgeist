@@ -25,7 +25,7 @@ class MainActivity : ComponentActivity() {
         // Create LoadAd instance
         val getAd = adGeist.getCreative()
 
-        getAd.fetchCreative("67c99c7a34929568f405e7ff", "67a056c63205fce2290d1cda") { adData ->
+        getAd.fetchCreative("b1a3823498a258d8ed334145eb7153c1fec8150d67121139ef8681a4782d40dd","https://beta.adgeist.ai", "684a806cbaa6cffe4088eaf9", "67a056c63205fce2290d1cda") { adData ->
             if (adData != null) {
                 Log.d("MyActivity of app module", "${adData}")
             } else {
@@ -34,7 +34,7 @@ class MainActivity : ComponentActivity() {
 
         val postAnalytics = adGeist.postCreativeAnalytics()
 
-        postAnalytics.sendTrackingData("67dd0dca83189049e16b02f6", "67c99c7a34929568f405e7ff", "67a056c63205fce2290d1cda", "click") { adData ->
+        postAnalytics.sendTrackingData("685d4d85d589952479188259", "67f8af1850ff1e0870da3fbe", "67f8ad1350ff1e0870da3f5b" ,"CLICK", "https://beta.adgeist.ai", "1401f7740ea15573c05a39a4de72396d609ff931722c1b87aa6b98bdce2b2ba8", "d80b43ee-b85e-4de1-b81d-8a6a79c162d5") { adData ->
             if (adData != null) {
                 Log.d("MyActivity of app module", "${adData}")
             } else {

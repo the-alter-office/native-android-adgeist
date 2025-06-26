@@ -13,12 +13,13 @@ class AdgeistCore private constructor(private val context: Context) {
     }
 
     private val deviceIdentifier = DeviceIdentifier(context)
+    private val networkUtils = NetworkUtils(context)
 
     fun getCreative(): FetchCreative {
-        return FetchCreative(context, deviceIdentifier)
+        return FetchCreative(context, deviceIdentifier, networkUtils)
     }
 
     fun postCreativeAnalytics(): CreativeAnalytics {
-        return CreativeAnalytics(context, deviceIdentifier)
+        return CreativeAnalytics(context, deviceIdentifier, networkUtils)
     }
 }

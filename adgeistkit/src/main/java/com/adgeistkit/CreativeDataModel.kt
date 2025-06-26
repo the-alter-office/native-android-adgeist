@@ -3,28 +3,31 @@ package com.adgeistkit
 data class CreativeDataModel(
     val success: Boolean,
     val message: String,
-    val data: Campaign?
+    val data: BidResponseData?
 )
 
-data class Campaign(
-    val _id: String?,
-    val name: String?,
-    val creative: Creative?,
-    val budgetSettings: BudgetSettings?
+data class BidResponseData(
+    val id: String,
+    val seatBid: List<SeatBid>,
+    val bidId: String,
+    val cur: String
 )
 
-data class Creative(
-    val title: String?,
-    val description: String?,
-    val fileUrl: String?,
-    val ctaUrl: String?,
-    val type: String?,
-    val fileName: String?,
-    val createdAt: String?,
-    val updatedAt: String?
+data class SeatBid(
+    val bidId: String,
+    val bid: List<Bid>
 )
 
-data class BudgetSettings(
-    val totalBudget: Double,
-    val spentBudget: Double
+data class Bid(
+    val id: String,
+    val impId: String,
+    val price: Double,
+    val ext: BidExtension
+)
+
+data class BidExtension(
+    val creativeUrl: String,
+    val ctaUrl: String,
+    val creativeTitle: String,
+    val creativeDescription: String,
 )

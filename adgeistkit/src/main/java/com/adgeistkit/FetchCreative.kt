@@ -1,42 +1,65 @@
 package com.adgeistkit
 
-import com.adgeistkit.CreativeDataModel
-import android.util.Log
 import android.content.Context
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
-import java.io.IOException
+import android.util.Log
+import okhttp3.*
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.IOException
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 
-class FetchCreative(private val context: Context, private val deviceIdentifier: DeviceIdentifier) {
+class FetchCreative(
+    private val context: Context,
+    private val deviceIdentifier: DeviceIdentifier,
+    private val networkUtils: NetworkUtils
+) {
     private val scope = CoroutineScope(Dispatchers.Main)
 
     fun fetchCreative(
+        apiKey: String,
+        origin: String,
         adSpaceId: String,
-        publisherId: String,
+        companyId: String,
+        isTestEnvironment: Boolean = true,
         callback: (CreativeDataModel?) -> Unit
     ) {
         scope.launch {
             val deviceId = deviceIdentifier.getDeviceIdentifier()
-            Log.d("MyData", "${deviceId}----------------------------")
+            val userIP = networkUtils.getLocalIpAddress() ?: networkUtils.getWifiIpAddress() ?: "unknown"
 
-            val url =
-                "https://beta-api.adgeist.ai/campaign/dummy?adSpaceId=$adSpaceId&companyId=$publisherId"
+            val envFlag = if (isTestEnvironment) "1" else "0"
+            val url = "https://bg-services-api.adgeist.ai/app/ssp/bid?adSpaceId=$adSpaceId&companyId=$companyId&test=$envFlag"
+
+            // Prepare JSON body
+            val jsonBody = """
+                {
+                    "siteDto": {
+                        "page": "https://beta.adgeist.ai/publisher/edit-adspace"
+                    }
+                }
+            """.trimIndent()
+
+            val requestBody = RequestBody.create("application/json; charset=utf-8".toMediaTypeOrNull(), jsonBody)
+
             val request = Request.Builder()
                 .url(url)
-                .header("Origin", "https://beta.adgeist.ai")
+                .post(requestBody)
+                .header("Content-Type", "application/json")
+                .header("Origin", origin)
+                .header("x-user-id", deviceId)
+                .header("x-platform", "website")
+                .header("x-api-key", apiKey)
+                .header("x-forwarded-for", userIP)
                 .build()
+
+
             val client = OkHttpClient()
 
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    Log.d("MyData", "Failed to fetch ad data")
+                    Log.d("MyData", "Request Failed: ${e.message}")
                     callback(null)
                 }
 
@@ -44,7 +67,7 @@ class FetchCreative(private val context: Context, private val deviceIdentifier: 
                     val jsonString = response.body?.string()
                     val adData = jsonString?.let { parseCreativeData(it) }
 
-                    Log.d("MyData", "${adData}")
+                    Log.d("MyData", "Response: ${adData}")
                     callback(adData)
                 }
             })

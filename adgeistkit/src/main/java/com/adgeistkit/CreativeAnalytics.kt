@@ -12,10 +12,12 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 
 class CreativeAnalytics(
     private val context: Context,
-    private val deviceIdentifier: DeviceIdentifier
+    private val deviceIdentifier: DeviceIdentifier,
+    private val networkUtils: NetworkUtils
 ) {
     companion object {
         private const val TAG = "CreativeAnalytics"
@@ -29,29 +31,36 @@ class CreativeAnalytics(
         adSpaceId: String,
         publisherId: String,
         eventType: String,
+        origin: String,
+        apiKey: String,
+        bidId: String,
+        isTestEnvironment: Boolean = true,
         callback: (String?) -> Unit
     ) {
         scope.launch {
             val deviceId = deviceIdentifier.getDeviceIdentifier()
-            Log.i(TAG, "Successfully fetched Device ID: $deviceId")
+            val userIP = networkUtils.getLocalIpAddress() ?: networkUtils.getWifiIpAddress() ?: "unknown"
 
-            val url = "https://beta-api.adgeist.ai/campaign/campaign-analytics" +
-                    "?campaignId=$campaignId&adSpaceId=$adSpaceId&companyId=$publisherId"
+            val envFlag = if (isTestEnvironment) "1" else "0"
+            val url = "https://bg-services-api.adgeist.ai/api/analytics/track?adSpaceId=$adSpaceId&companyId=$publisherId&test=$envFlag"
 
             val requestBodyJson = JSONObject().apply {
-                when (eventType.lowercase()) {
-                    "click" -> put("clicks", 1)
-                    "impression" -> put("impressions", 1)
-                }
+                put("eventType", eventType)
+                put("winningBidId", bidId)
+                put("campaignId", campaignId)
             }.toString()
 
             val requestBody = requestBodyJson.toRequestBody("application/json".toMediaType())
 
             val request = Request.Builder()
                 .url(url)
-                .header("Origin", "https://beta.adgeist.ai")
                 .header("Content-Type", "application/json")
-                .put(requestBody)
+                .header("Origin", origin)
+                .header("x-user-id", deviceId)
+                .header("x-platform", "website")
+                .header("x-api-key", apiKey)
+                .header("x-forwarded-for", userIP)
+                .post(requestBody)
                 .build()
 
             client.newCall(request).enqueue(object : Callback {
@@ -63,12 +72,14 @@ class CreativeAnalytics(
                 override fun onResponse(call: Call, response: Response) {
                     response.use {
                         if (!response.isSuccessful) {
-                            Log.d("CreativeAnalytics", "Request failed with code: ${response.code}")
+                            val errorBody = response.body?.string() ?: "No error message"
+                            Log.d("CreativeAnalytics", "Request failed with code: ${response.code}, message: $errorBody")
                             callback(null)
                             return
                         }
 
                         val jsonString = response.body?.string()
+                        Log.d("CreativeAnalytics", "Tracking data sent successfully: $jsonString")
                         callback(jsonString)
                     }
                 }
