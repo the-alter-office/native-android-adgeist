@@ -18,7 +18,11 @@ class DeviceIdentifier(private val context: Context) {
     private suspend fun getAdvertisingId(): String {
         return try {
             val adId = withContext(Dispatchers.IO) {
-                AdvertisingIdClient.getAdvertisingIdInfo(context).id
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+                    AdvertisingIdClient.getAdvertisingIdInfo(context).id
+                } else {
+                    null
+                }
             }
             if (adId.isNullOrEmpty()) {
                 getAndroidId()
@@ -27,6 +31,7 @@ class DeviceIdentifier(private val context: Context) {
                 adId
             }
         } catch (e: Exception) {
+            Log.w(TAG, "Failed to get Advertising ID: ${e.message}")
             getAndroidId()
         }
     }

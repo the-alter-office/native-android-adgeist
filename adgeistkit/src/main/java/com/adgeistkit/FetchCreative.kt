@@ -38,7 +38,7 @@ class FetchCreative(
                     "appDto": {
                         "name": "itwcrm",
                         "bundle": "com.itwcrm" 
-                    }
+                   }
                 }
             """.trimIndent()
 
