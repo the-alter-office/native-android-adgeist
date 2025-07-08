@@ -11,7 +11,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)  // Use XML layout instead of Compose
 
         // Initialize AdGeistSDK
-        val adGeist = AdgeistCore.initialize(applicationContext)
+        val adGeist = AdgeistCore.initialize(applicationContext, "bg-services-api.adgeist.ai")
 
         // Your existing AdGeist code...
         val getAd = adGeist.getCreative()

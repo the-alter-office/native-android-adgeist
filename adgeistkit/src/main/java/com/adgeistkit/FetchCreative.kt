@@ -13,7 +13,8 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 class FetchCreative(
     private val context: Context,
     private val deviceIdentifier: DeviceIdentifier,
-    private val networkUtils: NetworkUtils
+    private val networkUtils: NetworkUtils,
+    private val domain: String
 ) {
     private val scope = CoroutineScope(Dispatchers.Main)
 
@@ -30,15 +31,14 @@ class FetchCreative(
             val userIP = networkUtils.getLocalIpAddress() ?: networkUtils.getWifiIpAddress() ?: "unknown"
 
             val envFlag = if (isTestEnvironment) "1" else "0"
-            val url = "https://bg-services-api.adgeist.ai/app/ssp/bid?adSpaceId=$adSpaceId&companyId=$companyId&test=$envFlag"
+            val url = "https://$domain/app/ssp/bid?adSpaceId=$adSpaceId&companyId=$companyId&test=$envFlag"
 
-            // Prepare JSON body
             val jsonBody = """
                 {
                     "appDto": {
                         "name": "itwcrm",
                         "bundle": "com.itwcrm" 
-                   }
+                    }
                 }
             """.trimIndent()
 
@@ -54,7 +54,6 @@ class FetchCreative(
                 .header("x-api-key", apiKey)
                 .header("x-forwarded-for", userIP)
                 .build()
-
 
             val client = OkHttpClient()
 

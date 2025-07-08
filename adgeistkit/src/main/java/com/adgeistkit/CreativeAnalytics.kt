@@ -17,7 +17,8 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 class CreativeAnalytics(
     private val context: Context,
     private val deviceIdentifier: DeviceIdentifier,
-    private val networkUtils: NetworkUtils
+    private val networkUtils: NetworkUtils,
+    private val domain: String
 ) {
     companion object {
         private const val TAG = "CreativeAnalytics"
@@ -42,7 +43,7 @@ class CreativeAnalytics(
             val userIP = networkUtils.getLocalIpAddress() ?: networkUtils.getWifiIpAddress() ?: "unknown"
 
             val envFlag = if (isTestEnvironment) "1" else "0"
-            val url = "https://bg-services-api.adgeist.ai/api/analytics/track?adSpaceId=$adSpaceId&companyId=$publisherId&test=$envFlag"
+            val url = "https://$domain/api/analytics/track?adSpaceId=$adSpaceId&companyId=$publisherId&test=$envFlag"
 
             val requestBodyJson = JSONObject().apply {
                 put("eventType", eventType)
