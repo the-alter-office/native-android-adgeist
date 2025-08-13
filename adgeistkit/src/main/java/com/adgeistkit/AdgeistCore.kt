@@ -53,7 +53,6 @@ class AdgeistCore private constructor(
     @Synchronized
     fun setUserDetails(details: UserDetails) {
         userDetails = details
-        Log.d(TAG, "User details set: $details")
     }
 
     /**
@@ -78,7 +77,6 @@ class AdgeistCore private constructor(
         CoroutineScope(Dispatchers.IO).launch {
             val localUserDetails = userDetails
             val parameters = mutableMapOf<String, Any>()
-            // Use event.eventProperties (Kotlin property name) instead of event.event_properties
             event.eventProperties?.forEach { (key, value) -> if (value != null) parameters[key] = value }
             if (localUserDetails != null) parameters["userDetails"] = localUserDetails
             val fullEvent = event.copy(eventProperties = parameters)

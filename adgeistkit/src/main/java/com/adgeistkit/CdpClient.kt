@@ -65,8 +65,6 @@ class CdpClient(
                 "event_properties" to cleanedEventProperties
             )
 
-            Log.d(TAG, "Logging event before api call: $requestBody")
-
             val body = gson.toJson(requestBody)
             val request = Request.Builder()
                 .url("http://$cdpDomain/ingest")
@@ -78,7 +76,7 @@ class CdpClient(
             try {
                 client.newCall(request).execute().use { response ->
                     if (response.isSuccessful) {
-                        Log.d(TAG, "Event sent to CDP: ${response.body?.string()}")
+//                        Log.d(TAG, "Event sent to CDP: ${response.body?.string()}")
                     } else {
                         Log.e(TAG, "Failed to send event to CDP: ${response.code}, ${response.body?.string()}")
                     }
