@@ -27,6 +27,7 @@ class FetchCreative(
         callback: (CreativeDataModel?) -> Unit
     ) {
         scope.launch {
+
             val deviceId = deviceIdentifier.getDeviceIdentifier()
             val userIP = networkUtils.getLocalIpAddress() ?: networkUtils.getWifiIpAddress() ?: "unknown"
 

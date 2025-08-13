@@ -3,7 +3,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:gravity="center">
 
     <TextView
         android:layout_width="wrap_content"
@@ -11,4 +12,23 @@
         android:text="Hello Android!"
         android:textSize="18sp" />
 
+    <Button
+        android:id="@+id/triggerNetworkCall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Make Network Call"
+        android:layout_marginTop="16dp" />
+    <Button
+        android:id="@+id/setUserDetailsBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Set User Details"
+        android:layout_marginTop="16dp" />
+
+    <Button
+        android:id="@+id/logEventBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Log Event"
+        android:layout_marginTop="16dp" />
 </LinearLayout>
