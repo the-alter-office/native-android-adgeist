@@ -67,7 +67,7 @@ class CdpClient(
 
             val body = gson.toJson(requestBody)
             val request = Request.Builder()
-                .url("http://$cdpDomain/ingest")
+                .url("https://$cdpDomain/ingest")
                 .post(body.toRequestBody("application/json".toMediaType()))
                 .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer $bearerToken")
