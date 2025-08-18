@@ -38,14 +38,14 @@ class CdpClient(
      * Sends an event to the CDP platform.
      * @param event The event to send, with userDetails optionally included in event_properties.
      */
-    fun sendEventToCdp(event: Event) {
+    fun sendEventToCdp(event: Event, consentGiven: Boolean) {
         CoroutineScope(Dispatchers.IO).launch {
             val deviceId = deviceIdentifier.getDeviceIdentifier()
             val userIP = networkUtils.getLocalIpAddress() ?: networkUtils.getWifiIpAddress() ?: "unknown"
 
             // Structure the traits map
             val traits = mutableMapOf<String, Any?>(
-                "consent_given" to true,
+                "consent_given" to consentGiven,
                 "source" to "mobile",
                 "timestamp" to Date().toISOString(),
                 "google_ad_id" to deviceId

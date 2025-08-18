@@ -24,6 +24,7 @@ class MainActivity : AppCompatActivity() {
         val fetchCreativeBtn = findViewById<Button>(R.id.triggerNetworkCall)
         val setUserDetailsBtn = findViewById<Button>(R.id.setUserDetailsBtn)
         val logEventBtn = findViewById<Button>(R.id.logEventBtn)
+        val consentBtn = findViewById<Button>(R.id.consentBtn)
 
         // Fetch Creative
         fetchCreativeBtn.setOnClickListener {
@@ -41,7 +42,7 @@ class MainActivity : AppCompatActivity() {
             adGeist.setUserDetails(userDetails)
         }
 
-        // Log Event
+        // Update Consent
         logEventBtn.setOnClickListener {
             val eventProps = mapOf(
                 "screen" to "home",
@@ -52,6 +53,11 @@ class MainActivity : AppCompatActivity() {
                 eventProperties = eventProps
             )
             adGeist.logEvent(event)
+        }
+
+        // Log Event
+        consentBtn.setOnClickListener {
+            adGeist.updateConsentStatus(true)
         }
     }
 
