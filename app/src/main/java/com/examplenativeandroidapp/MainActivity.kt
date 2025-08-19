@@ -25,6 +25,7 @@ class MainActivity : AppCompatActivity() {
         val setUserDetailsBtn = findViewById<Button>(R.id.setUserDetailsBtn)
         val logEventBtn = findViewById<Button>(R.id.logEventBtn)
         val consentBtn = findViewById<Button>(R.id.consentBtn)
+        val getStatusBtn = findViewById<Button>(R.id.statusBtn)
 
         // Fetch Creative
         fetchCreativeBtn.setOnClickListener {
@@ -41,6 +42,13 @@ class MainActivity : AppCompatActivity() {
             )
             adGeist.setUserDetails(userDetails)
         }
+
+        // Get Consent
+        getStatusBtn.setOnClickListener {
+             val status = adGeist.getConsentStatus()
+            Log.d("MainActivity", "Consent: $status")
+        }
+
 
         // Update Consent
         logEventBtn.setOnClickListener {
