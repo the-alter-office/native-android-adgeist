@@ -47,4 +47,25 @@
         android:text="Log Event"
         android:layout_marginTop="16dp" />
 
+    <Button
+        android:id="@+id/trackImpressionBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Track Impression"
+        android:layout_marginTop="16dp" />
+
+    <Button
+        android:id="@+id/trackViewBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Track View"
+        android:layout_marginTop="16dp" />
+
+    <Button
+        android:id="@+id/trackClickBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Track Click"
+        android:layout_marginTop="16dp" />
+
 </LinearLayout>
