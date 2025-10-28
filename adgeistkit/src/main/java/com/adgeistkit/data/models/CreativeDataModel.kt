@@ -1,4 +1,4 @@
-package com.adgeistkit
+package com.adgeistkit.data.models
 
 data class CreativeDataModel(
     val success: Boolean,

@@ -1,4 +1,4 @@
-package com.adgeistkit
+package com.adgeistkit.data.models
 
 import com.google.gson.annotations.SerializedName
 

@@ -1,8 +1,7 @@
-package com.adgeistkit
+package com.adgeistkit.core.device
 
 import android.content.Context
 import android.provider.Settings
-import android.content.SharedPreferences
 import android.util.Log
 import com.google.android.gms.ads.identifier.AdvertisingIdClient
 import kotlinx.coroutines.Dispatchers
@@ -53,7 +52,7 @@ class DeviceIdentifier(private val context: Context) {
             getOrCreateAppInstallId()
         }
     }
-    
+
     // Priority 3: Generated fingerprint (fallback)
     private fun getOrCreateAppInstallId(): String {
         return try {

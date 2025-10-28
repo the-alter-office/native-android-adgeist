@@ -5,8 +5,9 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import android.widget.Button
 import com.adgeistkit.AdgeistCore
-import com.adgeistkit.UserDetails
-import com.adgeistkit.Event
+import com.adgeistkit.data.models.Event
+import com.adgeistkit.data.models.UserDetails
+
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -39,6 +40,7 @@ class MainActivity : AppCompatActivity() {
 
         // Set User Details
         setUserDetailsBtn.setOnClickListener {
+            adGeist.requestPhoneStatePermission(this)
             val userDetails = UserDetails(
                 userId = "1",
                 email = "john@example.com",

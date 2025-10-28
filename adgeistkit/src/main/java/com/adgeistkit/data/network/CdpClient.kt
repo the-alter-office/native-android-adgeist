@@ -1,7 +1,10 @@
-package com.adgeistkit
+package com.adgeistkit.data.network
 
 import android.util.Log
-import com.adgeistkit.AdgeistCore.Companion
+import com.adgeistkit.core.device.DeviceIdentifier
+import com.adgeistkit.core.device.NetworkUtils
+import com.adgeistkit.data.models.Event
+import com.adgeistkit.data.models.UserDetails
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
