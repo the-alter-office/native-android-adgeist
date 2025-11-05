@@ -11,18 +11,21 @@ import com.adgeistkit.data.models.UserDetails
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlin.math.log
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var adGeist: AdgeistCore
     private var lastAdBidId: String? = null
     private var lastAdCampaignId: String? = null
+    private var lastAdMetaData: String = ""
+    private var lastAdBuyType: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        adGeist = AdgeistCore.initialize(applicationContext, "bg-services-qa-api.adgeist.ai")
+        adGeist = AdgeistCore.initialize(applicationContext, "beta.v2.bg-services.adgeist.ai")
 
         val fetchCreativeBtn = findViewById<Button>(R.id.triggerNetworkCall)
         val setUserDetailsBtn = findViewById<Button>(R.id.setUserDetailsBtn)
@@ -86,7 +89,9 @@ class MainActivity : AppCompatActivity() {
                     apiKey = "48ad37bbe0c4091dee7c4500bc510e4fca6e7f7a1c293180708afa292820761c",
                     bidId = lastAdBidId ?: "",
                     isTestEnvironment = true,
-                    renderTime = 400f
+                    renderTime = 400f,
+                    bidMeta = lastAdMetaData,
+                    buyType = lastAdBuyType
                 )
             }
         }
@@ -106,6 +111,8 @@ class MainActivity : AppCompatActivity() {
                     visibilityRatio = 0.8f,
                     scrollDepth = 0.5f,
                     timeToVisible = 1000f,
+                    bidMeta = lastAdMetaData,
+                    buyType = lastAdBuyType
                 )
             }
         }
@@ -120,7 +127,9 @@ class MainActivity : AppCompatActivity() {
                     publisherId = "68e4baa14040394a656d5262",
                     apiKey = "48ad37bbe0c4091dee7c4500bc510e4fca6e7f7a1c293180708afa292820761c",
                     bidId = lastAdBidId ?: "",
-                    isTestEnvironment = true
+                    isTestEnvironment = true,
+                    bidMeta = lastAdMetaData,
+                    buyType = lastAdBuyType
                 )
             }
         }
@@ -134,11 +143,21 @@ class MainActivity : AppCompatActivity() {
                 "https://adgeist-ad-integration.d49kd6luw1c4m.amplifyapp.com",
                 "68e511714b6a95a8d4d1d1c6",
                 "68e4baa14040394a656d5262",
+                "FIXED"
             ) { adData ->
                 if (adData != null) {
-                    lastAdBidId = adData?.data?.id
-                    lastAdCampaignId = adData?.data?.seatBid?.getOrNull(0)?.bid?.getOrNull(0)?.id
-                    Log.d("MainActivity", "Ad Data: $adData")
+                    when (adData) {
+                        is com.adgeistkit.data.models.FixedAdResponse -> {
+                            lastAdMetaData = adData.metaData
+                            lastAdBuyType = "FIXED"
+                        }
+
+                        is com.adgeistkit.data.models.CPMAdResponse -> {
+                            lastAdBidId = adData?.data?.id
+                            lastAdCampaignId = adData?.data?.seatBid?.getOrNull(0)?.bid?.getOrNull(0)?.id
+                            lastAdBuyType = "CPM"
+                        }
+                    }
                 } else {
                     Log.e("MainActivity", "Failed to fetch creative")
                 }

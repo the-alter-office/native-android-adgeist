@@ -8,14 +8,11 @@ import com.adgeistkit.core.device.NetworkUtils
 class TargetingOptions(private val context: Context) {
     fun getTargetingInfo(): Map<String, Any?> {
         val deviceMeta = DeviceMeta(context)
-        val networkUtils = NetworkUtils(context)
 
-        val meta = deviceMeta.getAllDeviceInfo()
-        val ipAddress = networkUtils.getLocalIpAddress() ?: networkUtils.getWifiIpAddress()
+        val deviceTargetingMetrics = deviceMeta.getAllDeviceInfo()
 
         return mapOf(
-            "meta" to meta,
-            "ipAddress" to ipAddress
+            "deviceTargetingMetrics" to deviceTargetingMetrics,
         )
     }
 }

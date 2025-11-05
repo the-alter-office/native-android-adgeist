@@ -10,7 +10,7 @@ import java.util.UUID
 
 class DeviceIdentifier(private val context: Context) {
     companion object {
-        private const val TAG = "FetchCreative"
+        private const val TAG = "DeviceIdentifier"
     }
 
     // Priority 1: Advertising ID (for ads tracking)
@@ -26,7 +26,6 @@ class DeviceIdentifier(private val context: Context) {
             if (adId.isNullOrEmpty()) {
                 getAndroidId()
             } else {
-                Log.i(TAG, "Successfully fetched Advertising ID: $adId")
                 adId
             }
         } catch (e: Exception) {
@@ -45,7 +44,6 @@ class DeviceIdentifier(private val context: Context) {
             if (androidId.isNullOrEmpty()) {
                 getOrCreateAppInstallId()
             } else {
-                Log.i(TAG, "Successfully fetched Android ID: $androidId")
                 androidId
             }
         } catch (e: Exception) {
@@ -60,7 +58,6 @@ class DeviceIdentifier(private val context: Context) {
             prefs.getString("install_id", null) ?: run {
                 val newId = UUID.randomUUID().toString()
                 prefs.edit().putString("install_id", newId).apply()
-                Log.i(TAG, "Generated new install ID: $newId")
                 newId
             }.also { id ->
                 if (id != null) Log.i(TAG, "Using existing install ID: $id")

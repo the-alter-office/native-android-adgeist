@@ -25,7 +25,6 @@ class CreativeAnalytics(
         const val IMPRESSION = "IMPRESSION"
         const val VIEW = "VIEW"
         const val TOTAL_VIEW = "TOTAL_VIEW"
-        const val HOVER = "HOVER"
         const val CLICK = "CLICK"
         const val VIDEO_PLAYBACK = "VIDEO_PLAYBACK"
         const val VIDEO_QUARTILE = "VIDEO_QUARTILE"
@@ -43,6 +42,8 @@ class CreativeAnalytics(
         origin: String,
         apiKey: String,
         bidId: String,
+        bidMeta: String,
+        buyType: String,
         isTestEnvironment: Boolean = true,
         additionalProperties: JSONObject = JSONObject(),
         callback: (String?) -> Unit
@@ -52,19 +53,32 @@ class CreativeAnalytics(
             val userIP = networkUtils.getLocalIpAddress() ?: networkUtils.getWifiIpAddress() ?: "unknown"
 
             val envFlag = if (isTestEnvironment) "1" else "0"
-            val url = "https://$domain/api/analytics/track?adSpaceId=$adSpaceId&companyId=$publisherId&test=$envFlag"
+            val url = if (buyType == "FIXED") {
+                "https://$domain/v2/ssp/impression"
+            }else{
+                "https://$domain/api/analytics/track?adSpaceId=$adSpaceId&companyId=$publisherId&test=$envFlag"
+            }
 
-            val requestBodyJson = JSONObject().apply {
-                put("eventType", eventType)
-                put("winningBidId", bidId)
-                put("campaignId", campaignId)
-                // Merge additional properties (e.g., visibility_ratio, scroll_depth)
-                additionalProperties.keys().forEach { key ->
-                    put(key, additionalProperties.get(key))
-                }
-            }.toString()
+            val requestPayload = if(buyType == "FIXED") {
+                JSONObject().apply {
+                    put("type", eventType)
+                    put("metaData", bidMeta)
+                    additionalProperties.keys().forEach { key ->
+                        put(key, additionalProperties.get(key))
+                    }
+                }.toString()
+            }else{
+                JSONObject().apply {
+                    put("eventType", eventType)
+                    put("winningBidId", bidId)
+                    put("campaignId", campaignId)
+                    additionalProperties.keys().forEach { key ->
+                        put(key, additionalProperties.get(key))
+                    }
+                }.toString()
+            }
 
-            val requestBody = requestBodyJson.toRequestBody("application/json".toMediaType())
+            val requestBody = requestPayload.toRequestBody("application/json".toMediaType())
 
             val request = Request.Builder()
                 .url(url)
@@ -102,64 +116,64 @@ class CreativeAnalytics(
     }
 
     // Track impression
-    fun trackImpression(campaignId: String, adSpaceId: String, publisherId: String, apiKey: String, bidId: String, isTestEnvironment: Boolean, renderTime: Float) {
+    fun trackImpression(campaignId: String, adSpaceId: String, publisherId: String, apiKey: String, bidId: String, bidMeta: String, buyType: String, isTestEnvironment: Boolean, renderTime: Float) {
         val properties = JSONObject().apply {
             put("renderTime", renderTime)
         }
-        sendTrackingData(campaignId, adSpaceId, publisherId, IMPRESSION, domain, apiKey, bidId, isTestEnvironment, properties) { result ->
+        sendTrackingData(campaignId, adSpaceId, publisherId, IMPRESSION, domain, apiKey, bidId, bidMeta, buyType, isTestEnvironment, properties) { result ->
             Log.d(TAG, "Impression event result: $result")
         }
     }
 
     // Track view event (scroll depth, visibility ratio, view time)
-    fun trackView(campaignId: String, adSpaceId: String, publisherId: String, apiKey: String, bidId: String, isTestEnvironment: Boolean, viewTime: Float, visibilityRatio: Float, scrollDepth: Float, timeToVisible: Float) {
+    fun trackView(campaignId: String, adSpaceId: String, publisherId: String, apiKey: String, bidId: String, bidMeta: String, buyType: String, isTestEnvironment: Boolean, viewTime: Float, visibilityRatio: Float, scrollDepth: Float, timeToVisible: Float) {
         val properties = JSONObject().apply {
             put("viewTime", viewTime)
             put("visibilityRatio", visibilityRatio)
             put("scrollDepth", scrollDepth)
             put("timeToVisible", timeToVisible)
         }
-        sendTrackingData(campaignId, adSpaceId, publisherId, VIEW, domain, apiKey, bidId, isTestEnvironment, properties) { result ->
+        sendTrackingData(campaignId, adSpaceId, publisherId, VIEW, domain, apiKey, bidId, bidMeta, buyType, isTestEnvironment, properties) { result ->
             Log.d(TAG, "View event result: $result")
         }
     }
 
     // Track total view time
-    fun trackTotalView(campaignId: String, adSpaceId: String, publisherId: String, apiKey: String, bidId: String, isTestEnvironment: Boolean, totalViewTime: Float, visibilityRatio: Float) {
+    fun trackTotalView(campaignId: String, adSpaceId: String, publisherId: String, apiKey: String, bidId: String, bidMeta: String, buyType: String, isTestEnvironment: Boolean, totalViewTime: Float, visibilityRatio: Float) {
         val properties = JSONObject().apply {
             put("totalViewTime", totalViewTime)
             put("visibilityRatio", visibilityRatio)
         }
-        sendTrackingData(campaignId, adSpaceId, publisherId, TOTAL_VIEW, domain, apiKey, bidId, isTestEnvironment, properties) { result ->
+        sendTrackingData(campaignId, adSpaceId, publisherId, TOTAL_VIEW, domain, apiKey, bidId, bidMeta, buyType, isTestEnvironment, properties) { result ->
             Log.d(TAG, "Total view event result: $result")
         }
     }
 
     // Track click
-    fun trackClick(campaignId: String, adSpaceId: String, publisherId: String, apiKey: String, bidId: String, isTestEnvironment: Boolean) {
+    fun trackClick(campaignId: String, adSpaceId: String, publisherId: String, apiKey: String, bidId: String, bidMeta: String, buyType: String, isTestEnvironment: Boolean) {
         val properties = JSONObject().apply {
         }
-        sendTrackingData(campaignId, adSpaceId, publisherId, CLICK, domain, apiKey, bidId, isTestEnvironment, properties) { result ->
+        sendTrackingData(campaignId, adSpaceId, publisherId, CLICK, domain, apiKey, bidId, bidMeta, buyType, isTestEnvironment, properties) { result ->
             Log.d(TAG, "Click event result: $result")
         }
     }
 
     // Track video playback
-    fun trackVideoPlayback(campaignId: String, adSpaceId: String, publisherId: String, apiKey: String, bidId: String, isTestEnvironment: Boolean, totalPlaybackTime: Float) {
+    fun trackVideoPlayback(campaignId: String, adSpaceId: String, publisherId: String, apiKey: String, bidId: String, bidMeta: String, buyType: String, isTestEnvironment: Boolean, totalPlaybackTime: Float) {
         val properties = JSONObject().apply {
             put("totalPlaybackTime", totalPlaybackTime)
         }
-        sendTrackingData(campaignId, adSpaceId, publisherId, VIDEO_PLAYBACK, domain, apiKey, bidId, isTestEnvironment, properties) { result ->
+        sendTrackingData(campaignId, adSpaceId, publisherId, VIDEO_PLAYBACK, domain, apiKey, bidId, bidMeta, buyType, isTestEnvironment, properties) { result ->
             Log.d(TAG, "Video playback event result: $result")
         }
     }
 
     // Track video quartile
-    fun trackVideoQuartile(campaignId: String, adSpaceId: String, publisherId: String, apiKey: String, bidId: String, isTestEnvironment: Boolean, quartile: String) {
+    fun trackVideoQuartile(campaignId: String, adSpaceId: String, publisherId: String, apiKey: String, bidId: String, bidMeta: String, buyType: String, isTestEnvironment: Boolean, quartile: String) {
         val properties = JSONObject().apply {
             put("quartile", quartile)
         }
-        sendTrackingData(campaignId, adSpaceId, publisherId, VIDEO_QUARTILE, domain, apiKey, bidId, isTestEnvironment, properties) { result ->
+        sendTrackingData(campaignId, adSpaceId, publisherId, VIDEO_QUARTILE, domain, apiKey, bidId, bidMeta, buyType, isTestEnvironment, properties) { result ->
             Log.d(TAG, "Video quartile event result: $result")
         }
     }

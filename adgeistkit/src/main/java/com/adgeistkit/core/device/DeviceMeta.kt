@@ -13,6 +13,9 @@ import android.util.Log
 import android.view.accessibility.AccessibilityManager
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import android.opengl.GLES20
+import android.annotation.SuppressLint
+import android.opengl.EGLContext
 
 class DeviceMeta(private val context: Context) {
     companion object {
@@ -51,7 +54,7 @@ class DeviceMeta(private val context: Context) {
         return try {
             Build.SUPPORTED_ABIS.joinToString(", ")
         } catch (e: Exception) {
-            "Unknown"
+            "Unavailable (Android Privacy Restrictions)"
         }
     }
 
@@ -67,8 +70,8 @@ class DeviceMeta(private val context: Context) {
         return "Android"
     }
 
-    fun getOSVersion(): Int {
-        return Build.VERSION.SDK_INT
+    fun getOSVersion(): String {
+        return Build.VERSION.RELEASE
     }
 
     fun getScreenDimensions(): Pair<Int, Int> {
@@ -79,7 +82,6 @@ class DeviceMeta(private val context: Context) {
     fun getNetworkType(): String? {
         return try {
             val permission = context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE)
-            Log.i("META", "getNetworkType: $permission")
             if (permission == PackageManager.PERMISSION_GRANTED) {
                 val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
                 when (telephonyManager.dataNetworkType) {
@@ -91,13 +93,12 @@ class DeviceMeta(private val context: Context) {
                     TelephonyManager.NETWORK_TYPE_HSPA -> "3G"
                     TelephonyManager.NETWORK_TYPE_LTE -> "4G"
                     TelephonyManager.NETWORK_TYPE_NR -> "5G"
-                    else -> "Unknown"
+                    else -> "Unavailable (Android Privacy Restrictions)"
                 }
             } else {
-                null // Permission not granted
+                null
             }
         } catch (e: Exception) {
-            Log.e("META", "Error getting network type", e)
             null
         }
     }
@@ -115,10 +116,6 @@ class DeviceMeta(private val context: Context) {
         } catch (e: Exception) {
             null
         }
-    }
-
-    fun isTouchScreenAvailable(): Boolean {
-        return context.packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
     }
 
     fun isGpuCapable(): Boolean {
@@ -141,37 +138,30 @@ class DeviceMeta(private val context: Context) {
         return accessibilityManager.isTouchExplorationEnabled
     }
 
-    fun getDeviceAge(): String? = null
-
-    fun getDevicePricing(): String? = null
 
     fun getAllDeviceInfo(): Map<String, Any?> {
         val (width, height) = getScreenDimensions()
         return mapOf(
             "deviceType" to getDeviceType(),
             "deviceBrand" to getDeviceBrand(),
-            "cpuType" to getCpuType(),
-            "availableProcessors" to getAvailableProcessors(),
 
-            "operatingSystem" to getOperatingSystem(),
+            "screenWidth" to width,
+            "screenHeight" to height,
+
+            "osName" to getOperatingSystem(),
             "osVersion" to getOSVersion(),
 
-            "screenDimensions" to mapOf(
-                "width" to width,
-                "height" to height
-            ),
+            "supportedArchitectures" to getCpuType(),
+            "noOfProcessors" to getAvailableProcessors(),
 
             "networkType" to getNetworkType(),
             "networkProvider" to getNetworkProvider(),
 
-            "isTouchScreenAvailable" to isTouchScreenAvailable(),
-            "isGpuCapable" to isGpuCapable(),
+            "isScreenReaderPresent" to isScreenReaderPresent(),
             "isNfcCapable" to isNfcCapable(),
             "isVrCapable" to isVrCapable(),
-            "isScreenReaderPresent" to isScreenReaderPresent(),
 
-            "deviceAge" to getDeviceAge(),
-            "devicePricing" to getDevicePricing(),
+            "isGpuCapable" to isGpuCapable(),
         )
     }
 }

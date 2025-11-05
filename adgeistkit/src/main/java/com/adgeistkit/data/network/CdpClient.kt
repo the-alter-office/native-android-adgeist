@@ -79,9 +79,7 @@ class CdpClient(
             try {
                 client.newCall(request).execute().use { response ->
                     if (response.isSuccessful) {
-//                        Log.d(TAG, "Event sent to CDP: ${response.body?.string()}")
                     } else {
-                        Log.e(TAG, "Failed to send event to CDP: ${response.code}, ${response.body?.string()}")
                     }
                 }
             } catch (e: IOException) {
