@@ -1,4 +1,4 @@
-import com.vanniktech.maven.publish.SonatypeHost
+import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
 
 plugins {
     alias(libs.plugins.android.library)
@@ -10,6 +10,27 @@ plugins {
 android {
     namespace = "com.adgeistkit"
     compileSdk = 35
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    flavorDimensions += "environment"
+    
+    productFlavors {
+        create("alpha") {
+            dimension = "environment"
+            buildConfigField("String", "BASE_API_URL", "\"https://beta.v2.bg-services.adgeist.ai\"")
+        }
+        create("rc") {
+            dimension = "environment"
+            buildConfigField("String", "BASE_API_URL", "\"https://bg-services-qa-api.adgeist.ai\"")
+        }
+        create("prod") {
+            dimension = "environment"
+            buildConfigField("String", "BASE_API_URL", "\"https://prod.v2.bg-services.adgeist.ai\"")
+        }
+    }
 
     defaultConfig {
         minSdk = 24
@@ -37,7 +58,6 @@ android {
 }
 
 dependencies {
-
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.core:core:1.12.0")
     implementation(libs.androidx.appcompat)
@@ -49,6 +69,10 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+mavenPublishing {
+    configure(AndroidSingleVariantLibrary("prodRelease"))
 }
 
 // afterEvaluate {

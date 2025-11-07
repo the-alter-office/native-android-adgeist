@@ -23,7 +23,7 @@ class AdgeistCore private constructor(
     companion object {
         private const val TAG = "AdgeistCore"
         @Volatile private var instance: AdgeistCore? = null
-        private const val DEFAULT_DOMAIN = "bg-services-qa-api.adgeist.ai"
+        private const val DEFAULT_DOMAIN = com.adgeistkit.BuildConfig.BASE_API_URL
 
         /**
          * Initializes the SDK with the given context and optional custom domain.
