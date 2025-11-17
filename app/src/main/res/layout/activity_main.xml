@@ -1,71 +1,97 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
     android:gravity="center">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Hello Android!"
-        android:textSize="18sp" />
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="300dp"
+            android:layout_height="300dp"
+            android:layout_marginTop="120dp"
+            android:background="@color/material_on_surface_stroke"
+            >
+            <com.adgeistkit.ads.AdView
+                android:id="@+id/adView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:adUnitId="6915dd0c16b1e2f462f99f0e"
+                app:adSize="banner" />
+        </LinearLayout>
+
+<!--    <Button-->
+<!--        android:id="@+id/triggerNetworkCall"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="Make Network Call"-->
+<!--        android:layout_marginTop="16dp" />-->
+
+<!--    <Button-->
+<!--        android:id="@+id/statusBtn"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="Get Consent Status"-->
+<!--        android:layout_marginTop="16dp" />-->
+
+<!--    <Button-->
+<!--        android:id="@+id/consentBtn"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="Update Consent"-->
+<!--        android:layout_marginTop="16dp" />-->
+
+<!--    <Button-->
+<!--        android:id="@+id/setUserDetailsBtn"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="Set User Details"-->
+<!--        android:layout_marginTop="16dp" />-->
+
+<!--    <Button-->
+<!--        android:id="@+id/logEventBtn"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="Log Event"-->
+<!--        android:layout_marginTop="16dp" />-->
+
+<!--    <Button-->
+<!--        android:id="@+id/trackImpressionBtn"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="Track Impression"-->
+<!--        android:layout_marginTop="16dp" />-->
+
+<!--    <Button-->
+<!--        android:id="@+id/trackViewBtn"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="Track View"-->
+<!--        android:layout_marginTop="16dp" />-->
+
+<!--    <Button-->
+<!--        android:id="@+id/trackClickBtn"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="Track Click"-->
+<!--        android:layout_marginTop="16dp" />-->
 
     <Button
-        android:id="@+id/triggerNetworkCall"
+        android:id="@+id/loadBannerAdBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Make Network Call"
-        android:layout_marginTop="16dp" />
+        android:text="Load Banner Ad"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="@color/material_on_surface_emphasis_high_type" />
 
-    <Button
-        android:id="@+id/statusBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Get Consent Status"
-        android:layout_marginTop="16dp" />
+    </LinearLayout>
 
-    <Button
-        android:id="@+id/consentBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Update Consent"
-        android:layout_marginTop="16dp" />
-
-    <Button
-        android:id="@+id/setUserDetailsBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Set User Details"
-        android:layout_marginTop="16dp" />
-
-    <Button
-        android:id="@+id/logEventBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Log Event"
-        android:layout_marginTop="16dp" />
-
-    <Button
-        android:id="@+id/trackImpressionBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Track Impression"
-        android:layout_marginTop="16dp" />
-
-    <Button
-        android:id="@+id/trackViewBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Track View"
-        android:layout_marginTop="16dp" />
-
-    <Button
-        android:id="@+id/trackClickBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Track Click"
-        android:layout_marginTop="16dp" />
-
-</LinearLayout>
+</ScrollView>

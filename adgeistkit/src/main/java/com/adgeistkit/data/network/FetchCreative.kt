@@ -68,10 +68,20 @@ class FetchCreative(
                 )
             }
 
+            if(isTestEnvironment){
+                payload["origin"] = origin
+            }
+
             val requestPayload = Gson().toJson(payload)
             val requestBody = requestPayload.toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
 
             val request = if (buyType == "FIXED") {
+                Request.Builder()
+                    .url(url)
+                    .post(requestBody)
+                    .header("Content-Type", "application/json")
+                    .build()
+            } else {
                 Request.Builder()
                     .url(url)
                     .post(requestBody)
@@ -81,12 +91,6 @@ class FetchCreative(
                     .header("x-platform", "mobile_app")
                     .header("x-api-key", apiKey)
                     .header("x-forwarded-for", userIP)
-                    .build()
-            } else {
-                Request.Builder()
-                    .url(url)
-                    .post(requestBody)
-                    .header("Content-Type", "application/json")
                     .build()
             }
 

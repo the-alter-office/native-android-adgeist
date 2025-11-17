@@ -18,6 +18,14 @@
         android:theme="@style/Theme.NativeandroidadgeistTheme"
         tools:targetApi="31">
         
+        <meta-data
+        android:name="com.adgeistkit.ads.APP_ID"
+        android:value="68f91f09c40a64049896acab"/>
+
+        <meta-data
+        android:name="com.adgeistkit.ads.API_KEY"
+        android:value="1b8eac4512740be0ff678cd2549607b49b51ebd5f9496d83359454ce83b1b57c"/>
+
         <activity
             android:name=".MainActivity"
             android:exported="true">

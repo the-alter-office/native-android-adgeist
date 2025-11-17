@@ -53,10 +53,15 @@ android {
 
 dependencies {
 
+    // Force Kotlin version to prevent conflicts
+    implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.8.0"))
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+    // implementation("com.google.android.gms:play-services-ads:23.3.0")
     // implementation(libs.androidx.activity.compose)
     // implementation(platform(libs.androidx.compose.bom))
     // implementation(libs.androidx.ui)

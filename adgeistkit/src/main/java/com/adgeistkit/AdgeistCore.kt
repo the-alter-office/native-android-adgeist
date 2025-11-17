@@ -31,6 +31,7 @@ class AdgeistCore private constructor(
          * @param customDomain Optional custom domain for API requests.
          * @return The initialized AdgeistCore instance.
          */
+        @JvmStatic
         fun initialize(context: Context, customDomain: String? = null): AdgeistCore {
             return instance ?: synchronized(this) {
                 instance ?: AdgeistCore(
@@ -44,6 +45,7 @@ class AdgeistCore private constructor(
          * Gets the initialized instance of AdgeistCore.
          * @throws IllegalStateException if not initialized.
          */
+        @JvmStatic
         fun getInstance(): AdgeistCore {
             return instance ?: throw IllegalStateException("AdgeistCore is not initialized")
         }

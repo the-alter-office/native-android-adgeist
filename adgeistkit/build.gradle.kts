@@ -58,6 +58,10 @@ android {
 }
 
 dependencies {
+    // Force Kotlin version to prevent conflicts
+    implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.8.0"))
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.core:core:1.12.0")
     implementation(libs.androidx.appcompat)
