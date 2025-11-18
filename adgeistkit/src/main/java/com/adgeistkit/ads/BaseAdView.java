@@ -45,16 +45,6 @@ public abstract class BaseAdView extends ViewGroup {
     private boolean isDestroyed = false;
     private Handler mainHandler;
 
-    @Nullable
-    public AdSize getAdSize() {
-        return adSize;
-    }
-
-    @NonNull
-    public String getAdUnitId() {
-        return adUnitId;
-    }
-
     protected BaseAdView(@NonNull Context context, int adViewType) {
         super(context);
         initialize(context, null);
@@ -89,8 +79,7 @@ public abstract class BaseAdView extends ViewGroup {
                 typedArray.recycle();
             }
         }
-        
-        // Default ad size if not set
+
         if (adSize == null) {
             adSize = AdSize.BANNER;
         }
@@ -150,7 +139,7 @@ public abstract class BaseAdView extends ViewGroup {
                 String apiKey = getMetaValue(getContext(), "com.adgeistkit.ads.API_KEY");
 
                 fetchCreative.fetchCreative(
-                    apiKey,"https://adgeist-ad-integration.d49kd6luw1c4m.amplifyapp.com/", adUnitId, publisherId, "FIXED", true,
+                    apiKey,"https://adgeist-ad-integration.d49kd6luw1c4m.amplifyapp.com/", adUnitId, publisherId, "FIXED", adRequest.isTestMode(),
                     creativeData -> {
                         mainHandler.post(() -> {
                             isLoading = false;
@@ -230,7 +219,6 @@ public abstract class BaseAdView extends ViewGroup {
 
     private void renderAdWithAdCard(@NonNull String creativeJsonData) {
         removeAllViews();
-        
         webView = new WebView(getContext());
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
@@ -265,12 +253,8 @@ public abstract class BaseAdView extends ViewGroup {
                 String message = consoleMessage.message();
                 String source = consoleMessage.sourceId();
                 int line = consoleMessage.lineNumber();
-                
-                // Format: [LEVEL] message (source:line)
-                String fullLog = String.format("[%s] %s (%s:%d)", 
-                    logLevel, message, source, line);
-                Log.e(TAG, fullLog);
-                // Log based on level
+
+                String fullLog = String.format("[%s] %s (%s:%d)", logLevel, message, source, line);
                 switch (consoleMessage.messageLevel()) {
                     case ERROR:
                         Log.e(TAG, "🔴 JS Error: " + fullLog);
@@ -285,18 +269,12 @@ public abstract class BaseAdView extends ViewGroup {
                         Log.d(TAG, "🔵 JS Log: " + fullLog);
                         break;
                 }
-                
                 return true;
             }
         });
-        
-        // Set click listener
-        webView.setOnClickListener(v -> {
-        });
-        
-        // Build HTML that loads AdCard.js and renders the creative
-        String htmlContent = buildAdCardHtml(creativeJsonData);
 
+        webView.setOnClickListener(v -> {});
+        String htmlContent = buildAdCardHtml(creativeJsonData);
         webView.loadDataWithBaseURL(
             "https://adgeist.ai",  
             htmlContent,        
@@ -304,8 +282,6 @@ public abstract class BaseAdView extends ViewGroup {
             "UTF-8",           
             null           
         );
-        
-        // Add to view hierarchy
         addView(webView, new LayoutParams(
             LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT
         ));
@@ -317,8 +293,6 @@ public abstract class BaseAdView extends ViewGroup {
                 .replace("\"", "\\\"")
                 .replace("\n", "\\n")
                 .replace("\r", "\\r");
-
-        Log.i(TAG, creativeJsonData);
 
         return "<!DOCTYPE html>" +
                 "<html>" +
@@ -449,6 +423,15 @@ public abstract class BaseAdView extends ViewGroup {
         this.adUnitId = adUnitId;
     }
 
+    @Nullable
+    public AdSize getAdSize() {
+        return adSize;
+    }
+
+    @NonNull
+    public String getAdUnitId() {
+        return adUnitId;
+    }
 
     public boolean isCollapsible() {
         return false;

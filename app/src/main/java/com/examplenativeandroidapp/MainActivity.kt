@@ -159,6 +159,7 @@ class MainActivity : AppCompatActivity() {
             .setTestMode(true)
             .build()
         val dimensions = AdSize(275, 275)
+        adView.setAdUnitId("6915dd0c16b1e2f462f99f0e")
         adView.setAdSize(dimensions)
         adView.loadAd(adRequest)
     }

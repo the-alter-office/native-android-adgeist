@@ -5,36 +5,37 @@ import org.json.JSONObject;
 public class AdRequest {
     private final boolean testMode;
 
-    public AdRequest(boolean testMode) {
-        this.testMode = testMode;
+    private AdRequest(Builder builder) {
+        this.testMode = builder.testMode;
+    }
+
+    public static class Builder {
+        private boolean testMode;
+
+        public Builder setTestMode(boolean testMode) {
+            this.testMode = testMode;
+            return this;
+        }
+
+        public AdRequest build() {
+            return new AdRequest(this);
+        }
     }
 
     public boolean isTestMode() {
         return testMode;
     }
 
-    public static class Builder {
-        private boolean testMode = false;
-
-        public Builder setTestMode(boolean enabled) {
-            this.testMode = enabled;
-            return this;
-        }
-
-        public AdRequest build() {
-            return new AdRequest(testMode);
-        }
+    @Override
+    public String toString() {
+        return "AdRequest(testMode=" + testMode + ")";
     }
 
-    JSONObject toJson() {
+    public JSONObject toJson() {
         JSONObject json = new JSONObject();
-        try {json.put("testMode", testMode);}
+        try { json.put("testMode", testMode); }
         catch (Exception ignored) {}
         return json;
     }
-
-    @Override
-    public String toString() {
-        return "AdRequest( testMode=" + testMode + ")";
-    }
 }
+
