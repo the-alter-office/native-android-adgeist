@@ -4,19 +4,15 @@ import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import android.widget.Button
-import android.widget.Toast
 import com.adgeistkit.AdgeistCore
 import com.adgeistkit.ads.AdListener
-import com.adgeistkit.ads.AdRequest
 import com.adgeistkit.ads.AdSize
 import com.adgeistkit.ads.AdView
-import com.adgeistkit.data.models.Event
-import com.adgeistkit.data.models.UserDetails
+import com.adgeistkit.ads.network.AdRequest
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlin.math.log
 
 class MainActivity : AppCompatActivity() {
 

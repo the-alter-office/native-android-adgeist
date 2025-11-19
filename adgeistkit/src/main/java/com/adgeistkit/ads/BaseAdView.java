@@ -23,6 +23,7 @@ import androidx.annotation.RequiresPermission;
 
 import com.adgeistkit.AdgeistCore;
 import com.adgeistkit.R;
+import com.adgeistkit.ads.network.AdRequest;
 import com.adgeistkit.data.models.Creative;
 import com.adgeistkit.data.models.Dimensions;
 import com.adgeistkit.data.models.DisplayOptions;
@@ -38,6 +39,9 @@ public abstract class BaseAdView extends ViewGroup {
     @Nullable protected AdSize adSize;
     @NonNull protected String adUnitId = "";
     @NonNull protected String mediaType;
+
+    @NonNull protected boolean isTestMode;
+    @NonNull protected String metaData;
 
     @Nullable private WebView webView;
     private JsBridge jsInterface;
@@ -149,8 +153,10 @@ public abstract class BaseAdView extends ViewGroup {
                 String publisherId = getMetaValue(getContext(), "com.adgeistkit.ads.APP_ID");
                 String apiKey = getMetaValue(getContext(), "com.adgeistkit.ads.API_KEY");
 
+                isTestMode = adRequest.isTestMode();
+
                 fetchCreative.fetchCreative(
-                    apiKey,"https://adgeist-ad-integration.d49kd6luw1c4m.amplifyapp.com/", adUnitId, publisherId, "FIXED", adRequest.isTestMode(),
+                    apiKey,"https://adgeist-ad-integration.d49kd6luw1c4m.amplifyapp.com/", adUnitId, publisherId, "FIXED", isTestMode,
                     creativeData -> {
                         mainHandler.post(() -> {
                             if (isDestroyed) return;
@@ -167,6 +173,7 @@ public abstract class BaseAdView extends ViewGroup {
                                 Creative c = fixed.getCreatives().get(0);
 
                                 mediaType = c.getType();
+                                metaData = fixed.getMetaData();
 
                                 Map<String, Object> simpleCreative = new HashMap<>();
 

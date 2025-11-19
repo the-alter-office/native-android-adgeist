@@ -1,4 +1,4 @@
-package com.adgeistkit.ads;
+package com.adgeistkit.ads.network;
 
 import org.json.JSONObject;
 
@@ -38,4 +38,3 @@ public class AdRequest {
         return json;
     }
 }
-

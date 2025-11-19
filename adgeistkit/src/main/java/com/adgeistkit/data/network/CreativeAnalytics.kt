@@ -2,8 +2,11 @@ package com.adgeistkit.data.network
 
 import android.content.Context
 import android.util.Log
+import com.adgeistkit.ads.network.AdRequest
+import com.adgeistkit.ads.network.AnalyticsRequest
 import com.adgeistkit.core.device.DeviceIdentifier
 import com.adgeistkit.core.device.NetworkUtils
+import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -32,6 +35,38 @@ class CreativeAnalytics(
 
     private val scope = CoroutineScope(Dispatchers.IO)
     private val client = OkHttpClient()
+
+    fun sendTrackingDataV2(analyticsRequest: AnalyticsRequest){
+        scope.launch {
+            val url = "https://$domain/v2/ssp/impression";
+
+            val requestPayload = analyticsRequest.toJson().toString();
+            val requestBody = requestPayload.toRequestBody("application/json".toMediaType());
+
+            val request = Request.Builder()
+                .url(url)
+                .header("Content-Type", "application/json")
+                .post(requestBody)
+                .build()
+
+
+            client.newCall(request).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    Log.d(TAG, "Failed to send tracking data: ${e.message}")
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    response.use {
+                        if (!response.isSuccessful) {
+                            val errorBody = response.body?.string() ?: "No error message"
+                            Log.d(TAG, "Request failed with code: ${response.code}, message: $errorBody")
+                            return
+                        }
+                    }
+                }
+            })
+        }
+    }
 
     // Core method to send tracking data to backend
     fun sendTrackingData(

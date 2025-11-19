@@ -14,11 +14,17 @@ import android.widget.ScrollView;
 import androidx.annotation.Nullable;
 import androidx.core.widget.NestedScrollView;
 
+import com.adgeistkit.AdgeistCore;
+import com.adgeistkit.ads.network.AnalyticsRequest;
+import com.adgeistkit.data.network.CreativeAnalytics;
+
 public class AdActivity {
     private static final String TAG = "Ad Activity";
     private static final double VISIBILITY_THRESHOLD = 0.5f;
     private static final long MIN_VIEW_TIME = 1000L;
 
+
+    private final CreativeAnalytics postCreativeAnalytics;
     private final BaseAdView baseAdView;
     private final long renderStartTime;
 
@@ -46,6 +52,7 @@ public class AdActivity {
         this.baseAdView = baseAdView;
         this.renderStartTime = SystemClock.elapsedRealtime();
         this.mediaType = baseAdView.mediaType;
+        this.postCreativeAnalytics = AdgeistCore.getInstance().postCreativeAnalytics();
         initialize();
     }
 
@@ -125,7 +132,10 @@ public class AdActivity {
                         baseAdView.listener.onAdImpression();
                         float scrollDepth = getScrollDepth();
                         long timeToVisible = SystemClock.elapsedRealtime() - renderStartTime;
-                        Log.e(TAG, " scrollDepth=" + scrollDepth + "timeToVisible =" +   timeToVisible + "currentVisiblityRatio =" + currentVisibilityRatio);
+                        AnalyticsRequest analyticsRequest = new AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
+                                                                .trackViewableImpression(timeToVisible, scrollDepth, currentVisibilityRatio, timeInView)
+                                                                .build();
+                        postCreativeAnalytics.sendTrackingDataV2(analyticsRequest);
                         stopVisibilityCheck();
                     }
                 }
@@ -244,20 +254,35 @@ public class AdActivity {
             renderTime = SystemClock.elapsedRealtime() - renderStartTime;
             Log.e(TAG, "renderTime= " + renderTime);
             baseAdView.listener.onAdLoaded();
+            AnalyticsRequest analyticsRequest = new AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
+                                                    .trackImpression(renderTime)
+                                                    .build();
+            postCreativeAnalytics.sendTrackingDataV2(analyticsRequest);
             hasImpression = true;
         }
     }
 
     public void captureClick(){
         baseAdView.listener.onAdClicked();
+        AnalyticsRequest analyticsRequest = new AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
+                                                .trackClick()
+                                                .build();
+        postCreativeAnalytics.sendTrackingDataV2(analyticsRequest);
     }
 
     public void captureTotalViewTime(){
-
+        AnalyticsRequest analyticsRequest = new AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
+                                                .trackTotalViewTime(totalViewTime)
+                                                .build();
+        postCreativeAnalytics.sendTrackingDataV2(analyticsRequest);
     }
 
     public void captureTotalVideoPlaybackTime(){
         if (totalPlaybackTime > 0 && !hasSentPlaybackEvent && "video".equals(mediaType)) {
+            AnalyticsRequest analyticsRequest = new AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
+                                                    .trackTotalPlaybackTime(totalPlaybackTime)
+                                                    .build();
+            postCreativeAnalytics.sendTrackingDataV2(analyticsRequest);
             hasSentPlaybackEvent = true;
         }
     }
