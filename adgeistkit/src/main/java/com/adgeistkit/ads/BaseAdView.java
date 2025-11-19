@@ -1,9 +1,11 @@
 package com.adgeistkit.ads;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.res.TypedArray;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -11,6 +13,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
@@ -32,15 +35,15 @@ import java.util.*;
 public abstract class BaseAdView extends ViewGroup {
     private static final String TAG = "BaseAdView";
     
-    @Nullable
-    protected AdSize adSize;
-    
-    @NonNull
-    protected String adUnitId = "";
+    @Nullable protected AdSize adSize;
+    @NonNull protected String adUnitId = "";
+    @NonNull protected String mediaType;
 
-    @Nullable
-    private WebView webView;
-    
+    @Nullable private WebView webView;
+    private JsBridge jsInterface;
+
+    @Nullable public AdListener listener;
+
     private boolean isLoading = false;
     private boolean isDestroyed = false;
     private Handler mainHandler;
@@ -83,6 +86,10 @@ public abstract class BaseAdView extends ViewGroup {
         if (adSize == null) {
             adSize = AdSize.BANNER;
         }
+    }
+
+    public void setAdListener(@Nullable AdListener listener){
+        this.listener = listener;
     }
 
     private AdSize getAdSizeFromIndex(int index) {
@@ -130,6 +137,10 @@ public abstract class BaseAdView extends ViewGroup {
         
         isLoading = true;
 
+        if (webView != null) {
+            onDestroyWebView();
+        }
+
         new Thread(() -> {
             try {
                 AdgeistCore adgeist = AdgeistCore.getInstance();
@@ -142,6 +153,7 @@ public abstract class BaseAdView extends ViewGroup {
                     apiKey,"https://adgeist-ad-integration.d49kd6luw1c4m.amplifyapp.com/", adUnitId, publisherId, "FIXED", adRequest.isTestMode(),
                     creativeData -> {
                         mainHandler.post(() -> {
+                            if (isDestroyed) return;
                             isLoading = false;
                             if (creativeData == null) {
                                 return;
@@ -153,6 +165,8 @@ public abstract class BaseAdView extends ViewGroup {
                                     return;
                                 }
                                 Creative c = fixed.getCreatives().get(0);
+
+                                mediaType = c.getType();
 
                                 Map<String, Object> simpleCreative = new HashMap<>();
 
@@ -209,6 +223,7 @@ public abstract class BaseAdView extends ViewGroup {
                     }
                 );
             } catch (Exception e) {
+                listener.onAdFailedToLoad(e.getMessage());
                 mainHandler.post(() -> {
                     isLoading = false;
                     Log.e(TAG, "Error loading ad", e);
@@ -218,12 +233,17 @@ public abstract class BaseAdView extends ViewGroup {
     }
 
     private void renderAdWithAdCard(@NonNull String creativeJsonData) {
+        if (isDestroyed) return;
+
         removeAllViews();
         webView = new WebView(getContext());
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
         webView.getSettings().setLoadWithOverviewMode(true);
         webView.getSettings().setUseWideViewPort(true);
+
+        jsInterface = new JsBridge(this, getContext());
+        listener.onAdOpened();
 
         // Enable WebView debugging (you can inspect in Chrome DevTools)
         // chrome://inspect/#devices
@@ -232,6 +252,21 @@ public abstract class BaseAdView extends ViewGroup {
         }
         
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                openInBrowser(getContext(), url);
+                jsInterface.recordClickListener();
+                return true;
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                String url = request.getUrl().toString();
+                openInBrowser(getContext(), url);
+                jsInterface.recordClickListener();
+                return true;
+            }
+
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
@@ -244,7 +279,7 @@ public abstract class BaseAdView extends ViewGroup {
                 Log.d(TAG, "📦 Loading resource: " + url);
             }
         });
-        
+
         // Set WebChromeClient to capture console logs
         webView.setWebChromeClient(new android.webkit.WebChromeClient() {
             @Override
@@ -258,6 +293,7 @@ public abstract class BaseAdView extends ViewGroup {
                 switch (consoleMessage.messageLevel()) {
                     case ERROR:
                         Log.e(TAG, "🔴 JS Error: " + fullLog);
+                        listener.onAdFailedToLoad(fullLog);
                         break;
                     case WARNING:
                         Log.w(TAG, "🟡 JS Warning: " + fullLog);
@@ -273,7 +309,9 @@ public abstract class BaseAdView extends ViewGroup {
             }
         });
 
-        webView.setOnClickListener(v -> {});
+
+        webView.addJavascriptInterface(jsInterface,"Android");
+
         String htmlContent = buildAdCardHtml(creativeJsonData);
         webView.loadDataWithBaseURL(
             "https://adgeist.ai",  
@@ -361,6 +399,7 @@ public abstract class BaseAdView extends ViewGroup {
                 "</html>";
     }
 
+    @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         View child = getChildAt(0);
         if (child != null && child.getVisibility() != View.GONE) {
@@ -408,6 +447,42 @@ public abstract class BaseAdView extends ViewGroup {
         );
     }
 
+    private void openInBrowser(Context context, String url) {
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to open external URL: " + url, e);
+        }
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        if (webView != null && !isDestroyed) {
+            try { webView.onResume(); } catch (Exception ignored) {}
+        }
+    }
+
+    @Override
+    protected void onWindowVisibilityChanged(int visibility) {
+        super.onWindowVisibilityChanged(visibility);
+        if (webView == null || isDestroyed) return;
+
+        if (visibility == VISIBLE) {
+            try { webView.onResume(); } catch (Exception ignored) {}
+        } else {
+            try { webView.onPause(); } catch (Exception ignored) {}
+        }
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        onDestroyWebView();
+    }
+
     public void setAdSize(@NonNull AdSize adSize) {
         if (adSize == null) {
             throw new IllegalArgumentException("AdSize cannot be null");
@@ -439,6 +514,23 @@ public abstract class BaseAdView extends ViewGroup {
 
     public boolean isLoading() {
         return isLoading;
+    }
+
+    private void onDestroyWebView(){
+        if (isDestroyed) return;
+        isDestroyed = true;
+
+        listener.onAdClosed();
+        jsInterface.destroyListeners();
+        webView.stopLoading();
+        webView.loadUrl("about:blank");
+        webView.onPause();
+        webView.clearHistory();
+        webView.removeAllViews();
+        removeView(webView);
+        webView.destroy();
+        webView = null;
+        jsInterface = null;
     }
 
     private void notifyAdLoaded() {

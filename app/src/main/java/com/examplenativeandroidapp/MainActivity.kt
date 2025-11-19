@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.widget.Button
 import android.widget.Toast
 import com.adgeistkit.AdgeistCore
+import com.adgeistkit.ads.AdListener
 import com.adgeistkit.ads.AdRequest
 import com.adgeistkit.ads.AdSize
 import com.adgeistkit.ads.AdView
@@ -158,8 +159,29 @@ class MainActivity : AppCompatActivity() {
         val adRequest = AdRequest.Builder()
             .setTestMode(true)
             .build()
-        val dimensions = AdSize(275, 275)
-        adView.setAdUnitId("6915dd0c16b1e2f462f99f0e")
+        val dimensions = AdSize(360, 360)
+        adView.setAdUnitId("691af20e4d10c63aa7ba7140")
+        adView.setAdListener(object : AdListener() {
+            override fun onAdLoaded() {
+                Log.d("Ads", "Ad Loaded!")
+            }
+
+            override fun onAdFailedToLoad(error: String) {
+                Log.e("Ads", "Ad Failed: $error")
+            }
+
+            override fun onAdOpened() {
+                Log.d("Ads", "Ad Opened")
+            }
+
+            override fun onAdClosed() {
+                Log.d("Ads", "Ad Closed")
+            }
+
+            override fun onAdClicked() {
+                Log.d("Ads", "Ad Clicked")
+            }
+        })
         adView.setAdSize(dimensions)
         adView.loadAd(adRequest)
     }
