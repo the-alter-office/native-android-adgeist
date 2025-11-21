@@ -26,6 +26,11 @@
         android:name="com.adgeistkit.ads.API_KEY"
         android:value="1b8eac4512740be0ff678cd2549607b49b51ebd5f9496d83359454ce83b1b57c"/>
 
+        <meta-data
+            android:name="com.adgeistkit.ads.ORIGIN"
+            android:value="https://adgeist-ad-integration.d49kd6luw1c4m.amplifyapp.com/"
+            />
+
         <activity
             android:name=".MainActivity"
             android:exported="true">

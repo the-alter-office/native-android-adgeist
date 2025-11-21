@@ -155,8 +155,8 @@ class MainActivity : AppCompatActivity() {
         val adRequest = AdRequest.Builder()
             .setTestMode(true)
             .build()
-        val dimensions = AdSize(360, 360)
-        adView.setAdUnitId("691af20e4d10c63aa7ba7140")
+        val dimensions = AdSize(300, 700)
+        adView.adUnitId = "691c44c870934bb89f73032a";
         adView.setAdListener(object : AdListener() {
             override fun onAdLoaded() {
                 Log.d("Ads", "Ad Loaded!")
@@ -178,7 +178,7 @@ class MainActivity : AppCompatActivity() {
                 Log.d("Ads", "Ad Clicked")
             }
         })
-        adView.setAdSize(dimensions)
+        adView.setAdDimension(dimensions)
         adView.loadAd(adRequest)
     }
 

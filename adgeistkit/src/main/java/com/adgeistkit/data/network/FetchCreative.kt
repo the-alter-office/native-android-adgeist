@@ -60,6 +60,7 @@ class FetchCreative(
 
             if (buyType == "FIXED") {
                 payload["adspaceId"] = adSpaceId
+                payload["companyId"] = companyId
                 payload["timeZone"] = TimeZone.getDefault().id
             } else {
                 payload["appDto"] = mapOf(
