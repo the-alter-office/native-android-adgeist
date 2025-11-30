@@ -32,6 +32,8 @@ open class BaseAdView : ViewGroup {
 
     var adSize: AdSize? = null
     var adUnitId: String = ""
+    var adType: String = "banner"
+    var customOrigin: String? = null
 
     var mediaType: String? = null
 
@@ -126,11 +128,6 @@ open class BaseAdView : ViewGroup {
 
     @RequiresPermission("android.permission.INTERNET")
     fun loadAd(adRequest: AdRequest) {
-        if (isDestroyed) {
-            Log.e(TAG, "Cannot load ad - AdView has been destroyed")
-            return
-        }
-
         if (isLoading) {
             Log.w(TAG, "Ad is already loading")
             return
@@ -141,18 +138,30 @@ open class BaseAdView : ViewGroup {
             return
         }
 
+        // Reset destroyed flag to allow reloading
+        isDestroyed = false
         isLoading = true
 
+        // Destroy any existing WebView before loading new ad
         if (webView != null) {
-            onDestroyWebView()
+            safelyDestroyWebView()
         }
+        
+        // Wait a bit before loading new ad to ensure cleanup completes
+        mainHandler?.postDelayed({
+            if (!isDestroyed) {
+                startAdLoad(adRequest)
+            }
+        }, 400)
+    }
 
+    private fun startAdLoad(adRequest: AdRequest) {
         try {
             val adgeist = getInstance()
             val fetchCreative: FetchCreative = adgeist.getCreative()
 
             val apiKey = getMetaValue("com.adgeistkit.ads.API_KEY") ?: ""
-            val origin = getMetaValue("com.adgeistkit.ads.ORIGIN") ?: ""
+            val origin = customOrigin ?: getMetaValue("com.adgeistkit.ads.ORIGIN") ?: ""
             val publisherId = getMetaValue("com.adgeistkit.ads.APP_ID") ?: ""
             val packageName = context.packageName
 
@@ -200,7 +209,7 @@ open class BaseAdView : ViewGroup {
                         simpleCreative["responsiveType"] = options?.responsiveType ?: "Square"
                         simpleCreative["width"] = dim?.width ?: 300
                         simpleCreative["height"] = dim?.height ?: 300
-                        simpleCreative["adspaceType"] = "banner"
+                        simpleCreative["adspaceType"] = adType
 
                         val mediaList = mutableListOf<Map<String, String?>>()
                         if (c.fileUrl != null) {
@@ -224,8 +233,8 @@ open class BaseAdView : ViewGroup {
             }
 
         } catch (e: Exception) {
-            listener!!.onAdFailedToLoad(e.message!!)
-            mainHandler!!.post {
+            listener?.onAdFailedToLoad(e.message ?: "Unknown error")
+            mainHandler?.post {
                 isLoading = false
                 Log.e(
                     TAG,
@@ -247,7 +256,7 @@ open class BaseAdView : ViewGroup {
         webView!!.settings.useWideViewPort = true
 
         jsInterface = JsBridge(this, context)
-        listener!!.onAdOpened()
+        listener?.onAdOpened()
 
         // Enable WebView debugging (you can inspect in Chrome DevTools)
         // chrome://inspect/#devices
@@ -304,7 +313,7 @@ open class BaseAdView : ViewGroup {
                             TAG,
                             "🔴 JS Error: $fullLog"
                         )
-                        listener!!.onAdFailedToLoad(fullLog)
+                        listener?.onAdFailedToLoad(fullLog)
                     }
 
                     MessageLevel.WARNING -> Log.w(
@@ -387,7 +396,7 @@ open class BaseAdView : ViewGroup {
                 "<body>" +
                 "    <div id='ad-content'></div>" +
                 "    <!-- Load AdCard.js library from S3 -->" +
-                "    <script src='https://adserv-scripts.s3.ap-south-1.amazonaws.com/adcard.js'></script>" +
+                "    <script src='https://cdn.adgeist.ai/adcard-beta.js'></script>" +
                 "    <script>" +
                 "        function initAd() {" +
                 "            if (typeof AdCard === 'undefined') {" +
@@ -518,21 +527,57 @@ open class BaseAdView : ViewGroup {
     val isCollapsible: Boolean
         get() = false
 
-    private fun onDestroyWebView() {
+    fun destroy() {
+        isLoading = false
+        safelyDestroyWebView()
+    }
+
+    private fun safelyDestroyWebView() {
         if (isDestroyed) return
         isDestroyed = true
 
-        listener!!.onAdClosed()
-        jsInterface!!.destroyListeners()
-        webView!!.stopLoading()
-        webView!!.loadUrl("about:blank")
-        webView!!.onPause()
-        webView!!.clearHistory()
-        webView!!.removeAllViews()
-        removeView(webView)
-        webView!!.destroy()
+        val webViewToDestroy = webView
         webView = null
+        jsInterface?.destroyListeners()
         jsInterface = null
+            
+        if (webViewToDestroy == null) return
+
+        mainHandler?.post {
+            try {
+                try {
+                    webViewToDestroy.removeJavascriptInterface("Android")
+                } catch (e: Exception) { /* ignore */ }
+                
+                webViewToDestroy.stopLoading()
+                webViewToDestroy.onPause()
+                
+                webViewToDestroy.clearHistory()
+                webViewToDestroy.clearCache(true)
+                (webViewToDestroy.parent as? ViewGroup)?.removeView(webViewToDestroy)
+                removeAllViews()
+                
+                try {
+                    webViewToDestroy.loadUrl("about:blank")
+                } catch (e: Exception) { /* ignore */ }
+
+                mainHandler?.postDelayed({
+                    try {
+                        webViewToDestroy.destroy()
+                        Log.d(TAG, "WebView destroyed safely")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Final destroy failed (harmless)", e)
+                    }
+                }, 600)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during WebView cleanup", e)
+            }
+        }
+    }
+
+    private fun onDestroyWebView() {
+        listener?.onAdClosed()
+        safelyDestroyWebView()
     }
 
     private fun notifyAdLoaded() {

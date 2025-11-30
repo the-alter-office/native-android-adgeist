@@ -12,30 +12,91 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="vertical"
-        android:paddingTop="16dp">
+        android:paddingTop="40dp">
 
-        <Button
-            android:id="@+id/loadBannerAdBtn"
-            android:layout_width="wrap_content"
+        <EditText
+            android:id="@+id/publisherIdInput"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Load Banner Ad"
-            android:layout_marginTop="100dp"
-            android:layout_marginBottom="400dp"
-            android:backgroundTint="@color/material_on_surface_emphasis_high_type" />
+            android:hint="Enter Publisher ID"
+            android:inputType="text"
+            android:layout_marginTop="16dp" />
+
+        <EditText
+            android:id="@+id/adspaceIdInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter Adspace ID"
+            android:inputType="text"
+            android:layout_marginTop="8dp" />
+
+        <EditText
+            android:id="@+id/adspaceTypeInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter Adspace Type"
+            android:inputType="text"
+            android:layout_marginTop="8dp" />
+
+        <EditText
+            android:id="@+id/originInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter Origin"
+            android:inputType="text"
+            android:layout_marginTop="8dp" />
+
+        <EditText
+            android:id="@+id/widthInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter Width (px)"
+            android:inputType="number"
+            android:layout_marginTop="8dp" />
+
+        <EditText
+            android:id="@+id/heightInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter Height (px)"
+            android:inputType="number"
+            android:layout_marginTop="8dp" />
 
         <LinearLayout
-            android:layout_width="300dp"
-            android:layout_height="700dp"
-            android:layout_marginTop="120dp"
-            android:background="@color/material_on_surface_stroke"
-            >
-            <com.adgeistkit.ads.AdView
-                android:id="@+id/adView"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                app:adUnitId="691c44c870934bb89f73032a"
-                app:adSize="banner" />
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="16dp">
+            <Button
+                android:id="@+id/generateAdBtn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="Generate"
+                android:enabled="true"
+                android:backgroundTint="@color/button_background_tint" />
+            <Button
+                android:id="@+id/cancelAdBtn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="Cancel"
+                android:enabled="true"
+                android:backgroundTint="@color/button_background_tint" />
         </LinearLayout>
+
+      <LinearLayout
+            android:id="@+id/adContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:visibility="gone"
+            android:gravity="center"
+            android:orientation="vertical"
+          />
 
 <!--    <Button-->
 <!--        android:id="@+id/triggerNetworkCall"-->

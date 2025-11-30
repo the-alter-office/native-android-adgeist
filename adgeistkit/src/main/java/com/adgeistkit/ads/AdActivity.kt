@@ -97,14 +97,14 @@ class AdActivity(private val baseAdView: BaseAdView) {
                 startVisibilityCheck()
             }
             if ("video" == mediaType && !hasEnded) {
-                webView!!.onResume()
+                webView?.onResume()
                 onVideoPlay()
             }
         } else if (!isVisible && wasVisible) {
             updateViewTime()
             stopVisibilityCheck()
             if ("video" == mediaType && !hasEnded) {
-                webView!!.onPause()
+                webView?.onPause()
                 onVideoPause()
             }
         }
@@ -118,7 +118,7 @@ class AdActivity(private val baseAdView: BaseAdView) {
                     val timeInView = SystemClock.elapsedRealtime() - viewStartTime
                     if (timeInView >= MIN_VIEW_TIME) {
                         hasViewEvent = true
-                        baseAdView.listener!!.onAdImpression()
+                        baseAdView.listener?.onAdImpression()
                         val scrollDepth: Float = scrollDepth()
                         val timeToVisible = SystemClock.elapsedRealtime() - renderStartTime
                         val analyticsRequest: AnalyticsRequest =
@@ -212,12 +212,12 @@ class AdActivity(private val baseAdView: BaseAdView) {
             updateViewTime()
             stopVisibilityCheck()
             if ("video" == mediaType && !hasEnded) {
-                webView!!.onPause()
+                webView?.onPause()
                 onVideoPause()
             }
         } else if (isVisible) {
             if ("video" == mediaType && !hasEnded) {
-                webView!!.onResume()
+                webView?.onResume()
                 onVideoPlay()
             }
         }
@@ -254,7 +254,7 @@ class AdActivity(private val baseAdView: BaseAdView) {
                 TAG,
                 "renderTime= $renderTime"
             )
-            baseAdView.listener!!.onAdLoaded()
+            baseAdView.listener?.onAdLoaded()
             val analyticsRequest: AnalyticsRequest =
                 AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
                     .trackImpression(renderTime)
@@ -265,7 +265,7 @@ class AdActivity(private val baseAdView: BaseAdView) {
     }
 
     fun captureClick() {
-        baseAdView.listener!!.onAdClicked()
+        baseAdView.listener?.onAdClicked()
         val analyticsRequest: AnalyticsRequest =
             AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
                 .trackClick()

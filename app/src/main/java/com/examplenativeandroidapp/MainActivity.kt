@@ -1,214 +1,198 @@
 package com.examplenativeandroidapp
 
+import android.content.DialogInterface
 import android.os.Bundle
 import android.util.Log
-import androidx.appcompat.app.AppCompatActivity
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.adgeistkit.AdgeistCore
 import com.adgeistkit.ads.AdListener
 import com.adgeistkit.ads.AdSize
 import com.adgeistkit.ads.AdView
 import com.adgeistkit.ads.network.AdRequest
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-
 class MainActivity : AppCompatActivity() {
-
     private lateinit var adGeist: AdgeistCore
-    private lateinit var adView: AdView
-    private var lastAdBidId: String? = null
-    private var lastAdCampaignId: String? = null
-    private var lastAdMetaData: String = ""
-    private var lastAdBuyType: String = ""
+
+    private lateinit var publisherIdInput: EditText
+    private lateinit var adspaceIdInput: EditText
+    private lateinit var adspaceTypeInput: EditText
+    private lateinit var originInput: EditText
+    private lateinit var widthInput: EditText
+    private lateinit var heightInput: EditText
+    private lateinit var generateAdBtn: Button
+    private lateinit var cancelAdBtn: Button
+    private lateinit var adContainer: LinearLayout
+
+    private var currentAdView: AdView? = null
+
+    private fun dpToPx(dp: Int): Int {
+        return (dp * resources.displayMetrics.density).toInt()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         adGeist = AdgeistCore.initialize(applicationContext, "beta.v2.bg-services.adgeist.ai")
-        
-        setupAdView()
 
-        val loadBannerAdBtn = findViewById<Button>(R.id.loadBannerAdBtn)
-    //  val fetchCreativeBtn = findViewById<Button>(R.id.triggerNetworkCall)
-    //  val setUserDetailsBtn = findViewById<Button>(R.id.setUserDetailsBtn)
-    //  val logEventBtn = findViewById<Button>(R.id.logEventBtn)
-    //  val consentBtn = findViewById<Button>(R.id.consentBtn)
-    //  val getStatusBtn = findViewById<Button>(R.id.statusBtn)
-    //  val trackImpressionBtn = findViewById<Button>(R.id.trackImpressionBtn)
-    //  val trackViewBtn = findViewById<Button>(R.id.trackViewBtn)
-    //  val trackClickBtn = findViewById<Button>(R.id.trackClickBtn)
+        publisherIdInput = findViewById(R.id.publisherIdInput)
+        adspaceIdInput = findViewById(R.id.adspaceIdInput)
+        adspaceTypeInput = findViewById(R.id.adspaceTypeInput)
+        originInput = findViewById(R.id.originInput)
+        widthInput = findViewById(R.id.widthInput)
+        heightInput = findViewById(R.id.heightInput)
+        generateAdBtn = findViewById(R.id.generateAdBtn)
+        cancelAdBtn = findViewById(R.id.cancelAdBtn)
+        adContainer = findViewById(R.id.adContainer)
 
-        // Fetch Creative
-    //  fetchCreativeBtn.setOnClickListener {
-    //      makeNetworkCall()
-    //  }
+        generateAdBtn.isEnabled = true
+        cancelAdBtn.isEnabled = false
 
-        // Set User Details
-    //  setUserDetailsBtn.setOnClickListener {
-    //      adGeist.requestPhoneStatePermission(this)
-    //      val userDetails = UserDetails(
-    //          userId = "1",
-    //          email = "john@example.com",
-    //          phone = "+911234567890",
-    //          userName = "kishore"
-    //      )
-    //      adGeist.setUserDetails(userDetails)
-    //  }
+        generateAdBtn.setOnClickListener {
+            loadNewAd()
+        }
 
-        // Get Consent
-    //  getStatusBtn.setOnClickListener {
-    //      val status = adGeist.getConsentStatus()
-    //      Log.d("MainActivity", "Consent: $status")
-    //  }
-
-
-        // Update Consent
-    //  logEventBtn.setOnClickListener {
-    //      val eventProps = mapOf(
-    //          "screen" to "home",
-    //          "search_query" to "Moto Edge 50 Pro"
-    //      )
-    //      val event = Event(
-    //          eventType = "search",
-    //          eventProperties = eventProps
-    //      )
-    //      adGeist.logEvent(event)
-    //  }
-
-       // Log Event
-    //  consentBtn.setOnClickListener {
-    //      adGeist.updateConsentStatus(true)
-    //  }
-
-        // Track Impression
-    //  trackImpressionBtn.setOnClickListener {
-    //      CoroutineScope(Dispatchers.IO).launch {
-    //          val analytics = adGeist.postCreativeAnalytics()
-    //          analytics.trackImpression(
-    //              campaignId = lastAdCampaignId ?: "",
-    //              adSpaceId = "68e511714b6a95a8d4d1d1c6",
-    //              publisherId = "68e4baa14040394a656d5262",
-    //              apiKey = "48ad37bbe0c4091dee7c4500bc510e4fca6e7f7a1c293180708afa292820761c",
-    //              bidId = lastAdBidId ?: "",
-    //              isTestEnvironment = true,
-    //              renderTime = 400f,
-    //              bidMeta = lastAdMetaData,
-    //              buyType = lastAdBuyType
-    //          )
-    //      }
-    //  }
-
-        // Track View
-    //  trackViewBtn.setOnClickListener {
-    //      CoroutineScope(Dispatchers.IO).launch {
-    //          val analytics = adGeist.postCreativeAnalytics()
-    //          analytics.trackView(
-    //              campaignId = lastAdCampaignId ?: "",
-    //              adSpaceId = "68e511714b6a95a8d4d1d1c6",
-    //              publisherId = "68e4baa14040394a656d5262",
-    //              apiKey = "48ad37bbe0c4091dee7c4500bc510e4fca6e7f7a1c293180708afa292820761c",
-    //              bidId = lastAdBidId ?: "",
-    //              isTestEnvironment = true,
-    //              viewTime = 2500f,
-    //              visibilityRatio = 0.8f,
-    //              scrollDepth = 0.5f,
-    //              timeToVisible = 1000f,
-    //              bidMeta = lastAdMetaData,
-    //              buyType = lastAdBuyType
-    //          )
-    //      }
-    //  }
-
-        // Track Click
-    //  trackClickBtn.setOnClickListener {
-    //      CoroutineScope(Dispatchers.IO).launch {
-    //          val analytics = adGeist.postCreativeAnalytics()
-    //          analytics.trackClick(
-    //              campaignId = lastAdCampaignId ?: "",
-    //              adSpaceId = "68e511714b6a95a8d4d1d1c6",
-    //              publisherId = "68e4baa14040394a656d5262",
-    //              apiKey = "48ad37bbe0c4091dee7c4500bc510e4fca6e7f7a1c293180708afa292820761c",
-    //              bidId = lastAdBidId ?: "",
-    //              isTestEnvironment = true,
-    //              bidMeta = lastAdMetaData,
-    //              buyType = lastAdBuyType
-    //          )
-    //      }
-    //  }
-
-        loadBannerAdBtn.setOnClickListener {
-            loadBannerAd()
+        cancelAdBtn.setOnClickListener {
+            destroyCurrentAd()
+            clearInputFields()
         }
     }
 
-    /**
-     * Setup AdView with listener (Similar to AdMob pattern)
-     */
-    private fun setupAdView() {
-        adView = findViewById(R.id.adView)
-    }
+    private fun loadNewAd() {
+        destroyCurrentAd()
+    
+        val publisherId = publisherIdInput.text.toString().trim()
+        val adspaceId = adspaceIdInput.text.toString().trim()
+        val adSpaceType = adspaceTypeInput.text.toString().trim()
+        val origin = originInput.text.toString().trim()
+        val width = widthInput.text.toString().toIntOrNull() ?: 0
+        val height = heightInput.text.toString().toIntOrNull() ?: 0
 
-    private fun loadBannerAd() {
-        val adRequest = AdRequest.Builder()
-            .setTestMode(true)
-            .build()
-        val dimensions = AdSize(300, 700)
-        adView.adUnitId = "691c44c870934bb89f73032a";
+        val missingFields = mutableListOf<String>()
+
+        if (publisherId.isEmpty()) missingFields.add("Publisher ID")
+        if (adspaceId.isEmpty()) missingFields.add("Adspace ID")
+        if (adSpaceType.isEmpty()) missingFields.add("Adspace Type")
+        if (width <= 0) missingFields.add("Width")
+        if (height <= 0) missingFields.add("Height")
+
+        if (missingFields.isNotEmpty()) {
+            val message = "Please enter valid values for: ${missingFields.joinToString(", ")}"
+
+            val dialog = AlertDialog.Builder(this@MainActivity)
+                .setTitle("Invalid fields")
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show()
+
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setTextColor(
+                ContextCompat.getColor(this@MainActivity, R.color.teal_700)
+            )
+            return
+        }
+
+        val pxWidth = dpToPx(width)
+        val pxHeight = dpToPx(height)
+        adContainer.layoutParams.apply {
+            this.width = pxWidth
+            this.height = pxHeight
+        }
+        adContainer.visibility = View.VISIBLE
+
+        // Create a BRAND NEW AdView instance
+        val adView = AdView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(pxWidth, pxHeight)
+        }
+
+        // Add to container
+        adContainer.removeAllViews()
+        adContainer.addView(adView)
+
+        adView.adUnitId = adspaceId
+        adView.adType = adSpaceType
+        if(origin.isNotEmpty()){
+            adView.customOrigin = origin
+        }
+        adView.setAdDimension(AdSize(width, height))
+
         adView.setAdListener(object : AdListener() {
             override fun onAdLoaded() {
-                Log.d("Ads", "Ad Loaded!")
+                Log.d("AdView", "Ad Loaded Successfully!")
+                adView.visibility = View.VISIBLE
+                runOnUiThread {
+                    generateAdBtn.isEnabled = false
+                    cancelAdBtn.isEnabled = true
+                }
             }
 
             override fun onAdFailedToLoad(error: String) {
-                Log.e("Ads", "Ad Failed: $error")
-            }
+                Log.e("AdView", "Ad Failed to Load: $error")
+                val dialog = AlertDialog.Builder(this@MainActivity)
+                            .setTitle("Ad Load Failed")
+                            .setMessage("Reason: $error")
+                            .setPositiveButton("OK", null)
+                            .show()
 
-            override fun onAdOpened() {
-                Log.d("Ads", "Ad Opened")
-            }
+                dialog.getButton(DialogInterface.BUTTON_POSITIVE).setTextColor(
+                    ContextCompat.getColor(this@MainActivity, R.color.teal_700)
+                )
 
-            override fun onAdClosed() {
-                Log.d("Ads", "Ad Closed")
+                destroyCurrentAd()
+                clearInputFields()
             }
 
             override fun onAdClicked() {
-                Log.d("Ads", "Ad Clicked")
+                Log.d("AdView", "Ad Clicked")
+            }
+
+            override fun onAdOpened() {
+                Log.d("AdView", "Ad Opened")
+            }
+
+            override fun onAdClosed() {
+                Log.d("AdView", "Ad Closed")
             }
         })
-        adView.setAdDimension(dimensions)
+
+        val adRequest = AdRequest.Builder()
+            .setTestMode(false)
+            .build()
         adView.loadAd(adRequest)
+
+        currentAdView = adView
     }
 
-   private fun makeNetworkCall() {
-       CoroutineScope(Dispatchers.IO).launch {
-           val getAd = adGeist.getCreative()
-           getAd.fetchCreative(
-               "48ad37bbe0c4091dee7c4500bc510e4fca6e7f7a1c293180708afa292820761c",
-               "https://adgeist-ad-integration.d49kd6luw1c4m.amplifyapp.com",
-               "68e511714b6a95a8d4d1d1c6",
-               "68e4baa14040394a656d5262",
-               "FIXED"
-           ) { adData ->
-               if (adData != null) {
-                   when (adData) {
-                       is com.adgeistkit.data.models.FixedAdResponse -> {
-                           lastAdMetaData = adData.metaData
-                           lastAdBuyType = "FIXED"
-                       }
+    private fun destroyCurrentAd() {
+        currentAdView?.let { adView ->
+            adView.destroy()
+            (adView.parent as? ViewGroup)?.removeView(adView)
+        }
+        currentAdView = null
 
-                       is com.adgeistkit.data.models.CPMAdResponse -> {
-                           lastAdBidId = adData?.data?.id
-                           lastAdCampaignId = adData?.data?.seatBid?.getOrNull(0)?.bid?.getOrNull(0)?.id
-                           lastAdBuyType = "CPM"
-                       }
-                   }
-               } else {
-                   Log.e("MainActivity", "Failed to fetch creative")
-               }
-           }
-       }
-   }
+        adContainer.visibility = View.GONE
+        generateAdBtn.isEnabled = true
+        cancelAdBtn.isEnabled = false
+    }
+
+    private fun clearInputFields(){
+        publisherIdInput.text.clear()
+        adspaceIdInput.text.clear()
+        originInput.text.clear()
+        adspaceTypeInput.text.clear()
+        widthInput.text.clear()
+        heightInput.text.clear()
+    }
+
+    override fun onDestroy() {
+        destroyCurrentAd()
+        clearInputFields()
+        super.onDestroy()
+    }
 }

@@ -17,22 +17,23 @@ class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
     }
 
     fun recordClickListener() {
-        adActivity!!.captureClick()
+        adActivity?.captureClick()
     }
 
     fun destroyListeners() {
-        adActivity!!.destroy()
+        adActivity?.destroy()
+        adActivity = null
     }
 
     @JavascriptInterface
-    fun postMessage(json: String) {
+    fun postMessage(json: String) {        
         try {
             val obj = JSONObject(json)
             val type = obj.optString("type")
             val msg = obj.optString("message")
 
             if ("RENDER_STATUS" == type && "Success" == msg) {
-                adActivity!!.captureImpression()
+                adActivity?.captureImpression()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Invalid JSON: $json")
@@ -40,18 +41,18 @@ class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
     }
 
     @JavascriptInterface
-    fun postVideoStatus(json: String) {
+    fun postVideoStatus(json: String) {        
         try {
             val obj = JSONObject(json)
             val type = obj.optString("type")
             val msg = obj.optString("message")
 
             if ("PLAY" == type) {
-                adActivity!!.onVideoPlay()
+                adActivity?.onVideoPlay()
             } else if ("PAUSE" == type) {
-                adActivity!!.onVideoPause()
+                adActivity?.onVideoPause()
             } else if ("ENDED" == type) {
-                adActivity!!.onVideoEnd()
+                adActivity?.onVideoEnd()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Invalid JSON: $json")

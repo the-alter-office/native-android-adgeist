@@ -20,15 +20,15 @@
         
         <meta-data
         android:name="com.adgeistkit.ads.APP_ID"
-        android:value="68f91f09c40a64049896acab"/>
+        android:value="68f8c700c40a64049896a72d"/>
 
         <meta-data
         android:name="com.adgeistkit.ads.API_KEY"
-        android:value="1b8eac4512740be0ff678cd2549607b49b51ebd5f9496d83359454ce83b1b57c"/>
+        android:value="b4e33bb73061d4e33670f229033f14bf770d35b15512dc1f106529e38946e49c"/>
 
         <meta-data
             android:name="com.adgeistkit.ads.ORIGIN"
-            android:value="https://adgeist-ad-integration.d49kd6luw1c4m.amplifyapp.com/"
+            android:value="https://hackathon-lake-nine.vercel.app/ad"
             />
 
         <activity
