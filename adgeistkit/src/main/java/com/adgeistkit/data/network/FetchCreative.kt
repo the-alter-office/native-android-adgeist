@@ -70,6 +70,7 @@ class FetchCreative(
             }
 
             payload["origin"] = origin
+            payload["isTest"] = isTestEnvironment
 
             val requestPayload = Gson().toJson(payload)
             val requestBody = requestPayload.toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())

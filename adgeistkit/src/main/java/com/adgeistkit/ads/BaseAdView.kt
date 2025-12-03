@@ -34,6 +34,7 @@ open class BaseAdView : ViewGroup {
     var adUnitId: String = ""
     var adType: String = "banner"
     var customOrigin: String? = null
+    var appId: String? = null
 
     var mediaType: String? = null
 
@@ -99,6 +100,14 @@ open class BaseAdView : ViewGroup {
         this.listener = listener
     }
 
+    private fun dpToPx(dp: Int): Int {
+        return (dp * resources.displayMetrics.density).toInt()
+    }
+
+    private fun pxToDp(px: Int): Int {
+        return (px / resources.displayMetrics.density).toInt()
+    }
+
     private fun getAdSizeFromIndex(index: Int): AdSize {
         return when (index) {
             0 -> AdSize.BANNER
@@ -146,7 +155,7 @@ open class BaseAdView : ViewGroup {
         if (webView != null) {
             safelyDestroyWebView()
         }
-        
+
         // Wait a bit before loading new ad to ensure cleanup completes
         mainHandler?.postDelayed({
             if (!isDestroyed) {
@@ -162,7 +171,7 @@ open class BaseAdView : ViewGroup {
 
             val apiKey = getMetaValue("com.adgeistkit.ads.API_KEY") ?: ""
             val origin = customOrigin ?: getMetaValue("com.adgeistkit.ads.ORIGIN") ?: ""
-            val publisherId = getMetaValue("com.adgeistkit.ads.APP_ID") ?: ""
+            val publisherId = appId ?: getMetaValue("com.adgeistkit.ads.APP_ID") ?: ""
             val packageName = context.packageName
 
             isTestMode = adRequest.isTestMode
@@ -203,12 +212,11 @@ open class BaseAdView : ViewGroup {
                         simpleCreative["type"] = c.type
 
                         val options = fixed.displayOptions
-                        val dim = options?.dimensions
 
                         simpleCreative["isResponsive"] = options?.isResponsive ?: false
                         simpleCreative["responsiveType"] = options?.responsiveType ?: "Square"
-                        simpleCreative["width"] = dim?.width ?: 300
-                        simpleCreative["height"] = dim?.height ?: 300
+                        simpleCreative["width"] = adSize!!.width ?: 300
+                        simpleCreative["height"] = adSize!!.height ?: 300
                         simpleCreative["adspaceType"] = adType
 
                         val mediaList = mutableListOf<Map<String, String?>>()
@@ -540,26 +548,28 @@ open class BaseAdView : ViewGroup {
         webView = null
         jsInterface?.destroyListeners()
         jsInterface = null
-            
+
         if (webViewToDestroy == null) return
 
         mainHandler?.post {
             try {
                 try {
                     webViewToDestroy.removeJavascriptInterface("Android")
-                } catch (e: Exception) { /* ignore */ }
-                
+                } catch (e: Exception) { /* ignore */
+                }
+
                 webViewToDestroy.stopLoading()
                 webViewToDestroy.onPause()
-                
+
                 webViewToDestroy.clearHistory()
                 webViewToDestroy.clearCache(true)
                 (webViewToDestroy.parent as? ViewGroup)?.removeView(webViewToDestroy)
                 removeAllViews()
-                
+
                 try {
                     webViewToDestroy.loadUrl("about:blank")
-                } catch (e: Exception) { /* ignore */ }
+                } catch (e: Exception) { /* ignore */
+                }
 
                 mainHandler?.postDelayed({
                     try {

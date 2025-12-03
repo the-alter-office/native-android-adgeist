@@ -9,6 +9,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.widget.SwitchCompat
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.adgeistkit.AdgeistCore
@@ -29,6 +30,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var generateAdBtn: Button
     private lateinit var cancelAdBtn: Button
     private lateinit var adContainer: LinearLayout
+    private lateinit var testModeSwitch: SwitchCompat
 
     private var currentAdView: AdView? = null
 
@@ -51,6 +53,7 @@ class MainActivity : AppCompatActivity() {
         generateAdBtn = findViewById(R.id.generateAdBtn)
         cancelAdBtn = findViewById(R.id.cancelAdBtn)
         adContainer = findViewById(R.id.adContainer)
+        testModeSwitch = findViewById(R.id.testModeSwitch)
 
         generateAdBtn.isEnabled = true
         cancelAdBtn.isEnabled = false
@@ -67,19 +70,27 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadNewAd() {
         destroyCurrentAd()
-    
-        val publisherId = publisherIdInput.text.toString().trim()
-        val adspaceId = adspaceIdInput.text.toString().trim()
-        val adSpaceType = adspaceTypeInput.text.toString().trim()
-        val origin = originInput.text.toString().trim()
-        val width = widthInput.text.toString().toIntOrNull() ?: 0
-        val height = heightInput.text.toString().toIntOrNull() ?: 0
+//
+//        val publisherId = "68f91f09c40a64049896acab"
+//        val adspaceId = "692c526f1b209f026c084f45"
+//        val adSpaceType = "display"
+//        val origin = "https://adgeist-ad-integration.d49kd6luw1c4m.amplifyapp.com"
+//        val width = 320
+//        val height = 480
+        
+         val publisherId = publisherIdInput.text.toString().trim()
+         val adspaceId = adspaceIdInput.text.toString().trim()
+         val adSpaceType = adspaceTypeInput.text.toString().trim()
+         val origin = originInput.text.toString().trim()
+         val width = widthInput.text.toString().toIntOrNull() ?: 0
+         val height = heightInput.text.toString().toIntOrNull() ?: 0
 
         val missingFields = mutableListOf<String>()
 
         if (publisherId.isEmpty()) missingFields.add("Publisher ID")
         if (adspaceId.isEmpty()) missingFields.add("Adspace ID")
         if (adSpaceType.isEmpty()) missingFields.add("Adspace Type")
+        if (origin.isEmpty()) missingFields.add("Origin")
         if (width <= 0) missingFields.add("Width")
         if (height <= 0) missingFields.add("Height")
 
@@ -105,7 +116,7 @@ class MainActivity : AppCompatActivity() {
             this.height = pxHeight
         }
         adContainer.visibility = View.VISIBLE
-
+ 
         // Create a BRAND NEW AdView instance
         val adView = AdView(this).apply {
             layoutParams = LinearLayout.LayoutParams(pxWidth, pxHeight)
@@ -117,6 +128,8 @@ class MainActivity : AppCompatActivity() {
 
         adView.adUnitId = adspaceId
         adView.adType = adSpaceType
+        adView.appId = publisherId
+
         if(origin.isNotEmpty()){
             adView.customOrigin = origin
         }
@@ -126,10 +139,10 @@ class MainActivity : AppCompatActivity() {
             override fun onAdLoaded() {
                 Log.d("AdView", "Ad Loaded Successfully!")
                 adView.visibility = View.VISIBLE
-                runOnUiThread {
-                    generateAdBtn.isEnabled = false
-                    cancelAdBtn.isEnabled = true
-                }
+//                runOnUiThread {
+//                    generateAdBtn.isEnabled = false
+//                    cancelAdBtn.isEnabled = true
+//                }
             }
 
             override fun onAdFailedToLoad(error: String) {
@@ -162,7 +175,7 @@ class MainActivity : AppCompatActivity() {
         })
 
         val adRequest = AdRequest.Builder()
-            .setTestMode(false)
+            .setTestMode(testModeSwitch.isChecked)
             .build()
         adView.loadAd(adRequest)
 
