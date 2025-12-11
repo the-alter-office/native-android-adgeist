@@ -2,7 +2,6 @@ package com.adgeistkit.ads
 
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
@@ -120,21 +119,6 @@ open class BaseAdView : ViewGroup {
         }
     }
 
-    private fun getMetaValue(key: String): String? {
-        try {
-            val context = context
-
-            val ai = context.packageManager
-                .getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
-
-            val bundle = ai.metaData
-            return bundle?.getString(key)
-        } catch (e: Exception) {
-            Log.e("BaseAdView", "Meta-data read failed for: $key", e)
-            return null
-        }
-    }
-
     @RequiresPermission("android.permission.INTERNET")
     fun loadAd(adRequest: AdRequest) {
         if (isLoading) {
@@ -169,15 +153,10 @@ open class BaseAdView : ViewGroup {
             val adgeist = getInstance()
             val fetchCreative: FetchCreative = adgeist.getCreative()
 
-            val apiKey = getMetaValue("com.adgeistkit.ads.API_KEY") ?: ""
-            val origin = customOrigin ?: getMetaValue("com.adgeistkit.ads.ORIGIN") ?: ""
-            val publisherId = appId ?: getMetaValue("com.adgeistkit.ads.APP_ID") ?: ""
-            val packageName = context.packageName
-
             isTestMode = adRequest.isTestMode
 
             fetchCreative.fetchCreative(
-                apiKey, origin, adUnitId, publisherId, "FIXED", isTestMode
+              adUnitId,"FIXED", isTestMode
             ) { creativeData ->
 
                 mainHandler?.post {

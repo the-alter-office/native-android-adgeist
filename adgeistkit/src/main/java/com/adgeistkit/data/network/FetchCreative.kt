@@ -1,9 +1,7 @@
 package com.adgeistkit.data.network
 
-import android.content.Context
 import android.util.Log
-import com.adgeistkit.core.device.DeviceIdentifier
-import com.adgeistkit.core.device.NetworkUtils
+import com.adgeistkit.AdgeistCore
 import com.adgeistkit.data.models.CPMAdResponse
 import com.adgeistkit.data.models.FixedAdResponse
 import okhttp3.*
@@ -16,24 +14,25 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.TimeZone
 
-class FetchCreative(
-    private val context: Context,
-    private val deviceIdentifier: DeviceIdentifier,
-    private val networkUtils: NetworkUtils,
-    private val domain: String,
-    private val targetingInfo: Map<String, Any?>?
-) {
+class FetchCreative(private val adgeistCore: AdgeistCore) {
     companion object {
         private const val TAG = "FetchCreative"
     }
 
     private val scope = CoroutineScope(Dispatchers.Main)
 
+    private val bidRequestBackendDomain = adgeistCore.bidRequestBackendDomain
+
+    private val packageOrBundleID = adgeistCore.packageOrBundleID
+    private val adgeistAppID = adgeistCore.adgeistAppID
+    private val apiKey = adgeistCore.apiKey
+
+    private val deviceIdentifier = adgeistCore.deviceIdentifier
+    private val networkUtils = adgeistCore.networkUtils
+    private val targetingInfo = adgeistCore.targetingInfo
+
     fun fetchCreative(
-        apiKey: String,
-        origin: String,
-        adSpaceId: String,
-        companyId: String,
+        adUnitID: String,
         buyType: String,
         isTestEnvironment: Boolean = true,
         callback: (Any?) -> Unit
@@ -47,9 +46,9 @@ class FetchCreative(
             val envFlag = if (isTestEnvironment) "1" else "0"
 
             val url = if (buyType == "FIXED") {
-                "https://$domain/v2/dsp/ad/fixed"
+                "https://$bidRequestBackendDomain/v2/dsp/ad/fixed"
             } else {
-                "https://$domain/v1/app/ssp/bid?adSpaceId=$adSpaceId&companyId=$companyId&test=$envFlag"
+                "https://$bidRequestBackendDomain/v1/app/ssp/bid?adSpaceId=$adUnitID&companyId=$adgeistAppID&test=$envFlag"
             }
 
             val payload = mutableMapOf<String, Any>()
@@ -59,8 +58,8 @@ class FetchCreative(
             }
 
             if (buyType == "FIXED") {
-                payload["adspaceId"] = adSpaceId
-                payload["companyId"] = companyId
+                payload["adspaceId"] = adUnitID
+                payload["companyId"] = adgeistAppID
                 payload["timeZone"] = TimeZone.getDefault().id
             } else {
                 payload["appDto"] = mapOf(
@@ -69,7 +68,7 @@ class FetchCreative(
                 )
             }
 
-            payload["origin"] = origin
+            payload["origin"] = packageOrBundleID
             payload["isTest"] = isTestEnvironment
 
             val requestPayload = Gson().toJson(payload)
@@ -86,7 +85,7 @@ class FetchCreative(
                     .url(url)
                     .post(requestBody)
                     .header("Content-Type", "application/json")
-                    .header("Origin", origin)
+                    .header("Origin", packageOrBundleID)
                     .header("x-user-id", deviceId)
                     .header("x-platform", "mobile_app")
                     .header("x-api-key", apiKey)

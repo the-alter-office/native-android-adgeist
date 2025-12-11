@@ -70,9 +70,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadNewAd() {
         destroyCurrentAd()
-//
-//        val publisherId = "68f91f09c40a64049896acab"
-//        val adspaceId = "692c526f1b209f026c084f45"
+
+//        val publisherId = "69326f9fbb280f9241cabc94"
+//        val adspaceId = "6932a4c022f6786424ce3b84"
 //        val adSpaceType = "display"
 //        val origin = "https://adgeist-ad-integration.d49kd6luw1c4m.amplifyapp.com"
 //        val width = 320

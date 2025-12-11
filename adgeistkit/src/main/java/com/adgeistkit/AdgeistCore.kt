@@ -2,7 +2,7 @@ package com.adgeistkit
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Log
+import android.content.pm.PackageManager
 import com.adgeistkit.core.TargetingOptions
 import com.adgeistkit.core.device.DeviceIdentifier
 import com.adgeistkit.core.device.DeviceMeta
@@ -18,49 +18,53 @@ import kotlinx.coroutines.launch
 
 class AdgeistCore private constructor(
     private val context: Context,
-    private val domain: String
+    val bidRequestBackendDomain: String,
+    private val customPackageOrBundleID: String? = null,
+    private val customAdgeistAppID: String? = null,
 ) {
     companion object {
-        private const val TAG = "AdgeistCore"
+        private const val BidRequestBackendDomain = com.adgeistkit.BuildConfig.BASE_API_URL
         @Volatile private var instance: AdgeistCore? = null
-        private const val DEFAULT_DOMAIN = com.adgeistkit.BuildConfig.BASE_API_URL
 
-        /**
-         * Initializes the SDK with the given context and optional custom domain.
-         * @param context The application context.
-         * @param customDomain Optional custom domain for API requests.
-         * @return The initialized AdgeistCore instance.
-         */
         @JvmStatic
-        fun initialize(context: Context, customDomain: String? = null): AdgeistCore {
-            return instance ?: synchronized(this) {
-                instance ?: AdgeistCore(
-                    context.applicationContext,
-                    customDomain ?: DEFAULT_DOMAIN
-                ).also { instance = it }
-            }
+        fun initialize(context: Context,
+                       customBidRequestBackendDomain: String? = null,
+                       customPackageOrBundleID : String? = null,
+                       customAdgeistAppID : String? = null, ): AdgeistCore
+        {
+                    return instance ?: synchronized(this) {
+                        instance ?: AdgeistCore(
+                            context.applicationContext,
+                            customBidRequestBackendDomain ?: BidRequestBackendDomain,
+                            customPackageOrBundleID,
+                            customAdgeistAppID,
+                        ).also { instance = it }
+                    }
         }
 
-        /**
-         * Gets the initialized instance of AdgeistCore.
-         * @throws IllegalStateException if not initialized.
-         */
         @JvmStatic
         fun getInstance(): AdgeistCore {
             return instance ?: throw IllegalStateException("AdgeistCore is not initialized")
         }
     }
 
+    val packageOrBundleID = customPackageOrBundleID ?: getMetaValue("com.adgeistkit.ads.ADGEIST_CUSTOM_PACKAGE_OR_BUNDLE_ID") ?: ""
+    val adgeistAppID = customAdgeistAppID ?: getMetaValue("com.adgeistkit.ads.ADGEIST_APP_ID") ?: ""
+    val apiKey = getMetaValue("com.adgeistkit.ads.ADGEIST_API_KEY") ?: ""
+
     private val PREFS_NAME = "AdgeistPrefs"
-    private val KEY_CONSENT = "adgeist_consent"
     private val prefs: SharedPreferences
-    private val deviceIdentifier = DeviceIdentifier(context)
-    private val networkUtils = NetworkUtils(context)
-    private var userDetails: UserDetails? = null
-    private val cdpClient = CdpClient(deviceIdentifier, networkUtils, "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJraXNob3JlIiwiaWF0IjoxNzU0Mzc1NzIwLCJuYmYiOjE3NTQzNzU3MjAsImV4cCI6MTc1Nzk3NTcyMCwianRpIjoiOTdmNTI1YjAtM2NhNy00MzQwLTlhOGItZDgwZWI2ZjJmOTAzIiwicm9sZSI6ImFkbWluIiwic2NvcGUiOiJpbmdlc3QiLCJwbGF0Zm9ybSI6Im1vYmlsZSIsImNvbXBhbnlfaWQiOiJraXNob3JlIiwiaXNzIjoiQWRHZWlzdC1DRFAifQ.IYQus53aQETqOaQzEED8L51jwKRN3n-Oq-M8jY_ZSaw")
+
+    private val KEY_CONSENT = "adgeist_consent"
     private var consentGiven: Boolean = false
-    private var deviceMeta = DeviceMeta(context)
-    private var targetingInfo: Map<String, Any?>? = null
+
+    val deviceMeta = DeviceMeta(context)
+    val deviceIdentifier = DeviceIdentifier(context)
+    val networkUtils = NetworkUtils(context)
+    var targetingInfo: Map<String, Any?>? = null
+
+    private val cdpClient = CdpClient(deviceIdentifier, networkUtils, "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJraXNob3JlIiwiaWF0IjoxNzU0Mzc1NzIwLCJuYmYiOjE3NTQzNzU3MjAsImV4cCI6MTc1Nzk3NTcyMCwianRpIjoiOTdmNTI1YjAtM2NhNy00MzQwLTlhOGItZDgwZWI2ZjJmOTAzIiwicm9sZSI6ImFkbWluIiwic2NvcGUiOiJpbmdlc3QiLCJwbGF0Zm9ybSI6Im1vYmlsZSIsImNvbXBhbnlfaWQiOiJraXNob3JlIiwiaXNzIjoiQWRHZWlzdC1DRFAifQ.IYQus53aQETqOaQzEED8L51jwKRN3n-Oq-M8jY_ZSaw")
+    private var userDetails: UserDetails? = null
 
     init {
         prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -70,48 +74,42 @@ class AdgeistCore private constructor(
         targetingInfo = targetingOptions.getTargetingInfo()
     }
 
-    /**
-     * Sets optional user details to be included in ad requests and sent to CDP.
-     * @param details The user details to set.
-     */
+    private fun getMetaValue(key: String): String? {
+        try {
+            val context = context
+
+            val ai = context.packageManager
+                .getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
+
+            val bundle = ai.metaData
+            return bundle?.getString(key)
+        } catch (e: Exception) {
+            return null
+        }
+    }
+
     @Synchronized
     fun setUserDetails(details: UserDetails) {
         userDetails = details
     }
 
-    /**
-     * Sets user consent sent to CDP.
-     */
     fun updateConsentStatus(consentGiven: Boolean) {
         this.consentGiven = consentGiven
         prefs.edit().putBoolean(KEY_CONSENT, consentGiven).apply()
     }
 
-    /**
-     * gets user consent.
-     */
     fun getConsentStatus(): Boolean {
         return consentGiven
     }
 
-    /**
-     * Gets FetchCreative instance with user details if set.
-     */
     fun getCreative(): FetchCreative {
-        return FetchCreative(context, deviceIdentifier, networkUtils, domain, targetingInfo)
+        return FetchCreative(AdgeistCore.getInstance())
     }
 
-    /**
-     * Gets CreativeAnalytics instance with user details if set.
-     */
     fun postCreativeAnalytics(): CreativeAnalytics {
-        return CreativeAnalytics(context, deviceIdentifier, networkUtils, domain)
+        return CreativeAnalytics(AdgeistCore.getInstance())
     }
 
-    /**
-     * Logs an event to be sent to the CDP platform.
-     * @param event The event to log.
-     */
     fun logEvent(event: Event) {
         CoroutineScope(Dispatchers.IO).launch {
             val localUserDetails = userDetails
@@ -123,19 +121,11 @@ class AdgeistCore private constructor(
         }
     }
 
-    /**
-     * Requests READ_PHONE_STATE permission if not granted.
-     * Must be called from an Activity in the host app before using device meta features.
-     */
     fun requestPhoneStatePermission(activity: android.app.Activity) {
         DeviceMeta.requestPhoneStatePermission(activity)
     }
 
-    /**
-     * Checks if READ_PHONE_STATE permission is granted.
-     */
     fun hasPhoneStatePermission(): Boolean {
         return DeviceMeta.hasPhoneStatePermission(context)
     }
-
 }
