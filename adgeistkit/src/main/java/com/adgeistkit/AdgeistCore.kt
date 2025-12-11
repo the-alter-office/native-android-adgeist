@@ -25,6 +25,7 @@ class AdgeistCore private constructor(
     companion object {
         private const val BidRequestBackendDomain = com.adgeistkit.BuildConfig.BASE_API_URL
         @Volatile private var instance: AdgeistCore? = null
+        private val lock = Any()
 
         @JvmStatic
         fun initialize(context: Context,
@@ -40,6 +41,13 @@ class AdgeistCore private constructor(
                             customAdgeistAppID,
                         ).also { instance = it }
                     }
+        }
+
+        @JvmStatic
+        fun destroy() {
+            synchronized(lock) {
+                instance = null
+            }
         }
 
         @JvmStatic
