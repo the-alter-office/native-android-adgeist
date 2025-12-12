@@ -17,6 +17,7 @@ import com.adgeistkit.ads.AdListener
 import com.adgeistkit.ads.AdSize
 import com.adgeistkit.ads.AdView
 import com.adgeistkit.ads.network.AdRequest
+import com.adgeistkit.ads.network.AnalyticsRequestDEPRECATED
 
 class MainActivity : AppCompatActivity() {
     private lateinit var adGeist: AdgeistCore
