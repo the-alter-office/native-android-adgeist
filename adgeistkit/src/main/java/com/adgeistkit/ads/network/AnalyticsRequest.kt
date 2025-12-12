@@ -87,7 +87,7 @@ class AnalyticsRequest private constructor(analyticsRequest: AnalyticsRequestBui
         val json = JSONObject()
         try {
             json.put("metaData", metaData)
-            json.put("isTestMode", isTestMode)
+            json.put("isTest", isTestMode)
             json.put("type", type)
 
             when (type) {
