@@ -153,19 +153,6 @@ val adView = AdView(this).apply {
 
 Set the `AdSize` to one of the predefined sizes or create a custom size:
 
-**Predefined sizes:**
-
-```kotlin
-adView.adSize = AdSize.BANNER           // 320x50
-adView.adSize = AdSize.LARGE_BANNER     // 320x100
-adView.adSize = AdSize.MEDIUM_RECTANGLE // 300x250
-adView.adSize = AdSize.FULL_BANNER      // 468x60
-adView.adSize = AdSize.LEADERBOARD      // 728x90
-adView.adSize = AdSize.WIDE_SKYSCRAPER  // 160x600
-```
-
-**Custom size:**
-
 ```kotlin
 adView.setAdDimension(AdSize(360, 360))
 ```
@@ -197,12 +184,6 @@ adView.adType = "banner"  // or "display"
 ```
 
 Replace with the ad type you created in the Adgeist dashboard (e.g., `"banner"`, `"display"`).
-
-**Custom Origin (Optional):**
-
-```kotlin
-adView.customOrigin = "https://your-app-origin.com"
-```
 
 ### Create an Ad Request
 
