@@ -50,7 +50,7 @@ Add the dependencies for Adgeist Mobile Ads SDK to your app module's `build.grad
 
 ```kotlin
 dependencies {
-    implementation("com.github.the-alter-office:native-android-adgeist:Tag")
+    implementation("ai.adgeist:adgeistkit:Tag")
 }
 ```
 
