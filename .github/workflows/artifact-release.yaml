@@ -1,22 +1,22 @@
-name: Publish to Maven Central
+name: Artifact Deployment
 
 on:
   push:
     branches:
       - feature/targeting-options
 
+permissions:
+  contents: write
+
 jobs:
   publish:
+    name: Publish Artifacts to Maven Central
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write # Not strictly needed here, but good practice
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Full history for better versioning if needed
+          fetch-depth: 0
 
       - name: Validate Gradle Wrapper
         uses: gradle/wrapper-validation-action@v3
@@ -46,5 +46,34 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_PRIVATE_KEY }}
 
-      # Optional: Add a step to close/release staging repo automatically (requires extra Nexus API token)
-      # Not included here as most prefer manual review on Central Portal
+      # ==================== SEND SLACK NOTIFICATION ====================
+      - name: Send Slack Notification
+        if: always()
+        run: |
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          WORKFLOW_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          if [ "${{ job.status }}" = "success" ]; then
+            STATUS_EMOJI="✅"
+            STATUS_TEXT="Deployment Succeeded"
+          else
+            STATUS_EMOJI="❌"
+            STATUS_TEXT="Deployment Failed"
+          fi
+
+          ARTIFACT_URL="https://central.sonatype.com/publishing/deployments"
+
+          MESSAGE="*Kotlin (Android) Package Deployment Status*
+          $STATUS_EMOJI *Status:* $STATUS_TEXT
+          *Repository:* $REPO
+          *Branch:* $BRANCH
+          *Version:* ${{ steps.version.outputs.pod_version }}"
+
+          curl -X POST "${{ secrets.SLACK_NOTIFICATION_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"text\": \"$MESSAGE\",
+              \"workflowUrl\": \"$WORKFLOW_URL\",
+              \"artifactUrl\": \"$ARTIFACT_URL\"
+            }"
