@@ -97,7 +97,6 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_PRIVATE_KEY }}
 
       # ==================== CLEANUP ON FAILURE ====================
-
       - name: Delete GitHub Release (on deployment failure)
         if: failure() && steps.maven_publish.outcome == 'failure' && steps.create_release.outcome == 'success'
         env:
