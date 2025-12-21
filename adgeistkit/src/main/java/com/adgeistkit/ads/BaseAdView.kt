@@ -32,13 +32,10 @@ open class BaseAdView : ViewGroup {
     var adSize: AdSize? = null
     var adUnitId: String = ""
     var adType: String = "banner"
-    var customOrigin: String? = null
-    var appId: String? = null
-
-    var mediaType: String? = null
 
     var isTestMode: Boolean = false
     var metaData: String = ""
+    var mediaType: String? = null
 
     private var webView: WebView? = null
     private var jsInterface: JsBridge? = null
@@ -81,17 +78,9 @@ open class BaseAdView : ViewGroup {
                 if (xmlAdUnitId != null && !xmlAdUnitId.isEmpty()) {
                     adUnitId = xmlAdUnitId
                 }
-
-                // Parse adSize from XML
-                val sizeIndex = typedArray.getInt(R.styleable.AdView_adSize, -1)
-                adSize = getAdSizeFromIndex(sizeIndex)
             } finally {
                 typedArray.recycle()
             }
-        }
-
-        if (adSize == null) {
-            adSize = AdSize.BANNER
         }
     }
 
@@ -105,18 +94,6 @@ open class BaseAdView : ViewGroup {
 
     private fun pxToDp(px: Int): Int {
         return (px / resources.displayMetrics.density).toInt()
-    }
-
-    private fun getAdSizeFromIndex(index: Int): AdSize {
-        return when (index) {
-            0 -> AdSize.BANNER
-            1 -> AdSize.LARGE_BANNER
-            2 -> AdSize.MEDIUM_RECTANGLE
-            3 -> AdSize.FULL_BANNER
-            4 -> AdSize.LEADERBOARD
-            5 -> AdSize.WIDE_SKYSCRAPER
-            else -> AdSize.BANNER
-        }
     }
 
     @RequiresPermission("android.permission.INTERNET")

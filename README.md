@@ -128,11 +128,9 @@ Add the `AdView` to your layout file:
 
 ```xml
 <com.adgeistkit.ads.AdView
-    xmlns:ads="http://schemas.android.com/apk/res-auto"
     android:id="@+id/adView"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    ads:adSize="BANNER"
     ads:adUnitId="YOUR_AD_UNIT_ID"/>
 ```
 
