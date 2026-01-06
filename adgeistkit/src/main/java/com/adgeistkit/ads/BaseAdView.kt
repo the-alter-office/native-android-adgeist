@@ -173,6 +173,7 @@ open class BaseAdView : ViewGroup {
                         simpleCreative["isResponsive"] = options?.isResponsive ?: false
                         simpleCreative["responsiveType"] = options?.responsiveType ?: "Square"
 
+                        Log.e(TAG, "${adSize.toString()}, ${adSize!!.width}, ${isResponsive}")
                         if (isResponsive) {
                             simpleCreative["width"] = pxToDp(measuredWidth)
                             simpleCreative["height"] = pxToDp(measuredHeight)
@@ -191,6 +192,7 @@ open class BaseAdView : ViewGroup {
 
                         val creativeJson = Gson().toJson(simpleCreative)
 
+                        Log.e(TAG, creativeJson)
                         renderAdWithAdCard(creativeJson)
                         notifyAdLoaded()
 
