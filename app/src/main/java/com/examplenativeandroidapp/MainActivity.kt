@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.FrameLayout
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SwitchCompat
 import androidx.appcompat.app.AppCompatActivity
@@ -35,11 +36,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var generateAdBtn: Button
     private lateinit var cancelAdBtn: Button
     private lateinit var adContainer: LinearLayout
+    private lateinit var responsiveContainer: FrameLayout
     private lateinit var testModeSwitch: SwitchCompat
+    private lateinit var responsiveAdSwitch: SwitchCompat
+    private lateinit var responsiveSizeSection: LinearLayout
+    private lateinit var containerWidthInput: EditText
+    private lateinit var containerHeightInput: EditText
 
     private var currentAdView: AdView? = null
 
-    private val defaultPackageId = "com.examplenativeandroidapp"
+    private val defaultPackageId = "adgeist.example"
     private val defaultAdgeistAppId = "6954e6859ab54390db01e3d7"
     private val defaultBidRequestBackendDomain = "https://beta.v2.bg-services.adgeist.ai"
 
@@ -67,7 +73,12 @@ class MainActivity : AppCompatActivity() {
         generateAdBtn = findViewById(R.id.generateAdBtn)
         cancelAdBtn = findViewById(R.id.cancelAdBtn)
         adContainer = findViewById(R.id.adContainer)
+        responsiveContainer = findViewById(R.id.responsiveContainer)
         testModeSwitch = findViewById(R.id.testModeSwitch)
+        responsiveAdSwitch = findViewById(R.id.responsiveAdSwitch)
+        responsiveSizeSection = findViewById(R.id.responsiveSizeSection)
+        containerWidthInput = findViewById(R.id.containerWidthInput)
+        containerHeightInput = findViewById(R.id.containerHeightInput)
 
         // Set default values in input fields
         packageIdInput.setText(defaultPackageId)
@@ -75,6 +86,22 @@ class MainActivity : AppCompatActivity() {
 
         generateAdBtn.isEnabled = true
         cancelAdBtn.isEnabled = false
+
+        // Responsive ad switch listener
+        responsiveAdSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                responsiveSizeSection.visibility = View.VISIBLE
+                widthInput.isEnabled = false
+                heightInput.isEnabled = false
+                // Set default container sizes
+                containerWidthInput.setText("300")
+                containerHeightInput.setText("250")
+            } else {
+                responsiveSizeSection.visibility = View.GONE
+                widthInput.isEnabled = true
+                heightInput.isEnabled = true
+            }
+        }
 
         // Configuration button listener
         configureBtn.setOnClickListener {
@@ -103,6 +130,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Reinitialize AdgeistCore with new configuration
+        AdgeistCore.destroy()
         adGeist = AdgeistCore.initialize(applicationContext, defaultBidRequestBackendDomain, packageId, adgeistAppId)
         
         showAlertDialog("Success", "SDK configured successfully with:\nPackage ID: $packageId\nApp ID: $adgeistAppId")
@@ -112,11 +140,17 @@ class MainActivity : AppCompatActivity() {
     private fun loadNewAd() {
         destroyCurrentAd()
 
-        val adspaceId = "695baa786c59cd9c0bd23ff0"
-        val adSpaceType = "banner"
+        val adspaceId = "695bae6f6c59cd9c0bd24388"
+        val adSpaceType = "display"
         val width = 320
         val height = 100
+        val containerWidth = 300
+        val containerHeight = 250
 
+        val isResponsive = responsiveAdSwitch.isChecked
+
+        // val containerWidth = containerWidthInput.text.toString().toIntOrNull()
+        // val containerHeight = containerHeightInput.text.toString().toIntOrNull()
         // val adspaceId = adspaceIdInput.text.toString().trim()
         // val adSpaceType = adspaceTypeInput.text.toString().trim()
         // val width = widthInput.text.toString().toIntOrNull() ?: 0
@@ -126,8 +160,14 @@ class MainActivity : AppCompatActivity() {
 
         if (adspaceId.isEmpty()) missingFields.add("Adspace ID")
         if (adSpaceType.isEmpty()) missingFields.add("Adspace Type")
-        if (width <= 0) missingFields.add("Width")
-        if (height <= 0) missingFields.add("Height")
+        
+        if (!isResponsive) {
+            if (width <= 0) missingFields.add("Width")
+            if (height <= 0) missingFields.add("Height")
+        } else {
+            if (containerWidth <= 0) missingFields.add("Container Width")
+            if (containerHeight <= 0) missingFields.add("Container Height")
+        }
 
         if (missingFields.isNotEmpty()) {
             val message = "Please enter valid values for: ${missingFields.joinToString(", ")}"
@@ -135,36 +175,77 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val pxWidth = dpToPx(width)
-        val pxHeight = dpToPx(height)
-        adContainer.layoutParams.apply {
-            this.width = pxWidth
-            this.height = pxHeight
+        if (isResponsive) {
+            // RESPONSIVE AD: AdView directly in responsiveContainer with MATCH_PARENT
+            val pxContainerWidth = dpToPx(containerWidth)
+            val pxContainerHeight = dpToPx(containerHeight)
+            
+            // Set responsive container dimensions
+            responsiveContainer.layoutParams.apply {
+                this.width = pxContainerWidth
+                this.height = pxContainerHeight
+            }
+            responsiveContainer.visibility = View.VISIBLE
+            
+            // Create AdView that fills the responsive container
+            val adView = AdView(this).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            }
+            
+            // Add directly to responsive container
+            responsiveContainer.removeAllViews()
+            responsiveContainer.addView(adView)
+            
+            adView.adUnitId = adspaceId
+            adView.adType = adSpaceType
+            adView.isResponsive = true
+
+            // For responsive ads, don't set AdSize - let it measure from parent
+            // The SDK will use measuredWidth and measuredHeight to set dimensions
+            
+            Log.d("MainActivity", "Loading RESPONSIVE ad in container: ${containerWidth}dp x ${containerHeight}dp")
+            
+            setupAdListener(adView, true)
+            loadAdRequest(adView)
+            
+        } else {
+            val pxWidth = dpToPx(width)
+            val pxHeight = dpToPx(height)
+            adContainer.layoutParams.apply {
+                this.width = pxWidth
+                this.height = pxHeight
+            }
+            adContainer.visibility = View.VISIBLE
+            
+            // Create a new AdView instance
+            val adView = AdView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(pxWidth, pxHeight)
+            }
+            
+            // Add to container
+            adContainer.removeAllViews()
+            adContainer.addView(adView)
+            
+            adView.adUnitId = adspaceId
+            adView.adType = adSpaceType
+
+            adView.setAdDimension(AdSize(width, height))
+            
+            Log.d("MainActivity", "Loading FIXED ad: ${width}dp x ${height}dp")
+            
+            setupAdListener(adView, false)
+            loadAdRequest(adView)
         }
-        adContainer.visibility = View.VISIBLE
- 
-        // Create a new AdView instance
-        val adView = AdView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(pxWidth, pxHeight)
-        }
-
-        // Add to container
-        adContainer.removeAllViews()
-        adContainer.addView(adView)
-
-        adView.adUnitId = adspaceId
-        adView.adType = adSpaceType
-
-        adView.setAdDimension(AdSize(width, height))
-
+    }
+    
+    private fun setupAdListener(adView: AdView, isResponsive: Boolean) {
         adView.setAdListener(object : AdListener() {
             override fun onAdLoaded() {
                 Log.d("AdView", "Ad Loaded Successfully!")
                 adView.visibility = View.VISIBLE
-                runOnUiThread {
-                    generateAdBtn.isEnabled = false
-                    cancelAdBtn.isEnabled = true
-                }
             }
 
             override fun onAdFailedToLoad(error: String) {
@@ -186,13 +267,15 @@ class MainActivity : AppCompatActivity() {
                 Log.d("AdView", "Ad Closed")
             }
         })
-
+        
+        currentAdView = adView
+    }
+    
+    private fun loadAdRequest(adView: AdView) {
         val adRequest = AdRequest.Builder()
             .setTestMode(testModeSwitch.isChecked)
             .build()
         adView.loadAd(adRequest)
-
-        currentAdView = adView
     }
 
     private fun destroyCurrentAd() {
@@ -202,6 +285,7 @@ class MainActivity : AppCompatActivity() {
         }
         currentAdView = null
 
+        responsiveContainer.visibility = View.GONE
         adContainer.visibility = View.GONE
         generateAdBtn.isEnabled = true
         cancelAdBtn.isEnabled = false

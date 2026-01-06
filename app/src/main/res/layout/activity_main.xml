@@ -108,6 +108,61 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:text="Responsive Ad"
+                android:textSize="16sp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginEnd="8dp" />
+            
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/responsiveAdSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="false" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/responsiveSizeSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:layout_marginTop="8dp">
+            
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Container Dimensions (for responsive ad)"
+                android:textSize="14sp"
+                android:textStyle="italic"
+                android:layout_marginBottom="8dp" />
+            
+            <EditText
+                android:id="@+id/containerWidthInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Container Width (dp)"
+                android:inputType="number"
+                android:layout_marginTop="4dp" />
+            
+            <EditText
+                android:id="@+id/containerHeightInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Container Height (dp)"
+                android:inputType="number"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="start"
+            android:layout_marginTop="16dp">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:text="Test Mode"
                 android:textSize="16sp"
                 android:layout_gravity="center_vertical"
@@ -148,6 +203,16 @@
                 />
         </LinearLayout>
 
+      <!-- Responsive Container: For responsive ads only -->
+      <FrameLayout
+            android:id="@+id/responsiveContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:visibility="gone"
+            android:background="#FFEEEE" />
+
+      <!-- Ad Container: For normal/fixed ads only -->
       <LinearLayout
             android:id="@+id/adContainer"
             android:layout_width="wrap_content"
@@ -155,8 +220,7 @@
             android:layout_marginTop="40dp"
             android:visibility="gone"
             android:gravity="center"
-            android:orientation="vertical"
-          />
+            android:orientation="vertical" />
 
 <!--    <Button-->
 <!--        android:id="@+id/triggerNetworkCall"-->
