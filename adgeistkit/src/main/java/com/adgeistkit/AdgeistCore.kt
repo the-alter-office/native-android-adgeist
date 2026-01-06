@@ -56,7 +56,7 @@ class AdgeistCore private constructor(
         }
     }
 
-    val packageOrBundleID = customPackageOrBundleID ?: getMetaValue("com.adgeistkit.ads.ADGEIST_CUSTOM_PACKAGE_OR_BUNDLE_ID") ?: ""
+    val packageOrBundleID = customPackageOrBundleID ?: context.packageName
     val adgeistAppID = customAdgeistAppID ?: getMetaValue("com.adgeistkit.ads.ADGEIST_APP_ID") ?: ""
     val apiKey = getMetaValue("com.adgeistkit.ads.ADGEIST_API_KEY") ?: ""
 

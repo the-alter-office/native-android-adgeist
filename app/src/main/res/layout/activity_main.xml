@@ -12,37 +12,73 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="vertical"
-        android:paddingTop="40dp">
+        android:paddingTop="20dp">
 
-        <EditText
-            android:id="@+id/publisherIdInput"
+        <!-- Configuration Section -->
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Enter Publisher ID"
-            android:inputType="text"
-            android:layout_marginTop="16dp" />
+            android:text="SDK Configuration"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp"
+            android:gravity="center" />
 
         <EditText
-            android:id="@+id/adspaceIdInput"
+            android:id="@+id/packageIdInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Enter Adspace ID"
+            android:hint="Package ID"
             android:inputType="text"
             android:layout_marginTop="8dp" />
+
+        <EditText
+            android:id="@+id/adgeistAppIdInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Adgeist App ID"
+            android:inputType="text"
+            android:layout_marginTop="8dp" />
+
+        <Button
+            android:id="@+id/configureBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Configure SDK"
+            android:layout_marginTop="12dp"
+            android:backgroundTint="@color/teal_700" />
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:background="@android:color/darker_gray"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Ad Loading Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Load Advertisement"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp"
+            android:gravity="center" />
 
         <EditText
             android:id="@+id/adspaceTypeInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Enter Adspace Type"
+            android:hint="Adspace Type (e.g., display)"
             android:inputType="text"
             android:layout_marginTop="8dp" />
 
         <EditText
-            android:id="@+id/originInput"
+            android:id="@+id/adspaceIdInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Enter Origin"
+            android:hint="Adspace ID"
             android:inputType="text"
             android:layout_marginTop="8dp" />
 
@@ -96,7 +132,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
-                android:text="Generate"
+                android:text="Get Ad"
                 android:enabled="true"
                 android:backgroundTint="@color/button_background_tint" />
             <Button

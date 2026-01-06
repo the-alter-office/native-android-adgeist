@@ -20,16 +20,11 @@
         
         <meta-data
         android:name="com.adgeistkit.ads.ADGEIST_APP_ID"
-        android:value="69326f9fbb280f9241cabc94"/>
+        android:value="6954e6859ab54390db01e3d7"/>
 
         <meta-data
         android:name="com.adgeistkit.ads.ADGEIST_API_KEY"
-        android:value="b4e33bb73061d4e33670f229033f14bf770d35b15512dc1f106529e38946e49c"/>
-
-        <meta-data
-            android:name="com.adgeistkit.ads.ADGEIST_CUSTOM_PACKAGE_OR_BUNDLE_ID"
-            android:value="https://adgeist-ad-integration.d49kd6luw1c4m.amplifyapp.com"
-            />
+        android:value="28ded113049981d7a25041a177a87f2806067968e583f0519a68daa9c9f59f10"/>
 
         <activity
             android:name=".MainActivity"

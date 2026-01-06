@@ -88,7 +88,7 @@ class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
                     .url(url)
                     .header("Content-Type", "application/json")
                     .header("Origin", packageOrBundleID)
-                    .header("x-user-id", deviceId)
+                    .header("x-user-id", deviceId ?: "")
                     .header("x-platform", "mobile_app")
                     .header("x-api-key", apiKey)
                     .header("x-forwarded-for", userIP)

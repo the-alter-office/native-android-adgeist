@@ -23,7 +23,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
 
     private val bidRequestBackendDomain = adgeistCore.bidRequestBackendDomain
 
-    private val packageOrBundleID = adgeistCore.packageOrBundleID
+    private val packageID = adgeistCore.packageOrBundleID
     private val adgeistAppID = adgeistCore.adgeistAppID
     private val apiKey = adgeistCore.apiKey
 
@@ -46,9 +46,9 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
             val envFlag = if (isTestEnvironment) "1" else "0"
 
             val url = if (buyType == "FIXED") {
-                "https://$bidRequestBackendDomain/v2/dsp/ad/fixed"
+                "$bidRequestBackendDomain/v2/dsp/ad/fixed"
             } else {
-                "https://$bidRequestBackendDomain/v1/app/ssp/bid?adSpaceId=$adUnitID&companyId=$adgeistAppID&test=$envFlag"
+                "$bidRequestBackendDomain/v1/app/ssp/bid?adSpaceId=$adUnitID&companyId=$adgeistAppID&test=$envFlag"
             }
 
             val payload = mutableMapOf<String, Any>()
@@ -58,6 +58,8 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
             }
 
             if (buyType == "FIXED") {
+                payload["platform"] = "ANDROID"
+                payload["deviceId"] = deviceId ?: ""
                 payload["adspaceId"] = adUnitID
                 payload["companyId"] = adgeistAppID
                 payload["timeZone"] = TimeZone.getDefault().id
@@ -68,7 +70,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                 )
             }
 
-            payload["origin"] = packageOrBundleID
+            payload["origin"] = packageID
             payload["isTest"] = isTestEnvironment
 
             val requestPayload = Gson().toJson(payload)
@@ -85,8 +87,8 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                     .url(url)
                     .post(requestBody)
                     .header("Content-Type", "application/json")
-                    .header("Origin", packageOrBundleID)
-                    .header("x-user-id", deviceId)
+                    .header("Origin", packageID)
+                    .header("x-user-id", deviceId ?: "")
                     .header("x-platform", "mobile_app")
                     .header("x-api-key", apiKey)
                     .header("x-forwarded-for", userIP)
@@ -97,7 +99,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
 
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    Log.d(TAG, "Request Failed: ${e.message}")
+                    Log.d(TAG, "Request Failed: ${bidRequestBackendDomain} - ${e.message}")
                     callback(null)
                 }
 

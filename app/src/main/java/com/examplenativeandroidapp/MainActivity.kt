@@ -22,10 +22,14 @@ import com.adgeistkit.ads.network.AnalyticsRequestDEPRECATED
 class MainActivity : AppCompatActivity() {
     private lateinit var adGeist: AdgeistCore
 
-    private lateinit var publisherIdInput: EditText
+    // Configuration Section
+    private lateinit var packageIdInput: EditText
+    private lateinit var adgeistAppIdInput: EditText
+    private lateinit var configureBtn: Button
+
+    // Ad Loading Section
     private lateinit var adspaceIdInput: EditText
     private lateinit var adspaceTypeInput: EditText
-    private lateinit var originInput: EditText
     private lateinit var widthInput: EditText
     private lateinit var heightInput: EditText
     private lateinit var generateAdBtn: Button
@@ -35,6 +39,10 @@ class MainActivity : AppCompatActivity() {
 
     private var currentAdView: AdView? = null
 
+    private val defaultPackageId = "com.examplenativeandroidapp"
+    private val defaultAdgeistAppId = "6954e6859ab54390db01e3d7"
+    private val defaultBidRequestBackendDomain = "https://beta.v2.bg-services.adgeist.ai"
+
     private fun dpToPx(dp: Int): Int {
         return (dp * resources.displayMetrics.density).toInt()
     }
@@ -43,12 +51,17 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        adGeist = AdgeistCore.initialize(applicationContext, "beta.v2.bg-services.adgeist.ai")
+        // Initialize AdgeistCore with default packageId from build.gradle.kts
+        adGeist = AdgeistCore.initialize(applicationContext)
 
-        publisherIdInput = findViewById(R.id.publisherIdInput)
+        // Configuration Section
+        packageIdInput = findViewById(R.id.packageIdInput)
+        adgeistAppIdInput = findViewById(R.id.adgeistAppIdInput)
+        configureBtn = findViewById(R.id.configureBtn)
+
+        // Ad Loading Section
         adspaceIdInput = findViewById(R.id.adspaceIdInput)
         adspaceTypeInput = findViewById(R.id.adspaceTypeInput)
-        originInput = findViewById(R.id.originInput)
         widthInput = findViewById(R.id.widthInput)
         heightInput = findViewById(R.id.heightInput)
         generateAdBtn = findViewById(R.id.generateAdBtn)
@@ -56,57 +69,69 @@ class MainActivity : AppCompatActivity() {
         adContainer = findViewById(R.id.adContainer)
         testModeSwitch = findViewById(R.id.testModeSwitch)
 
+        // Set default values in input fields
+        packageIdInput.setText(defaultPackageId)
+        adgeistAppIdInput.setText(defaultAdgeistAppId)
+
         generateAdBtn.isEnabled = true
         cancelAdBtn.isEnabled = false
 
+        // Configuration button listener
+        configureBtn.setOnClickListener {
+            configureSDK()
+        }
+
+        // Generate Ad button listener
         generateAdBtn.setOnClickListener {
             loadNewAd()
         }
 
+        // Cancel button listener
         cancelAdBtn.setOnClickListener {
             destroyCurrentAd()
             clearInputFields()
         }
     }
 
+    private fun configureSDK() {
+        val packageId = packageIdInput.text.toString().trim()
+        val adgeistAppId = adgeistAppIdInput.text.toString().trim()
+
+        if (packageId.isEmpty() || adgeistAppId.isEmpty()) {
+            showAlertDialog("Invalid Configuration", "Please enter valid Package ID and Adgeist App ID")
+            return
+        }
+
+        // Reinitialize AdgeistCore with new configuration
+        adGeist = AdgeistCore.initialize(applicationContext, defaultBidRequestBackendDomain, packageId, adgeistAppId)
+        
+        showAlertDialog("Success", "SDK configured successfully with:\nPackage ID: $packageId\nApp ID: $adgeistAppId")
+        Log.d("MainActivity", "SDK reinitialized with Package ID: $packageId, App ID: $adgeistAppId")
+    }
+
     private fun loadNewAd() {
         destroyCurrentAd()
 
-//        val publisherId = "69326f9fbb280f9241cabc94"
-//        val adspaceId = "6932a4c022f6786424ce3b84"
-//        val adSpaceType = "display"
-//        val origin = "https://adgeist-ad-integration.d49kd6luw1c4m.amplifyapp.com"
-//        val width = 320
-//        val height = 480
-        
-         val publisherId = publisherIdInput.text.toString().trim()
-         val adspaceId = adspaceIdInput.text.toString().trim()
-         val adSpaceType = adspaceTypeInput.text.toString().trim()
-         val origin = originInput.text.toString().trim()
-         val width = widthInput.text.toString().toIntOrNull() ?: 0
-         val height = heightInput.text.toString().toIntOrNull() ?: 0
+        val adspaceId = "695baa786c59cd9c0bd23ff0"
+        val adSpaceType = "banner"
+        val width = 320
+        val height = 100
+
+        // val adspaceId = adspaceIdInput.text.toString().trim()
+        // val adSpaceType = adspaceTypeInput.text.toString().trim()
+        // val width = widthInput.text.toString().toIntOrNull() ?: 0
+        // val height = heightInput.text.toString().toIntOrNull() ?: 0
 
         val missingFields = mutableListOf<String>()
 
-        if (publisherId.isEmpty()) missingFields.add("Publisher ID")
         if (adspaceId.isEmpty()) missingFields.add("Adspace ID")
         if (adSpaceType.isEmpty()) missingFields.add("Adspace Type")
-        if (origin.isEmpty()) missingFields.add("Origin")
         if (width <= 0) missingFields.add("Width")
         if (height <= 0) missingFields.add("Height")
 
         if (missingFields.isNotEmpty()) {
             val message = "Please enter valid values for: ${missingFields.joinToString(", ")}"
-
-            val dialog = AlertDialog.Builder(this@MainActivity)
-                .setTitle("Invalid fields")
-                .setMessage(message)
-                .setPositiveButton("OK", null)
-                .show()
-
-            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setTextColor(
-                ContextCompat.getColor(this@MainActivity, R.color.teal_700)
-            )
+            showAlertDialog("Invalid Fields", message)
             return
         }
 
@@ -118,7 +143,7 @@ class MainActivity : AppCompatActivity() {
         }
         adContainer.visibility = View.VISIBLE
  
-        // Create a BRAND NEW AdView instance
+        // Create a new AdView instance
         val adView = AdView(this).apply {
             layoutParams = LinearLayout.LayoutParams(pxWidth, pxHeight)
         }
@@ -129,35 +154,22 @@ class MainActivity : AppCompatActivity() {
 
         adView.adUnitId = adspaceId
         adView.adType = adSpaceType
-        adView.appId = publisherId
 
-        if(origin.isNotEmpty()){
-            adView.customOrigin = origin
-        }
         adView.setAdDimension(AdSize(width, height))
 
         adView.setAdListener(object : AdListener() {
             override fun onAdLoaded() {
                 Log.d("AdView", "Ad Loaded Successfully!")
                 adView.visibility = View.VISIBLE
-//                runOnUiThread {
-//                    generateAdBtn.isEnabled = false
-//                    cancelAdBtn.isEnabled = true
-//                }
+                runOnUiThread {
+                    generateAdBtn.isEnabled = false
+                    cancelAdBtn.isEnabled = true
+                }
             }
 
             override fun onAdFailedToLoad(error: String) {
                 Log.e("AdView", "Ad Failed to Load: $error")
-                val dialog = AlertDialog.Builder(this@MainActivity)
-                            .setTitle("Ad Load Failed")
-                            .setMessage("Reason: $error")
-                            .setPositiveButton("OK", null)
-                            .show()
-
-                dialog.getButton(DialogInterface.BUTTON_POSITIVE).setTextColor(
-                    ContextCompat.getColor(this@MainActivity, R.color.teal_700)
-                )
-
+                showAlertDialog("Ad Load Failed", "Reason: $error")
                 destroyCurrentAd()
                 clearInputFields()
             }
@@ -196,17 +208,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun clearInputFields(){
-        publisherIdInput.text.clear()
         adspaceIdInput.text.clear()
-        originInput.text.clear()
         adspaceTypeInput.text.clear()
         widthInput.text.clear()
         heightInput.text.clear()
     }
 
     override fun onDestroy() {
-        destroyCurrentAd()
-        clearInputFields()
+        adspaceIdInput.text.clear()
+        adspaceTypeInput.text.clear()
+        widthInput.text.clear()
+        heightInput.text.clear()
         super.onDestroy()
+    }
+
+    private fun showAlertDialog(title: String, message: String) {
+        val dialog = AlertDialog.Builder(this@MainActivity)
+            .setTitle(title)
+            .setMessage(message)
+            .setPositiveButton("OK", null)
+            .show()
+
+        dialog.getButton(DialogInterface.BUTTON_POSITIVE).setTextColor(
+            ContextCompat.getColor(this@MainActivity, R.color.teal_700)
+        )
     }
 }
