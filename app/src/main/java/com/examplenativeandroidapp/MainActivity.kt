@@ -201,7 +201,7 @@ class MainActivity : AppCompatActivity() {
             
             adView.adUnitId = adspaceId
             adView.adType = adSpaceType
-            adView.isResponsive = true
+            adView.adIsResponsive = true
 
             // For responsive ads, don't set AdSize - let it measure from parent
             // The SDK will use measuredWidth and measuredHeight to set dimensions
@@ -236,12 +236,12 @@ class MainActivity : AppCompatActivity() {
             
             Log.d("MainActivity", "Loading FIXED ad: ${width}dp x ${height}dp")
             
-            setupAdListener(adView, false)
+            setupAdListener(adView)
             loadAdRequest(adView)
         }
     }
     
-    private fun setupAdListener(adView: AdView, isResponsive: Boolean) {
+    private fun setupAdListener(adView: AdView) {
         adView.setAdListener(object : AdListener() {
             override fun onAdLoaded() {
                 Log.d("AdView", "Ad Loaded Successfully!")

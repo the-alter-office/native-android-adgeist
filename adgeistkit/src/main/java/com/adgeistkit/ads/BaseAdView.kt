@@ -32,7 +32,7 @@ open class BaseAdView : ViewGroup {
     var adSize: AdSize? = null
     var adUnitId: String = ""
     var adType: String = "banner"
-    var isResponsive: Boolean = false
+    var adIsResponsive: Boolean = false
 
     var isTestMode: Boolean = false
     var metaData: String = ""
@@ -173,8 +173,7 @@ open class BaseAdView : ViewGroup {
                         simpleCreative["isResponsive"] = options?.isResponsive ?: false
                         simpleCreative["responsiveType"] = options?.responsiveType ?: "Square"
 
-                        Log.e(TAG, "${adSize.toString()}, ${adSize!!.width}, ${isResponsive}")
-                        if (isResponsive) {
+                        if (adIsResponsive) {
                             simpleCreative["width"] = pxToDp(measuredWidth)
                             simpleCreative["height"] = pxToDp(measuredHeight)
                         } else {
@@ -192,7 +191,6 @@ open class BaseAdView : ViewGroup {
 
                         val creativeJson = Gson().toJson(simpleCreative)
 
-                        Log.e(TAG, creativeJson)
                         renderAdWithAdCard(creativeJson)
                         notifyAdLoaded()
 
@@ -428,7 +426,7 @@ open class BaseAdView : ViewGroup {
             width = child.measuredWidth
             height = child.measuredHeight
         } else {
-            if (isResponsive) {
+            if (adIsResponsive) {
                 width = android.view.View.MeasureSpec.getSize(widthMeasureSpec)
                 height = android.view.View.MeasureSpec.getSize(heightMeasureSpec)
             } else if (adSize != null) {
