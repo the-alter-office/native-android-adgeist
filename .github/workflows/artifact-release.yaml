@@ -1,0 +1,152 @@
+name: Artifact Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Publish Artifacts to Maven Central
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Extract version from gradle.properties
+        id: version
+        run: |
+          VERSION_NAME=$(grep "^VERSION_NAME=" gradle.properties | cut -d'=' -f2 | tr -d ' ')
+          VERSION_SUFFIX=$(grep "^VERSION_SUFFIX=" gradle.properties | cut -d'=' -f2 | tr -d ' ')
+          if [ -n "$VERSION_SUFFIX" ]; then
+            VERSION="${VERSION_NAME}-${VERSION_SUFFIX}"
+          else
+            VERSION="$VERSION_NAME"
+          fi
+          echo "library_version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version_suffix=$VERSION_SUFFIX" >> $GITHUB_OUTPUT
+          echo "Current library version: $VERSION"
+
+      - name: Get latest release
+        id: latest_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LATEST_TAG=$(gh release view --json tagName --jq '.tagName' 2>/dev/null || echo "")
+          echo "tag_name=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "Latest release tag: $LATEST_TAG"
+
+      - name: Check for duplicate version (fail early)
+        run: |
+          CURRENT_VERSION=${{ steps.version.outputs.library_version }}
+          LATEST_RELEASE_TAG=${{ steps.latest_release.outputs.tag_name }}
+
+          if [ -n "$LATEST_RELEASE_TAG" ] && [ "$LATEST_RELEASE_TAG" = "$CURRENT_VERSION" ]; then
+            echo "🚫 ERROR: Version $CURRENT_VERSION already exists as the latest GitHub Release (tag: $LATEST_RELEASE_TAG)."
+            echo "Bump the version in gradle.properties (VERSION_NAME property)."
+            exit 1
+          fi
+          echo "✅ Version is new: $CURRENT_VERSION"
+          echo "Latest Release tag: $LATEST_RELEASE_TAG (or none)"
+
+      - name: Import GPG key
+        run: |
+          mkdir -p ~/.gnupg
+          echo "${{ secrets.SIGNING_PRIVATE_KEY }}" | gpg --batch --import
+          gpg --list-secret-keys --keyid-format LONG
+
+      - name: Test build locally
+        id: test_build
+        run: |
+          echo "🔨 Building library locally to verify build integrity..."
+          ./gradlew :adgeistkit:assembleRelease --no-daemon
+          echo "✅ Local build successful"
+
+      - name: Create GitHub Release
+        id: create_release
+        if: success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.library_version }}
+          name: ${{ steps.version.outputs.version_suffix || 'Release' }} ${{ steps.version.outputs.library_version }}
+          body: AdgeistKit Android SDK version ${{ steps.version.outputs.library_version }} - Ready for Maven Central deployment
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to Maven Central
+        id: maven_publish
+        run: |
+          echo "🚀 Publishing to Maven Central..."
+          ./gradlew :adgeistkit:publishAllPublicationsToMavenCentralRepository --no-daemon --no-parallel
+          echo "✅ Successfully published to Maven Central"
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_PRIVATE_KEY }}
+
+      # ==================== CLEANUP ON FAILURE ====================
+      - name: Delete GitHub Release (on deployment failure)
+        if: failure() && steps.maven_publish.outcome == 'failure' && steps.create_release.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "❌ Maven deployment failed → deleting GitHub Release"
+          gh release delete ${{ steps.version.outputs.library_version }} --yes || echo "Release not found or already deleted"
+
+      - name: Delete git tag locally and remotely (on deployment failure)
+        if: failure() && steps.maven_publish.outcome == 'failure' && steps.create_release.outcome == 'success'
+        run: |
+          echo "❌ Maven deployment failed → deleting tag ${{ steps.version.outputs.library_version }}"
+          git tag -d ${{ steps.version.outputs.library_version }} || echo "Tag not found locally"
+          git push origin --delete ${{ steps.version.outputs.library_version }} || echo "Tag not found remotely"
+
+      # ==================== SEND SLACK NOTIFICATION ====================
+      - name: Send Slack Notification
+        if: always()
+        run: |
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          WORKFLOW_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          if [ "${{ job.status }}" = "success" ]; then
+            STATUS_EMOJI="✅"
+            STATUS_TEXT="Deployment Succeeded"
+          else
+            STATUS_EMOJI="❌"
+            STATUS_TEXT="Deployment Failed"
+          fi
+
+          ARTIFACT_URL="https://central.sonatype.com/publishing/deployments"
+
+          MESSAGE="*Kotlin (Android) Package Deployment Status*
+          $STATUS_EMOJI *Status:* $STATUS_TEXT
+          *Repository:* $REPO
+          *Branch:* $BRANCH
+          *Version:* ${{ steps.version.outputs.library_version }}"
+
+          curl -X POST "${{ secrets.SLACK_NOTIFICATION_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"text\": \"$MESSAGE\",
+              \"workflowUrl\": \"$WORKFLOW_URL\",
+              \"artifactUrl\": \"$ARTIFACT_URL\"
+            }"

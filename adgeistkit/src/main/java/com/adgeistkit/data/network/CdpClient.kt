@@ -1,7 +1,10 @@
-package com.adgeistkit
+package com.adgeistkit.data.network
 
 import android.util.Log
-import com.adgeistkit.AdgeistCore.Companion
+import com.adgeistkit.core.device.DeviceIdentifier
+import com.adgeistkit.core.device.NetworkUtils
+import com.adgeistkit.data.models.Event
+import com.adgeistkit.data.models.UserDetails
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -76,9 +79,7 @@ class CdpClient(
             try {
                 client.newCall(request).execute().use { response ->
                     if (response.isSuccessful) {
-//                        Log.d(TAG, "Event sent to CDP: ${response.body?.string()}")
                     } else {
-                        Log.e(TAG, "Failed to send event to CDP: ${response.code}, ${response.body?.string()}")
                     }
                 }
             } catch (e: IOException) {

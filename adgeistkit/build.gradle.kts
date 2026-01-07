@@ -1,4 +1,4 @@
-import com.vanniktech.maven.publish.SonatypeHost
+import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
 
 plugins {
     alias(libs.plugins.android.library)
@@ -11,8 +11,29 @@ android {
     namespace = "com.adgeistkit"
     compileSdk = 35
 
+    buildFeatures {
+        buildConfig = true
+    }
+
+    flavorDimensions += "environment"
+    
+    productFlavors {
+        create("alpha") {
+            dimension = "environment"
+            buildConfigField("String", "BASE_API_URL", "\"https://beta.v2.bg-services.adgeist.ai\"")
+        }
+        create("rc") {
+            dimension = "environment"
+            buildConfigField("String", "BASE_API_URL", "\"https://bg-services-qa-api.adgeist.ai\"")
+        }
+        create("prod") {
+            dimension = "environment"
+            buildConfigField("String", "BASE_API_URL", "\"https://prod.v2.bg-services.adgeist.ai\"")
+        }
+    }
+
     defaultConfig {
-        minSdk = 21
+        minSdk = 24
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -37,7 +58,10 @@ android {
 }
 
 dependencies {
-
+    // Force Kotlin version to prevent conflicts
+    implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.8.0"))
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.core:core:1.12.0")
     implementation(libs.androidx.appcompat)
@@ -49,6 +73,10 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+mavenPublishing {
+    configure(AndroidSingleVariantLibrary("prodRelease"))
 }
 
 // afterEvaluate {

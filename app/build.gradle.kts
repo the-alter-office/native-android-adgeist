@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.examplenativeandroidapp"
-        minSdk = 21
+        minSdk = 24
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -26,6 +26,19 @@ android {
             )
         }
     }
+
+    flavorDimensions += "environment"
+    productFlavors {
+        create("alpha") {
+            dimension = "environment"
+        }
+        create("rc") {
+            dimension = "environment"
+        }
+        create("prod") {
+            dimension = "environment"
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -40,10 +53,15 @@ android {
 
 dependencies {
 
+    // Force Kotlin version to prevent conflicts
+    implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.8.0"))
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+    // implementation("com.google.android.gms:play-services-ads:23.3.0")
     // implementation(libs.androidx.activity.compose)
     // implementation(platform(libs.androidx.compose.bom))
     // implementation(libs.androidx.ui)

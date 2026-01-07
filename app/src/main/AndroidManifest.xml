@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
     <application
         android:allowBackup="true"
@@ -17,6 +18,14 @@
         android:theme="@style/Theme.NativeandroidadgeistTheme"
         tools:targetApi="31">
         
+        <meta-data
+        android:name="com.adgeistkit.ads.ADGEIST_APP_ID"
+        android:value="6954e6859ab54390db01e3d7"/>
+
+        <meta-data
+        android:name="com.adgeistkit.ads.ADGEIST_API_KEY"
+        android:value="28ded113049981d7a25041a177a87f2806067968e583f0519a68daa9c9f59f10"/>
+
         <activity
             android:name=".MainActivity"
             android:exported="true">

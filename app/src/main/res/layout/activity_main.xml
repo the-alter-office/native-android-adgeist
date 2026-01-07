@@ -1,71 +1,282 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
     android:gravity="center">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Hello Android!"
-        android:textSize="18sp" />
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingTop="20dp">
 
-    <Button
-        android:id="@+id/triggerNetworkCall"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Make Network Call"
-        android:layout_marginTop="16dp" />
+        <!-- Configuration Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SDK Configuration"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp"
+            android:gravity="center" />
 
-    <Button
-        android:id="@+id/statusBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Get Consent Status"
-        android:layout_marginTop="16dp" />
+        <EditText
+            android:id="@+id/packageIdInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Package ID"
+            android:inputType="text"
+            android:layout_marginTop="8dp" />
 
-    <Button
-        android:id="@+id/consentBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Update Consent"
-        android:layout_marginTop="16dp" />
+        <EditText
+            android:id="@+id/adgeistAppIdInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Adgeist App ID"
+            android:inputType="text"
+            android:layout_marginTop="8dp" />
 
-    <Button
-        android:id="@+id/setUserDetailsBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Set User Details"
-        android:layout_marginTop="16dp" />
+        <Button
+            android:id="@+id/configureBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Configure SDK"
+            android:layout_marginTop="12dp"
+            android:backgroundTint="@color/teal_700" />
 
-    <Button
-        android:id="@+id/logEventBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Log Event"
-        android:layout_marginTop="16dp" />
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:background="@android:color/darker_gray"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="24dp" />
 
-    <Button
-        android:id="@+id/trackImpressionBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Track Impression"
-        android:layout_marginTop="16dp" />
+        <!-- Ad Loading Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Load Advertisement"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp"
+            android:gravity="center" />
 
-    <Button
-        android:id="@+id/trackViewBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Track View"
-        android:layout_marginTop="16dp" />
+        <EditText
+            android:id="@+id/adspaceTypeInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Adspace Type (e.g., display)"
+            android:inputType="text"
+            android:layout_marginTop="8dp" />
 
-    <Button
-        android:id="@+id/trackClickBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Track Click"
-        android:layout_marginTop="16dp" />
+        <EditText
+            android:id="@+id/adspaceIdInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Adspace ID"
+            android:inputType="text"
+            android:layout_marginTop="8dp" />
 
-</LinearLayout>
+        <EditText
+            android:id="@+id/widthInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter Width (px)"
+            android:inputType="number"
+            android:layout_marginTop="8dp" />
+
+        <EditText
+            android:id="@+id/heightInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter Height (px)"
+            android:inputType="number"
+            android:layout_marginTop="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="start"
+            android:layout_marginTop="16dp">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Responsive Ad"
+                android:textSize="16sp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginEnd="8dp" />
+            
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/responsiveAdSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="false" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/responsiveSizeSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:layout_marginTop="8dp">
+            
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Container Dimensions (for responsive ad)"
+                android:textSize="14sp"
+                android:textStyle="italic"
+                android:layout_marginBottom="8dp" />
+            
+            <EditText
+                android:id="@+id/containerWidthInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Container Width (dp)"
+                android:inputType="number"
+                android:layout_marginTop="4dp" />
+            
+            <EditText
+                android:id="@+id/containerHeightInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Container Height (dp)"
+                android:inputType="number"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="start"
+            android:layout_marginTop="16dp">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Test Mode"
+                android:textSize="16sp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginEnd="8dp" />
+            
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/testModeSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="false" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="16dp">
+            <Button
+                android:id="@+id/generateAdBtn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="Get Ad"
+                android:enabled="true"
+                android:backgroundTint="@color/button_background_tint" />
+            <Button
+                android:id="@+id/cancelAdBtn"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="Cancel"
+                android:enabled="true"
+                android:backgroundTint="@color/button_background_tint"
+                android:visibility="invisible"
+                />
+        </LinearLayout>
+
+      <!-- Responsive Container: For responsive ads only -->
+      <FrameLayout
+            android:id="@+id/responsiveContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:visibility="gone"
+            android:background="#FFEEEE" />
+
+      <!-- Ad Container: For normal/fixed ads only -->
+      <LinearLayout
+            android:id="@+id/adContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:visibility="gone"
+            android:gravity="center"
+            android:orientation="vertical" />
+
+<!--    <Button-->
+<!--        android:id="@+id/triggerNetworkCall"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="Make Network Call"-->
+<!--        android:layout_marginTop="16dp" />-->
+
+<!--    <Button-->
+<!--        android:id="@+id/statusBtn"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="Get Consent Status"-->
+<!--        android:layout_marginTop="16dp" />-->
+
+<!--    <Button-->
+<!--        android:id="@+id/consentBtn"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="Update Consent"-->
+<!--        android:layout_marginTop="16dp" />-->
+
+<!--    <Button-->
+<!--        android:id="@+id/setUserDetailsBtn"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="Set User Details"-->
+<!--        android:layout_marginTop="16dp" />-->
+
+<!--    <Button-->
+<!--        android:id="@+id/logEventBtn"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="Log Event"-->
+<!--        android:layout_marginTop="16dp" />-->
+
+<!--    <Button-->
+<!--        android:id="@+id/trackImpressionBtn"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="Track Impression"-->
+<!--        android:layout_marginTop="16dp" />-->
+
+<!--    <Button-->
+<!--        android:id="@+id/trackViewBtn"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="Track View"-->
+<!--        android:layout_marginTop="16dp" />-->
+
+<!--    <Button-->
+<!--        android:id="@+id/trackClickBtn"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="Track Click"-->
+<!--        android:layout_marginTop="16dp" />-->
+
+    </LinearLayout>
+</ScrollView>
