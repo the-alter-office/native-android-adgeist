@@ -31,7 +31,7 @@ class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
 
     fun sendTrackingDataV2(analyticsRequest: AnalyticsRequest){
         scope.launch {
-            val url = "https://$bidRequestBackendDomain/v2/ssp/impression";
+            val url = "$bidRequestBackendDomain/v2/ssp/impression";
 
             val requestPayload = analyticsRequest.toJson().toString();
             val requestBody = requestPayload.toRequestBody("application/json".toMediaType());
@@ -66,9 +66,9 @@ class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
             val envFlag = if (analyticsRequestDEPRECATED.isTestMode) "1" else "0"
 
             val url =  if (analyticsRequestDEPRECATED.buyType == "FIXED") {
-                "https://$bidRequestBackendDomain/v2/ssp/impression"
+                "$bidRequestBackendDomain/v2/ssp/impression"
             } else {
-                "https://$bidRequestBackendDomain/api/analytics/track?adSpaceId=${analyticsRequestDEPRECATED.adUnitID}&companyId=$adgeistAppID&test=$envFlag"
+                "$bidRequestBackendDomain/api/analytics/track?adSpaceId=${analyticsRequestDEPRECATED.adUnitID}&companyId=$adgeistAppID&test=$envFlag"
             }
 
             val deviceId = deviceIdentifier.getDeviceIdentifier()
