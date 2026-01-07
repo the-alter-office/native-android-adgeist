@@ -3,7 +3,7 @@ name: Artifact Deployment
 on:
   push:
     branches:
-      - feature/targeting-options
+      - main
 
 permissions:
   contents: write
@@ -31,8 +31,15 @@ jobs:
       - name: Extract version from gradle.properties
         id: version
         run: |
-          VERSION=$(grep "^VERSION_NAME=" gradle.properties | cut -d'=' -f2 | tr -d ' ')
+          VERSION_NAME=$(grep "^VERSION_NAME=" gradle.properties | cut -d'=' -f2 | tr -d ' ')
+          VERSION_SUFFIX=$(grep "^VERSION_SUFFIX=" gradle.properties | cut -d'=' -f2 | tr -d ' ')
+          if [ -n "$VERSION_SUFFIX" ]; then
+            VERSION="${VERSION_NAME}-${VERSION_SUFFIX}"
+          else
+            VERSION="$VERSION_NAME"
+          fi
           echo "library_version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version_suffix=$VERSION_SUFFIX" >> $GITHUB_OUTPUT
           echo "Current library version: $VERSION"
 
       - name: Get latest release
@@ -76,7 +83,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.library_version }}
-          name: Release ${{ steps.version.outputs.library_version }}
+          name: ${{ steps.version.outputs.version_suffix || 'Release' }} ${{ steps.version.outputs.library_version }}
           body: AdgeistKit Android SDK version ${{ steps.version.outputs.library_version }} - Ready for Maven Central deployment
           draft: false
           prerelease: false
