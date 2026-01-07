@@ -51,18 +51,18 @@ jobs:
           echo "tag_name=$LATEST_TAG" >> $GITHUB_OUTPUT
           echo "Latest release tag: $LATEST_TAG"
 
-      - name: Check for duplicate version (fail early)
-        run: |
-          CURRENT_VERSION=${{ steps.version.outputs.library_version }}
-          LATEST_RELEASE_TAG=${{ steps.latest_release.outputs.tag_name }}
+      # - name: Check for duplicate version (fail early)
+      #   run: |
+      #     CURRENT_VERSION=${{ steps.version.outputs.library_version }}
+      #     LATEST_RELEASE_TAG=${{ steps.latest_release.outputs.tag_name }}
 
-          if [ -n "$LATEST_RELEASE_TAG" ] && [ "$LATEST_RELEASE_TAG" = "$CURRENT_VERSION" ]; then
-            echo "🚫 ERROR: Version $CURRENT_VERSION already exists as the latest GitHub Release (tag: $LATEST_RELEASE_TAG)."
-            echo "Bump the version in gradle.properties (VERSION_NAME property)."
-            exit 1
-          fi
-          echo "✅ Version is new: $CURRENT_VERSION"
-          echo "Latest Release tag: $LATEST_RELEASE_TAG (or none)"
+      #     if [ -n "$LATEST_RELEASE_TAG" ] && [ "$LATEST_RELEASE_TAG" = "$CURRENT_VERSION" ]; then
+      #       echo "🚫 ERROR: Version $CURRENT_VERSION already exists as the latest GitHub Release (tag: $LATEST_RELEASE_TAG)."
+      #       echo "Bump the version in gradle.properties (VERSION_NAME property)."
+      #       exit 1
+      #     fi
+      #     echo "✅ Version is new: $CURRENT_VERSION"
+      #     echo "Latest Release tag: $LATEST_RELEASE_TAG (or none)"
 
       - name: Import GPG key
         run: |
@@ -77,24 +77,24 @@ jobs:
           ./gradlew :adgeistkit:assembleRelease --no-daemon
           echo "✅ Local build successful"
 
-      - name: Create GitHub Release
-        id: create_release
-        if: success()
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.library_version }}
-          name: ${{ steps.version.outputs.version_suffix || 'Release' }} ${{ steps.version.outputs.library_version }}
-          body: AdgeistKit Android SDK version ${{ steps.version.outputs.library_version }} - Ready for Maven Central deployment
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Create GitHub Release
+      #   id: create_release
+      #   if: success()
+      #   uses: softprops/action-gh-release@v2
+      #   with:
+      #     tag_name: ${{ steps.version.outputs.library_version }}
+      #     name: ${{ steps.version.outputs.version_suffix || 'Release' }} ${{ steps.version.outputs.library_version }}
+      #     body: AdgeistKit Android SDK version ${{ steps.version.outputs.library_version }} - Ready for Maven Central deployment
+      #     draft: false
+      #     prerelease: false
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to Maven Central
         id: maven_publish
         run: |
           echo "🚀 Publishing to Maven Central..."
-          ./gradlew :adgeistkit:publishAllPublicationsToMavenCentralRepository --no-daemon --no-parallel
+          ./gradlew :adgeistkit:publishAllPublicationsToMavenCentralRepository -PVERSION_NAME=${{ steps.version.outputs.library_version }} --no-daemon --no-parallel
           echo "✅ Successfully published to Maven Central"
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
@@ -104,20 +104,20 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_PRIVATE_KEY }}
 
       # ==================== CLEANUP ON FAILURE ====================
-      - name: Delete GitHub Release (on deployment failure)
-        if: failure() && steps.maven_publish.outcome == 'failure' && steps.create_release.outcome == 'success'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "❌ Maven deployment failed → deleting GitHub Release"
-          gh release delete ${{ steps.version.outputs.library_version }} --yes || echo "Release not found or already deleted"
+      # - name: Delete GitHub Release (on deployment failure)
+      #   if: failure() && steps.maven_publish.outcome == 'failure' && steps.create_release.outcome == 'success'
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     echo "❌ Maven deployment failed → deleting GitHub Release"
+      #     gh release delete ${{ steps.version.outputs.library_version }} --yes || echo "Release not found or already deleted"
 
-      - name: Delete git tag locally and remotely (on deployment failure)
-        if: failure() && steps.maven_publish.outcome == 'failure' && steps.create_release.outcome == 'success'
-        run: |
-          echo "❌ Maven deployment failed → deleting tag ${{ steps.version.outputs.library_version }}"
-          git tag -d ${{ steps.version.outputs.library_version }} || echo "Tag not found locally"
-          git push origin --delete ${{ steps.version.outputs.library_version }} || echo "Tag not found remotely"
+      # - name: Delete git tag locally and remotely (on deployment failure)
+      #   if: failure() && steps.maven_publish.outcome == 'failure' && steps.create_release.outcome == 'success'
+      #   run: |
+      #     echo "❌ Maven deployment failed → deleting tag ${{ steps.version.outputs.library_version }}"
+      #     git tag -d ${{ steps.version.outputs.library_version }} || echo "Tag not found locally"
+      #     git push origin --delete ${{ steps.version.outputs.library_version }} || echo "Tag not found remotely"
 
       # ==================== SEND SLACK NOTIFICATION ====================
       - name: Send Slack Notification
