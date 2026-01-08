@@ -32,7 +32,7 @@ jobs:
         run: |
           BRANCH="${{ github.ref_name }}"
           if [ "$BRANCH" = "main" ]; then
-            VARIANT="prodRelease"
+            VARIANT="betaRelease"
           elif [ "$BRANCH" = "qa" ]; then
             VARIANT="qaRelease"
           else
