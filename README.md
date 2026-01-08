@@ -49,11 +49,11 @@ Add the dependencies for Adgeist Mobile Ads SDK to your app module's `build.grad
 
 ```kotlin
 dependencies {
-    implementation("ai.adgeist:adgeistkit:0.0.2")
+    implementation("ai.adgeist:adgeistkit:Tag")
 }
 ```
 
-_Replace `0.0.2` with the latest version from the Maven Central badge above._
+_Replace `Tag` with the latest version from the Maven Central badge above._
 
 Click **Sync Now** to sync your project with Gradle files.
 

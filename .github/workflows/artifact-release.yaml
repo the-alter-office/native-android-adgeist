@@ -46,7 +46,6 @@ jobs:
         run: |
           VERSION_NAME=$(grep "^VERSION_NAME=" gradle.properties | cut -d'=' -f2 | tr -d ' ')
           VERSION_SUFFIX=$(grep "^VERSION_SUFFIX=" gradle.properties | cut -d'=' -f2 | tr -d ' ')
-          IS_SNAPSHOT=$(grep "^IS_SNAPSHOT=" gradle.properties | cut -d'=' -f2 | tr -d ' ')
 
           if [ -n "$VERSION_SUFFIX" ]; then
             VERSION="${VERSION_NAME}-${VERSION_SUFFIX}"
@@ -54,13 +53,8 @@ jobs:
             VERSION="$VERSION_NAME"
           fi
 
-          if [ "$IS_SNAPSHOT" = "true" ]; then
-            VERSION="${VERSION}-SNAPSHOT"
-          fi
-
           echo "library_version=$VERSION" >> $GITHUB_OUTPUT
           echo "version_suffix=$VERSION_SUFFIX" >> $GITHUB_OUTPUT
-          echo "is_snapshot=$IS_SNAPSHOT" >> $GITHUB_OUTPUT
           echo "Current library version: $VERSION"
 
       - name: Get latest release
@@ -73,7 +67,6 @@ jobs:
           echo "Latest release tag: $LATEST_TAG"
 
       - name: Check for duplicate version (fail early)
-        if: steps.version.outputs.is_snapshot != 'true'
         run: |
           CURRENT_VERSION=${{ steps.version.outputs.library_version }}
           LATEST_RELEASE_TAG=${{ steps.latest_release.outputs.tag_name }}
@@ -101,7 +94,7 @@ jobs:
 
       - name: Create GitHub Release
         id: create_release
-        if: success() && steps.version.outputs.is_snapshot != 'true'
+        if: success()
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.library_version }}
@@ -116,7 +109,7 @@ jobs:
         id: maven_publish
         run: |
           echo "🚀 Publishing to Maven Central..."
-          ./gradlew :adgeistkit:publishAllPublicationsToMavenCentralRepository -PVERSION_NAME=${{ steps.version.outputs.library_version }} -PpublishVariant=${{ steps.variant.outputs.publish_variant }} -PIS_SNAPSHOT=${{ steps.version.outputs.is_snapshot }} --no-daemon --no-parallel
+          ./gradlew :adgeistkit:publishAllPublicationsToMavenCentralRepository -PVERSION_NAME=${{ steps.version.outputs.library_version }} -PpublishVariant=${{ steps.variant.outputs.publish_variant }} --no-daemon --no-parallel
           echo "✅ Successfully published to Maven Central"
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
@@ -127,7 +120,7 @@ jobs:
 
       # ==================== CLEANUP ON FAILURE ====================
       - name: Delete GitHub Release (on deployment failure)
-        if: failure() && steps.maven_publish.outcome == 'failure' && steps.create_release.outcome == 'success' && steps.version.outputs.is_snapshot != 'true'
+        if: failure() && steps.maven_publish.outcome == 'failure' && steps.create_release.outcome == 'success'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -135,7 +128,7 @@ jobs:
           gh release delete ${{ steps.version.outputs.library_version }} --yes || echo "Release not found or already deleted"
 
       - name: Delete git tag locally and remotely (on deployment failure)
-        if: failure() && steps.maven_publish.outcome == 'failure' && steps.create_release.outcome == 'success' && steps.version.outputs.is_snapshot != 'true'
+        if: failure() && steps.maven_publish.outcome == 'failure' && steps.create_release.outcome == 'success'
         run: |
           echo "❌ Maven deployment failed → deleting tag ${{ steps.version.outputs.library_version }}"
           git tag -d ${{ steps.version.outputs.library_version }} || echo "Tag not found locally"
