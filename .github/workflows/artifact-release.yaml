@@ -2,8 +2,7 @@ name: Artifact Deployment
 
 on:
   push:
-    branches:
-      - [main, qa]
+    branches: ["main", "qa"]
 
 permissions:
   contents: write
