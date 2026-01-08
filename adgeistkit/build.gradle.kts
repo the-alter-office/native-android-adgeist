@@ -85,6 +85,4 @@ mavenPublishing {
         if (isSnapshot) com.vanniktech.maven.publish.SonatypeHost.DEFAULT 
         else com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL
     )
-    
-    signAllPublications()
 }
