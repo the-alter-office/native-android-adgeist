@@ -60,18 +60,16 @@ Click **Sync Now** to sync your project with Gradle files.
 
 ### STEP 3: Configure AndroidManifest.xml
 
-Add your Adgeist publisher ID, API key, and package ID (as identified in the Adgeist web interface) to your app's `AndroidManifest.xml` file. Add `<meta-data>` tags with the following names:
+Add your Adgeist publisher ID, API key (as identified in the Adgeist web interface) to your app's `AndroidManifest.xml` file. Add `<meta-data>` tags with the following names:
 
 - `android:name="com.adgeistkit.ads.ADGEIST_APP_ID"`
 - `android:name="com.adgeistkit.ads.ADGEIST_API_KEY"`
-- `android:name="com.adgeistkit.ads.ADGEIST_CUSTOM_PACKAGE_OR_BUNDLE_ID"`
 
 ```xml
 <manifest>
     <application>
         <!-- Sample Adgeist app ID: 69326f9fbb280f9241cabc94 -->
         <!-- Sample Adgeist API key: b4e33bb73061d4e33670f229033f14bf770d35b15512dc1f106529e38946e49c -->
-        <!-- Sample Adgeist package ID: https://adgeist-ad-integration.d49kd6luw1c4m.amplifyapp.com -->
 
         <meta-data
             android:name="com.adgeistkit.ads.ADGEIST_APP_ID"
@@ -81,14 +79,11 @@ Add your Adgeist publisher ID, API key, and package ID (as identified in the Adg
             android:name="com.adgeistkit.ads.ADGEIST_API_KEY"
             android:value="ADGEIST_API_KEY"/>
 
-        <meta-data
-            android:name="com.adgeistkit.ads.ADGEIST_CUSTOM_PACKAGE_OR_BUNDLE_ID"
-            android:value="ADGEIST_CUSTOM_PACKAGE_OR_BUNDLE_ID"/>
     </application>
 </manifest>
 ```
 
-Replace `ADGEIST_APP_ID`, `ADGEIST_API_KEY`, and `ADGEIST_CUSTOM_PACKAGE_OR_BUNDLE_ID` with your actual Adgeist credentials.
+Replace `ADGEIST_APP_ID`, `ADGEIST_API_KEY` with your actual Adgeist credentials.
 
 ## Initialize the Adgeist Mobile Ads SDK
 
@@ -167,14 +162,6 @@ adView.adUnitId = "YOUR_AD_UNIT_ID"
 
 Replace `YOUR_AD_UNIT_ID` with the ad unit ID you created in the Adgeist dashboard.
 
-**App ID (Publisher ID):**
-
-```kotlin
-adView.appId = "YOUR_PUBLISHER_ID"
-```
-
-Replace `YOUR_PUBLISHER_ID` with your Adgeist publisher ID.
-
 **Ad Type:**
 
 ```kotlin
@@ -185,7 +172,7 @@ Replace with the ad type you created in the Adgeist dashboard (e.g., `"banner"`,
 
 ### Create an Ad Request
 
-Once the `AdView` is configured with its properties (`adUnitId`, `adType`, `appId`, etc.), create an ad request using the builder pattern:
+Once the `AdView` is configured with its properties (`adUnitId`, `adType`, etc.), create an ad request using the builder pattern:
 
 ```kotlin
 val adRequest = AdRequest.Builder()
@@ -248,13 +235,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Configure AdView
-        adView?.apply {
-            adUnitId = "YOUR_AD_UNIT_ID"
-            adType = "banner"
-            appId = "YOUR_PUBLISHER_ID"
-            customOrigin = "https://your-app-origin.com"
-            setAdDimension(AdSize(320, 50))
-        }
+        adView.adUnitId = "YOUR_AD_UNIT_ID"
+        adView.adType = "banner"
+        setAdDimension(AdSize(320, 50))
 
         // Create ad request
         val adRequest = AdRequest.Builder()

@@ -1,5 +1,6 @@
 package com.adgeistkit
 
+import android.util.Log
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -34,6 +35,7 @@ class AdgeistCore private constructor(
                        customAdgeistAppID : String? = null, ): AdgeistCore
         {
                     return instance ?: synchronized(this) {
+                        Log.e("Core-----------------------", com.adgeistkit.BuildConfig.BASE_API_URL)
                         instance ?: AdgeistCore(
                             context.applicationContext,
                             customBidRequestBackendDomain ?: BidRequestBackendDomain,

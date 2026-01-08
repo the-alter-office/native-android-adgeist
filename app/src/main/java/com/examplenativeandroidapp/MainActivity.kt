@@ -208,7 +208,7 @@ class MainActivity : AppCompatActivity() {
             
             Log.d("MainActivity", "Loading RESPONSIVE ad in container: ${containerWidth}dp x ${containerHeight}dp")
             
-            setupAdListener(adView, true)
+            setupAdListener(adView)
             loadAdRequest(adView)
             
         } else {

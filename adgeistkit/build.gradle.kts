@@ -3,7 +3,6 @@ import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
-    // id("maven-publish")
     id("com.vanniktech.maven.publish")
 }
 
@@ -16,15 +15,15 @@ android {
     }
 
     flavorDimensions += "environment"
-    
+
     productFlavors {
-        create("alpha") {
+        create("beta") {
             dimension = "environment"
             buildConfigField("String", "BASE_API_URL", "\"https://beta.v2.bg-services.adgeist.ai\"")
         }
-        create("rc") {
+        create("qa") {
             dimension = "environment"
-            buildConfigField("String", "BASE_API_URL", "\"https://bg-services-qa-api.adgeist.ai\"")
+            buildConfigField("String", "BASE_API_URL", "\"https://qa.v2.bg-services.adgeist.ai\"")
         }
         create("prod") {
             dimension = "environment"
@@ -76,18 +75,6 @@ dependencies {
 }
 
 mavenPublishing {
-    configure(AndroidSingleVariantLibrary("prodRelease"))
+    val publishVariant = findProperty("publishVariant")?.toString() ?: "prodRelease"
+    configure(AndroidSingleVariantLibrary(publishVariant))
 }
-
-// afterEvaluate {
-//     publishing {
-//         publications {
-//             create<MavenPublication>("release") {
-//                 from(components["release"])
-//                 groupId = "com.github.the-alter-office"
-//                 artifactId = "adgeistkit"
-//                 version = "0.0.4"
-//             }
-//         }
-//     }
-// }
