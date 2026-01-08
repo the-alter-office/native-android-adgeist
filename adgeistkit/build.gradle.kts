@@ -77,4 +77,14 @@ dependencies {
 mavenPublishing {
     val publishVariant = findProperty("publishVariant")?.toString() ?: "prodRelease"
     configure(AndroidSingleVariantLibrary(publishVariant))
+    
+    // Use OSSRH (DEFAULT) for snapshots, CENTRAL_PORTAL for releases
+    val isSnapshot = findProperty("IS_SNAPSHOT")?.toString()?.toBoolean() ?: false
+    
+    publishToMavenCentral(
+        if (isSnapshot) com.vanniktech.maven.publish.SonatypeHost.DEFAULT 
+        else com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL
+    )
+    
+    signAllPublications()
 }

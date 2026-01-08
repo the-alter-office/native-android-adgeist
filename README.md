@@ -1,4 +1,4 @@
-![JitPack](https://jitpack.io/v/the-alter-office/native-android-adgeist.svg)
+[![Maven Central](https://img.shields.io/maven-central/v/ai.adgeist/adgeistkit.svg)](https://central.sonatype.com/artifact/ai.adgeist/adgeistkit)
 
 ---
 
@@ -18,9 +18,9 @@ Make sure that your app's build file uses the following values:
 
 ## Configure your app
 
-### STEP 1: Add the JitPack repository
+### STEP 1: Ensure Maven Central is configured
 
-In your Gradle settings file, include Google's Maven repository and Maven Central (if not already present), then add the JitPack repository in `settings.gradle.kts`:
+In your Gradle settings file, make sure Maven Central is included (it's typically present by default). Check your `settings.gradle.kts`:
 
 ```kotlin
 pluginManagement {
@@ -36,7 +36,6 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://jitpack.io") }
     }
 }
 
@@ -50,11 +49,11 @@ Add the dependencies for Adgeist Mobile Ads SDK to your app module's `build.grad
 
 ```kotlin
 dependencies {
-    implementation("ai.adgeist:adgeistkit:Tag")
+    implementation("ai.adgeist:adgeistkit:0.0.2")
 }
 ```
 
-_Replace `Tag` with the latest version from the JitPack badge above._
+_Replace `0.0.2` with the latest version from the Maven Central badge above._
 
 Click **Sync Now** to sync your project with Gradle files.
 
