@@ -116,7 +116,7 @@ jobs:
         id: maven_publish
         run: |
           echo "🚀 Publishing to Maven Central..."
-          ./gradlew :adgeistkit:publishAllPublicationsToMavenCentralRepository -PVERSION_NAME=${{ steps.version.outputs.library_version }} -PpublishVariant=${{ steps.variant.outputs.publish_variant }} --no-daemon --no-parallel
+          ./gradlew :adgeistkit:publishAllPublicationsToMavenCentralRepository -PVERSION_NAME=${{ steps.version.outputs.library_version }} -PpublishVariant=${{ steps.variant.outputs.publish_variant }} -PIS_SNAPSHOT=${{ steps.version.outputs.is_snapshot }} --no-daemon --no-parallel
           echo "✅ Successfully published to Maven Central"
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
