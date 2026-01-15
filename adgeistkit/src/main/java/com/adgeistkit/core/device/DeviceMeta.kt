@@ -84,16 +84,30 @@ class DeviceMeta(private val context: Context) {
             val permission = context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE)
             if (permission == PackageManager.PERMISSION_GRANTED) {
                 val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-                when (telephonyManager.dataNetworkType) {
-                    TelephonyManager.NETWORK_TYPE_GPRS,
-                    TelephonyManager.NETWORK_TYPE_EDGE,
-                    TelephonyManager.NETWORK_TYPE_UMTS,
-                    TelephonyManager.NETWORK_TYPE_HSDPA,
-                    TelephonyManager.NETWORK_TYPE_HSUPA,
-                    TelephonyManager.NETWORK_TYPE_HSPA -> "3G"
-                    TelephonyManager.NETWORK_TYPE_LTE -> "4G"
-                    TelephonyManager.NETWORK_TYPE_NR -> "5G"
-                    else -> "Unavailable (Android Privacy Restrictions)"
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    when (telephonyManager.dataNetworkType) {
+                        TelephonyManager.NETWORK_TYPE_GPRS,
+                        TelephonyManager.NETWORK_TYPE_EDGE,
+                        TelephonyManager.NETWORK_TYPE_UMTS,
+                        TelephonyManager.NETWORK_TYPE_HSDPA,
+                        TelephonyManager.NETWORK_TYPE_HSUPA,
+                        TelephonyManager.NETWORK_TYPE_HSPA -> "3G"
+                        TelephonyManager.NETWORK_TYPE_LTE -> "4G"
+                        TelephonyManager.NETWORK_TYPE_NR -> "5G"
+                        else -> "Unavailable (Android Privacy Restrictions)"
+                    }
+                } else {
+                    @Suppress("DEPRECATION")
+                    when (telephonyManager.networkType) {
+                        TelephonyManager.NETWORK_TYPE_GPRS,
+                        TelephonyManager.NETWORK_TYPE_EDGE,
+                        TelephonyManager.NETWORK_TYPE_UMTS,
+                        TelephonyManager.NETWORK_TYPE_HSDPA,
+                        TelephonyManager.NETWORK_TYPE_HSUPA,
+                        TelephonyManager.NETWORK_TYPE_HSPA -> "3G"
+                        TelephonyManager.NETWORK_TYPE_LTE -> "4G"
+                        else -> "Unavailable (Android Privacy Restrictions)"
+                    }
                 }
             } else {
                 null
@@ -120,8 +134,13 @@ class DeviceMeta(private val context: Context) {
 
     fun isGpuCapable(): Boolean {
         val pm = context.packageManager
-        return pm.hasSystemFeature(PackageManager.FEATURE_OPENGLES_EXTENSION_PACK) ||
-                pm.hasSystemFeature(PackageManager.FEATURE_VULKAN_HARDWARE_VERSION, 1)
+        val hasOpenGLES = pm.hasSystemFeature(PackageManager.FEATURE_OPENGLES_EXTENSION_PACK)
+        val hasVulkan = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            pm.hasSystemFeature(PackageManager.FEATURE_VULKAN_HARDWARE_VERSION, 1)
+        } else {
+            false
+        }
+        return hasOpenGLES || hasVulkan
     }
 
     fun isNfcCapable(): Boolean {
