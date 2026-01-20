@@ -70,7 +70,6 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                 )
             }
 
-            payload["origin"] = packageID
             payload["isTest"] = isTestEnvironment
 
             val requestPayload = Gson().toJson(payload)
@@ -81,6 +80,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                     .url(url)
                     .post(requestBody)
                     .header("Content-Type", "application/json")
+                    .header("Origin",packageID)
                     .build()
             } else {
                 Request.Builder()
