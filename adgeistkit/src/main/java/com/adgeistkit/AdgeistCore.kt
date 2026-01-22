@@ -35,7 +35,7 @@ class AdgeistCore private constructor(
                        customAdgeistAppID : String? = null, ): AdgeistCore
         {
                     return instance ?: synchronized(this) {
-                        Log.e("Core-----------------------", com.adgeistkit.BuildConfig.BASE_API_URL)
+                        Log.e("Core-----------------------", "${com.adgeistkit.BuildConfig.BASE_API_URL} ${context.packageName} ${context.toString()}")
                         instance ?: AdgeistCore(
                             context.applicationContext,
                             customBidRequestBackendDomain ?: BidRequestBackendDomain,
