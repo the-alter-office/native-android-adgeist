@@ -24,7 +24,6 @@ class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
 
     private val packageOrBundleID = adgeistCore.packageOrBundleID
     private val adgeistAppID = adgeistCore.adgeistAppID
-    private val apiKey = adgeistCore.apiKey
 
     private val deviceIdentifier = adgeistCore.deviceIdentifier
     private val networkUtils = adgeistCore.networkUtils
@@ -90,7 +89,6 @@ class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
                     .header("Origin", packageOrBundleID)
                     .header("x-user-id", deviceId ?: "")
                     .header("x-platform", "mobile_app")
-                    .header("x-api-key", apiKey)
                     .header("x-forwarded-for", userIP)
                     .post(requestBody)
                     .build()

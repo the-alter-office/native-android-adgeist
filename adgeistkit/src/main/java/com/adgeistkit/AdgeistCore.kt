@@ -22,6 +22,7 @@ class AdgeistCore private constructor(
     val bidRequestBackendDomain: String,
     private val customPackageOrBundleID: String? = null,
     private val customAdgeistAppID: String? = null,
+    private val customVersioning: String? = null,
 ) {
     companion object {
         private const val BidRequestBackendDomain = com.adgeistkit.BuildConfig.BASE_API_URL
@@ -32,7 +33,8 @@ class AdgeistCore private constructor(
         fun initialize(context: Context,
                        customBidRequestBackendDomain: String? = null,
                        customPackageOrBundleID : String? = null,
-                       customAdgeistAppID : String? = null, ): AdgeistCore
+                       customAdgeistAppID : String? = null,
+                       customVersioning: String? = null): AdgeistCore
         {
                     return instance ?: synchronized(this) {
                         Log.e("Core-----------------------", "${com.adgeistkit.BuildConfig.BASE_API_URL} ${context.packageName} ${context.toString()}")
@@ -41,6 +43,7 @@ class AdgeistCore private constructor(
                             customBidRequestBackendDomain ?: BidRequestBackendDomain,
                             customPackageOrBundleID,
                             customAdgeistAppID,
+                            customVersioning,
                         ).also { instance = it }
                     }
         }
@@ -60,7 +63,7 @@ class AdgeistCore private constructor(
 
     val packageOrBundleID = customPackageOrBundleID ?: context.packageName
     val adgeistAppID = customAdgeistAppID ?: getMetaValue("com.adgeistkit.ads.ADGEIST_APP_ID") ?: ""
-    val apiKey = getMetaValue("com.adgeistkit.ads.ADGEIST_API_KEY") ?: ""
+    val version = customVersioning ?: "ANDROID-${com.adgeistkit.BuildConfig.VERSION_NAME}-${com.adgeistkit.BuildConfig.VERSION_SUFFIX}"
 
     private val PREFS_NAME = "AdgeistPrefs"
     private val prefs: SharedPreferences
