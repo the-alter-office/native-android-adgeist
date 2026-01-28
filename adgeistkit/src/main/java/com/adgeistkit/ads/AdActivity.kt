@@ -167,6 +167,9 @@ class AdActivity(private val baseAdView: BaseAdView) {
 
     private fun scrollDepth(): Float {
         val scrollView = findRootScrollView(baseAdView)
+        if (scrollView == null) {
+            return 1f
+        }
 
         // Get AdView absolute Y on screen
         val adLocation = IntArray(2)
@@ -175,7 +178,7 @@ class AdActivity(private val baseAdView: BaseAdView) {
 
         // Get ScrollView top on screen
         val scrollLocation = IntArray(2)
-        scrollView!!.getLocationOnScreen(scrollLocation)
+        scrollView.getLocationOnScreen(scrollLocation)
         val scrollTopOnScreen = scrollLocation[1]
 
         val requiredScroll = adTopOnScreen - scrollTopOnScreen
