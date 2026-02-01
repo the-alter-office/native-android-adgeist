@@ -63,7 +63,7 @@ class AdgeistCore private constructor(
 
     val packageOrBundleID = customPackageOrBundleID ?: context.packageName
     val adgeistAppID = customAdgeistAppID ?: getMetaValue("com.adgeistkit.ads.ADGEIST_APP_ID") ?: ""
-    val version = customVersioning ?: "ANDROID-${com.adgeistkit.BuildConfig.VERSION_NAME}-${com.adgeistkit.BuildConfig.VERSION_SUFFIX}"
+    val version = customVersioning ?: "ANDROID-${com.adgeistkit.BuildConfig.VERSION_NAME}"
 
     private val PREFS_NAME = "AdgeistPrefs"
     private val prefs: SharedPreferences
