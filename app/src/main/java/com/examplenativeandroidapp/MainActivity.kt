@@ -1,6 +1,7 @@
 package com.examplenativeandroidapp
 
 import android.content.DialogInterface
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -60,6 +61,9 @@ class MainActivity : AppCompatActivity() {
         // Initialize AdgeistCore with default packageId from build.gradle.kts
         adGeist = AdgeistCore.initialize(applicationContext)
 
+        // Handle deeplink UTM parameters
+        handleDeeplinkUtm(intent)
+
         // Configuration Section
         packageIdInput = findViewById(R.id.packageIdInput)
         adgeistAppIdInput = findViewById(R.id.adgeistAppIdInput)
@@ -117,6 +121,48 @@ class MainActivity : AppCompatActivity() {
         cancelAdBtn.setOnClickListener {
             destroyCurrentAd()
             clearInputFields()
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleDeeplinkUtm(intent)
+    }
+
+    /**
+     * Handle deeplink UTM parameters from intent
+     */
+    private fun handleDeeplinkUtm(intent: Intent?) {
+        intent?.data?.let { uri ->
+            Log.d("MainActivity", "Deeplink received: $uri")
+            
+            // Track UTM parameters from deeplink
+            adGeist.trackUtmFromDeeplink(uri)
+            
+            // Retrieve and log UTM parameters
+            val utmParams = adGeist.getUtmParameters()
+            utmParams?.let {
+                Log.d("MainActivity", "UTM Parameters tracked:")
+                Log.d("MainActivity", "  Source: ${it.source}")
+                Log.d("MainActivity", "  Medium: ${it.medium}")
+                Log.d("MainActivity", "  Campaign: ${it.campaign}")
+                Log.d("MainActivity", "  Term: ${it.term}")
+                Log.d("MainActivity", "  Content: ${it.content}")
+                Log.d("MainActivity", "  Timestamp: ${it.timestamp}")
+                Log.d("MainActivity", "  X Data: ${it.x_data}")
+                
+                showAlertDialog(
+                    "UTM Parameters Tracked",
+                    "Source: ${it.source ?: "N/A"}\n" +
+                    "Medium: ${it.medium ?: "N/A"}\n" +
+                    "Campaign: ${it.campaign ?: "N/A"}\n" +
+                    "Term: ${it.term ?: "N/A"}\n" +
+                    "Content: ${it.content ?: "N/A"}\n" +
+                    "Timestamp: ${it.timestamp ?: "N/A"}\n" +
+                    "X Data: ${it.x_data ?: "N/A"}" 
+                )
+            }
         }
     }
 

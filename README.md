@@ -108,6 +108,75 @@ You're now ready to implement ads in your app!
 
 ---
 
+## 🎯 UTM Parameter Tracking (NEW)
+
+The SDK now supports automatic tracking of UTM parameters from first install and deeplinks for marketing attribution. This helps you understand which campaigns drive installs and user engagement.
+
+### Features
+
+- ✅ Automatic first-install tracking via Google Play Install Referrer API
+- ✅ Deeplink UTM parameter extraction and tracking
+- ✅ Automatic inclusion in all analytics events
+- ✅ Persistent storage across app sessions
+
+### Quick Setup
+
+To track UTM parameters from deeplinks, add intent filters to your `AndroidManifest.xml`:
+
+```xml
+<activity
+    android:name=".MainActivity"
+    android:launchMode="singleTop">
+
+    <!-- Custom URL scheme for deeplinks -->
+    <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="yourapp" />
+    </intent-filter>
+</activity>
+```
+
+Then handle deeplinks in your activity:
+
+```kotlin
+override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+
+    adGeist = AdgeistCore.initialize(applicationContext)
+
+    // Track UTM from deeplink
+    intent?.data?.let { uri ->
+        adGeist.trackUtmFromDeeplink(uri)
+    }
+}
+
+override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    intent?.data?.let { uri ->
+        adGeist.trackUtmFromDeeplink(uri)
+    }
+}
+```
+
+### Retrieve UTM Parameters
+
+```kotlin
+val utm = adGeist.getUtmParameters()
+utm?.let {
+    Log.d("UTM", "Source: ${it.source}, Campaign: ${it.campaign}")
+}
+```
+
+### Documentation
+
+- **Quick Start:** See [UTM_QUICKSTART.md](UTM_QUICKSTART.md)
+- **Full Documentation:** See [UTM_TRACKING.md](UTM_TRACKING.md)
+- **Code Example:** See [UtmTrackingExample.kt](app/src/main/java/com/examplenativeandroidapp/UtmTrackingExample.kt)
+
+---
+
 ## Banner and Display Ads
 
 Banner ads are rectangular ads that occupy a portion of an app's layout. They stay on screen while users are interacting with the app, either anchored at the top or bottom of the screen or inline with content as the user scrolls.
