@@ -108,7 +108,7 @@ You're now ready to implement ads in your app!
 
 ---
 
-## 🎯 UTM Parameter Tracking (NEW)
+## 🎯 UTM Parameter Tracking
 
 The SDK now supports automatic tracking of UTM parameters from first install and deeplinks for marketing attribution. This helps you understand which campaigns drive installs and user engagement.
 
