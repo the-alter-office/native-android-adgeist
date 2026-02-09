@@ -8,18 +8,15 @@ import com.google.gson.annotations.SerializedName
  */
 data class UtmParameters(
     @SerializedName("utm_source") val source: String? = null,
-    @SerializedName("utm_medium") val medium: String? = null,
     @SerializedName("utm_campaign") val campaign: String? = null,
-    @SerializedName("utm_term") val term: String? = null,
-    @SerializedName("utm_content") val content: String? = null,
-    @SerializedName("utm_timestamp") val timestamp: Long? = null,
-    @SerializedName("utm_x_data") val x_data: String? = null
+    @SerializedName("utm_data") val data: String? = null,
+    @SerializedName("session_id") val sessionId: String? = null
 ) {
     /**
      * Checks if any UTM parameter is set
      */
     fun hasData(): Boolean {
-        return source != null || medium != null || campaign != null || term != null || content != null || x_data != null
+        return source != null || campaign != null || data != null
     }
 
     /**
@@ -28,12 +25,9 @@ data class UtmParameters(
     fun toMap(): Map<String, Any?> {
         val map = mutableMapOf<String, Any?>()
         source?.let { map["utm_source"] = it }
-        medium?.let { map["utm_medium"] = it }
         campaign?.let { map["utm_campaign"] = it }
-        term?.let { map["utm_term"] = it }
-        content?.let { map["utm_content"] = it }
-        timestamp?.let { map["utm_timestamp"] = it }
-        x_data?.let { map["utm_x_data"] = it }
+        data?.let { map["utm_data"] = it }
+        sessionId?.let { map["session_id"] = it }
         return map
     }
 
@@ -44,12 +38,9 @@ data class UtmParameters(
         fun fromMap(params: Map<String, String?>): UtmParameters {
             return UtmParameters(
                 source = params["utm_source"],
-                medium = params["utm_medium"],
                 campaign = params["utm_campaign"],
-                term = params["utm_term"],
-                content = params["utm_content"],
-                timestamp = System.currentTimeMillis(),
-                x_data = params["utm_x_data"]
+                data = params["utm_data"],
+                sessionId = null // Will be set later when saving
             )
         }
     }

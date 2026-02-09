@@ -20,14 +20,10 @@ class UtmTracker(
         private const val TAG = "UtmTracker"
         private const val PREFS_NAME = "AdgeistUtmPrefs"
         private const val KEY_UTM_SOURCE = "utm_source"
-        private const val KEY_UTM_MEDIUM = "utm_medium"
         private const val KEY_UTM_CAMPAIGN = "utm_campaign"
-        private const val KEY_UTM_TERM = "utm_term"
-        private const val KEY_UTM_CONTENT = "utm_content"
-        private const val KEY_UTM_TIMESTAMP = "utm_timestamp"
-        private const val KEY_UTM_X_DATA = "utm_x_data"
+        private const val KEY_UTM_DATA = "utm_data"
+        private const val KEY_SESSION_ID = "session_id"
         private const val KEY_FIRST_LAUNCH = "first_launch"
-
     }
 
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -40,11 +36,8 @@ class UtmTracker(
         val params = mutableMapOf<String, String?>()
         
         uri.getQueryParameter("utm_source")?.let { params["utm_source"] = it }
-        uri.getQueryParameter("utm_medium")?.let { params["utm_medium"] = it }
         uri.getQueryParameter("utm_campaign")?.let { params["utm_campaign"] = it }
-        uri.getQueryParameter("utm_term")?.let { params["utm_term"] = it }
-        uri.getQueryParameter("utm_content")?.let { params["utm_content"] = it }
-        uri.getQueryParameter("utm_x_data")?.let { params["utm_x_data"] = it }
+        uri.getQueryParameter("utm_data")?.let { params["utm_data"] = it }
 
         if (params.isNotEmpty()) {
             val utmParams = UtmParameters.fromMap(params)
@@ -63,11 +56,8 @@ class UtmTracker(
             val params = mutableMapOf<String, String?>()
             
             uri.getQueryParameter("utm_source")?.let { params["utm_source"] = it }
-            uri.getQueryParameter("utm_medium")?.let { params["utm_medium"] = it }
             uri.getQueryParameter("utm_campaign")?.let { params["utm_campaign"] = it }
-            uri.getQueryParameter("utm_term")?.let { params["utm_term"] = it }
-            uri.getQueryParameter("utm_content")?.let { params["utm_content"] = it }
-            uri.getQueryParameter("utm_x_data")?.let { params["utm_x_data"] = it }
+            uri.getQueryParameter("utm_data")?.let { params["utm_data"] = it }
 
             if (params.isNotEmpty()) {
                 val utmParams = UtmParameters.fromMap(params)
@@ -127,29 +117,34 @@ class UtmTracker(
     }
 
     /**
+     * Generates a unique session ID
+     */
+    private fun generateSessionId(): String {
+        return "${System.currentTimeMillis()}-${java.util.UUID.randomUUID().toString().take(9)}"
+    }
+
+    /**
      * Save UTM parameters to SharedPreferences
      */
     private fun saveUtmParameters(params: UtmParameters) {
+        val sessionId = generateSessionId()
         prefs.edit().apply {
             params.source?.let { putString(KEY_UTM_SOURCE, it) }
-            params.medium?.let { putString(KEY_UTM_MEDIUM, it) }
             params.campaign?.let { putString(KEY_UTM_CAMPAIGN, it) }
-            params.term?.let { putString(KEY_UTM_TERM, it) }
-            params.content?.let { putString(KEY_UTM_CONTENT, it) }
-            params.timestamp?.let { putLong(KEY_UTM_TIMESTAMP, it) }
-            params.x_data?.let { putString(KEY_UTM_X_DATA, it) }
+            params.data?.let { putString(KEY_UTM_DATA, it) }
+            putString(KEY_SESSION_ID, sessionId)
             apply()
         }
         
         // Send UTM data to backend
-        sendUtmDataToBackend(params)
+        sendUtmDataToBackend(params, sessionId)
     }
 
     /**
      * Send UTM parameters to backend API
      */
-    private fun sendUtmDataToBackend(params: UtmParameters) {
-        utmAnalytics.sendUtmData(params)
+    private fun sendUtmDataToBackend(params: UtmParameters, sessionId: String) {
+        utmAnalytics.sendUtmData(params, sessionId)
     }
 
     /**
@@ -157,14 +152,11 @@ class UtmTracker(
      */
     fun getUtmParameters(): UtmParameters? {
         val source = prefs.getString(KEY_UTM_SOURCE, null)
-        val medium = prefs.getString(KEY_UTM_MEDIUM, null)
         val campaign = prefs.getString(KEY_UTM_CAMPAIGN, null)
-        val term = prefs.getString(KEY_UTM_TERM, null)
-        val content = prefs.getString(KEY_UTM_CONTENT, null)
-        val timestamp = prefs.getLong(KEY_UTM_TIMESTAMP, 0L).takeIf { it > 0 }
-        val x_data = prefs.getString(KEY_UTM_X_DATA, null)
+        val data = prefs.getString(KEY_UTM_DATA, null)
+        val sessionId = prefs.getString(KEY_SESSION_ID, null)
 
-        val params = UtmParameters(source, medium, campaign, term, content, timestamp,x_data)
+        val params = UtmParameters(source, campaign, data, sessionId)
         return if (params.hasData()) params else null
     }
 
@@ -174,12 +166,9 @@ class UtmTracker(
     fun clearUtmParameters() {
         prefs.edit().apply {
             remove(KEY_UTM_SOURCE)
-            remove(KEY_UTM_MEDIUM)
             remove(KEY_UTM_CAMPAIGN)
-            remove(KEY_UTM_TERM)
-            remove(KEY_UTM_CONTENT)
-            remove(KEY_UTM_TIMESTAMP)
-            remove(KEY_UTM_X_DATA)
+            remove(KEY_UTM_DATA)
+            remove(KEY_SESSION_ID)
             apply()
         }
         Log.d(TAG, "UTM parameters cleared")

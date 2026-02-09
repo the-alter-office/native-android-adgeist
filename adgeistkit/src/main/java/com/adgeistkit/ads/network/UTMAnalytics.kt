@@ -20,7 +20,7 @@ class UTMAnalytics(
     
     companion object {
         private const val TAG = "UTMAnalytics"
-        private const val ANALYTICS_ENDPOINT = "/v2/analytics/utm"
+        private const val ANALYTICS_ENDPOINT = "/v2/ssp/campaign-event"
     }
 
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -29,13 +29,18 @@ class UTMAnalytics(
     /**
      * Send UTM parameters to backend API
      */
-    fun sendUtmData(params: UtmParameters, onComplete: ((Boolean, String?) -> Unit)? = null) {
+    fun sendUtmData(
+        params: UtmParameters, 
+        sessionId: String,
+        eventType: String = "VISIT",
+        onComplete: ((Boolean, String?) -> Unit)? = null
+    ) {
         scope.launch {
             try {
                 val url = "$bidRequestBackendDomain$ANALYTICS_ENDPOINT"
                 
-                // Create JSON payload with UTM parameters
-                val payload = buildPayload(params)
+                // Create JSON payload with UTM parameters 
+                val payload = buildPayload(params, sessionId, eventType)
                 val requestBody = payload.toString().toRequestBody("application/json".toMediaType())
                 
                 val request = Request.Builder()
@@ -76,17 +81,13 @@ class UTMAnalytics(
     /**
      * Build JSON payload for UTM tracking
      */
-    private fun buildPayload(params: UtmParameters): JSONObject {
+    private fun buildPayload(params: UtmParameters, sessionId: String, eventType: String): JSONObject {
         return JSONObject().apply {
-            params.source?.let { put("utm_source", it) }
-            params.medium?.let { put("utm_medium", it) }
-            params.campaign?.let { put("utm_campaign", it) }
-            params.term?.let { put("utm_term", it) }
-            params.content?.let { put("utm_content", it) }
-            params.timestamp?.let { put("utm_timestamp", it) }
-            params.x_data?.let { put("utm_x_data", it) }
-            put("platform", "android")
-            put("event_type", "utm_tracked")
+            put("metaData", params.data ?: "")
+            put("flowId", sessionId)
+            put("type", eventType)
+            put("origin", params.source ?: "")
+            put("platform", "ANDROID")
         }
     }
 }

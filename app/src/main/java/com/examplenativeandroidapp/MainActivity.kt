@@ -145,22 +145,16 @@ class MainActivity : AppCompatActivity() {
             utmParams?.let {
                 Log.d("MainActivity", "UTM Parameters tracked:")
                 Log.d("MainActivity", "  Source: ${it.source}")
-                Log.d("MainActivity", "  Medium: ${it.medium}")
                 Log.d("MainActivity", "  Campaign: ${it.campaign}")
-                Log.d("MainActivity", "  Term: ${it.term}")
-                Log.d("MainActivity", "  Content: ${it.content}")
-                Log.d("MainActivity", "  Timestamp: ${it.timestamp}")
-                Log.d("MainActivity", "  X Data: ${it.x_data}")
+                Log.d("MainActivity", "  Data: ${it.data}")
+                Log.d("MainActivity", "  Session ID: ${it.sessionId}")
                 
                 showAlertDialog(
                     "UTM Parameters Tracked",
                     "Source: ${it.source ?: "N/A"}\n" +
-                    "Medium: ${it.medium ?: "N/A"}\n" +
                     "Campaign: ${it.campaign ?: "N/A"}\n" +
-                    "Term: ${it.term ?: "N/A"}\n" +
-                    "Content: ${it.content ?: "N/A"}\n" +
-                    "Timestamp: ${it.timestamp ?: "N/A"}\n" +
-                    "X Data: ${it.x_data ?: "N/A"}" 
+                    "Data: ${it.data ?: "N/A"}\n" +
+                    "Session ID: ${it.sessionId ?: "N/A"}"
                 )
             }
         }
