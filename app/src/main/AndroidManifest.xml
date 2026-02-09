@@ -44,12 +44,12 @@
                 <!-- Replace with your actual domain -->
                 <data
                     android:scheme="https"
-                    android:host="example.com"
-                    android:pathPrefix="/app" />
+                    android:host="beta.altergame.click"
+                    android:pathPrefix="/" />
                 <data
                     android:scheme="http"
-                    android:host="example.com"
-                    android:pathPrefix="/app" />
+                    android:host="beta.altergame.click"
+                    android:pathPrefix="/" />
             </intent-filter>
             
             <!-- Custom URL scheme for deeplinks -->
