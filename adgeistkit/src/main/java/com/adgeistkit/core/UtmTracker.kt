@@ -52,6 +52,7 @@ class UtmTracker(
      */
     fun trackFromInstallReferrer(referrerUrl: String) {
         try {
+            // Parse the referrer URL to extract UTM parameters, using a dummy base URL since referrerUrl is just query parameters
             val uri = Uri.parse("https://example.com?$referrerUrl")
             val params = mutableMapOf<String, String?>()
             
