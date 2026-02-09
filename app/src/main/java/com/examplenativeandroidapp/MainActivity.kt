@@ -136,10 +136,35 @@ class MainActivity : AppCompatActivity() {
     private fun handleDeeplinkUtm(intent: Intent?) {
         intent?.data?.let { uri ->
             Log.d("MainActivity", "Deeplink received: $uri")
+            Log.d("MainActivity", "Full URI: ${uri.toString()}")
+            Log.d("MainActivity", "Query: ${uri.query}")
+            Log.d("MainActivity", "utm_source: ${uri.getQueryParameter("utm_source")}")
+            Log.d("MainActivity", "utm_campaign: ${uri.getQueryParameter("utm_campaign")}")
+            Log.d("MainActivity", "utm_data: ${uri.getQueryParameter("utm_data")}")
             
             // Track UTM parameters from deeplink
             adGeist.trackUtmFromDeeplink(uri)
             
+            // // Retrieve and display the tracked parameters
+            // // For testing purposes, we can log them or show in an alert dialog
+            // val utmParams = adGeist.getUtmParameters()
+            // utmParams?.let {
+            //     Log.d("MainActivity", "UTM Parameters tracked:")
+            //     Log.d("MainActivity", "  Source: ${it.source}")
+            //     Log.d("MainActivity", "  Campaign: ${it.campaign}")
+            //     Log.d("MainActivity", "  Data: ${it.data}")
+            //     Log.d("MainActivity", "  Session ID: ${it.sessionId}")
+                
+            //     showAlertDialog(
+            //         "UTM Parameters Tracked",
+            //         "Source: ${it.source ?: "N/A"}\n" +
+            //         "Campaign: ${it.campaign ?: "N/A"}\n" +
+            //         "Data: ${it.data ?: "N/A"}\n" +
+            //         "Session ID: ${it.sessionId ?: "N/A"}"
+            //     )
+            // } ?: run {
+            //     Log.d("MainActivity", "No UTM parameters found")
+            // }
         }
     }
 
