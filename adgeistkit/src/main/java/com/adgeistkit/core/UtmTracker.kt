@@ -41,7 +41,7 @@ class UtmTracker(
 
         if (params.isNotEmpty()) {
             val utmParams = UtmParameters.fromMap(params)
-            saveUtmParameters(utmParams)
+            saveUtmParameters(utmParams, "VISIT")
             Log.d(TAG, "UTM parameters tracked from deeplink: $utmParams")
         }
     }
@@ -62,7 +62,7 @@ class UtmTracker(
 
             if (params.isNotEmpty()) {
                 val utmParams = UtmParameters.fromMap(params)
-                saveUtmParameters(utmParams)
+                saveUtmParameters(utmParams, "INSTALL")
                 Log.d(TAG, "UTM parameters tracked from install referrer: $utmParams")
             }
         } catch (e: Exception) {
@@ -127,7 +127,7 @@ class UtmTracker(
     /**
      * Save UTM parameters to SharedPreferences
      */
-    private fun saveUtmParameters(params: UtmParameters) {
+    private fun saveUtmParameters(params: UtmParameters, eventType: String = "VISIT") {
         val sessionId = generateSessionId()
         prefs.edit().apply {
             params.source?.let { putString(KEY_UTM_SOURCE, it) }
@@ -138,14 +138,14 @@ class UtmTracker(
         }
         
         // Send UTM data to backend
-        sendUtmDataToBackend(params, sessionId)
+        sendUtmDataToBackend(params, sessionId, eventType)
     }
 
     /**
      * Send UTM parameters to backend API
      */
-    private fun sendUtmDataToBackend(params: UtmParameters, sessionId: String) {
-        utmAnalytics.sendUtmData(params, sessionId)
+    private fun sendUtmDataToBackend(params: UtmParameters, sessionId: String, eventType: String) {
+        utmAnalytics.sendUtmData(params, sessionId, eventType)
     }
 
     /**
