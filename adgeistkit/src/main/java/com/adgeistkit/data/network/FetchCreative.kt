@@ -2,6 +2,7 @@ package com.adgeistkit.data.network
 
 import android.util.Log
 import com.adgeistkit.AdgeistCore
+import com.adgeistkit.ads.network.FetchCreativeRequest
 import com.adgeistkit.data.models.CPMAdResponse
 import com.adgeistkit.data.models.FixedAdResponse
 import okhttp3.*
@@ -12,6 +13,9 @@ import kotlinx.coroutines.launch
 import java.io.IOException
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.TimeZone
 
 class FetchCreative(private val adgeistCore: AdgeistCore) {
@@ -25,7 +29,6 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
 
     private val packageID = adgeistCore.packageOrBundleID
     private val adgeistAppID = adgeistCore.adgeistAppID
-    private val apiKey = adgeistCore.apiKey
 
     private val deviceIdentifier = adgeistCore.deviceIdentifier
     private val networkUtils = adgeistCore.networkUtils
@@ -51,28 +54,36 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                 "$bidRequestBackendDomain/v1/app/ssp/bid?adSpaceId=$adUnitID&companyId=$adgeistAppID&test=$envFlag"
             }
 
-            val payload = mutableMapOf<String, Any>()
+            val requestBuilder = FetchCreativeRequest.FetchCreativeRequestBuilder(
+                adSpaceId = adUnitID,
+                companyId = adgeistAppID,
+                isTest = isTestEnvironment
+            )
 
             targetingInfo?.let {
-                payload["device"] = it.get("deviceTargetingMetrics") ?: mapOf<String, Any>()
+                val deviceMetrics = it.get("deviceTargetingMetrics") as? Map<String, Any>
+                deviceMetrics?.let { metrics ->
+                    requestBuilder.setDevice(metrics)
+                }
             }
 
             if (buyType == "FIXED") {
-                payload["platform"] = "ANDROID"
-                payload["deviceId"] = deviceId ?: ""
-                payload["adspaceId"] = adUnitID
-                payload["companyId"] = adgeistAppID
-                payload["timeZone"] = TimeZone.getDefault().id
+                val utcFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+                utcFormat.timeZone = TimeZone.getTimeZone("UTC")
+                val currentTimestamp = utcFormat.format(Date())
+                
+                requestBuilder
+                    .setPlatform("ANDROID")
+                    .setDeviceId(deviceId ?: "")
+                    .setTimeZone(TimeZone.getDefault().id)
+                    .setRequestedAt(currentTimestamp)
+                    .setSdkVersion(adgeistCore.version)
             } else {
-                payload["appDto"] = mapOf(
-                    "name" to "itwcrm",
-                    "bundle" to "com.itwcrm"
-                )
+                requestBuilder.setAppDto("itwcrm", "com.itwcrm")
             }
 
-            payload["isTest"] = isTestEnvironment
-
-            val requestPayload = Gson().toJson(payload)
+            val fetchCreativeRequest = requestBuilder.build()
+            val requestPayload = fetchCreativeRequest.toJson().toString()
             val requestBody = requestPayload.toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
 
             val request = if (buyType == "FIXED") {
@@ -90,7 +101,6 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                     .header("Origin", packageID)
                     .header("x-user-id", deviceId ?: "")
                     .header("x-platform", "mobile_app")
-                    .header("x-api-key", apiKey)
                     .header("x-forwarded-for", userIP)
                     .build()
             }

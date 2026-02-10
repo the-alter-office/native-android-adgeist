@@ -59,30 +59,24 @@ Click **Sync Now** to sync your project with Gradle files.
 
 ### STEP 3: Configure AndroidManifest.xml
 
-Add your Adgeist publisher ID, API key (as identified in the Adgeist web interface) to your app's `AndroidManifest.xml` file. Add `<meta-data>` tags with the following names:
+Add your Adgeist publisher ID (as identified in the Adgeist web interface) to your app's `AndroidManifest.xml` file. Add `<meta-data>` tags with the following names:
 
 - `android:name="com.adgeistkit.ads.ADGEIST_APP_ID"`
-- `android:name="com.adgeistkit.ads.ADGEIST_API_KEY"`
 
 ```xml
 <manifest>
     <application>
         <!-- Sample Adgeist app ID: 69326f9fbb280f9241cabc94 -->
-        <!-- Sample Adgeist API key: b4e33bb73061d4e33670f229033f14bf770d35b15512dc1f106529e38946e49c -->
 
         <meta-data
             android:name="com.adgeistkit.ads.ADGEIST_APP_ID"
             android:value="ADGEIST_APP_ID"/>
 
-        <meta-data
-            android:name="com.adgeistkit.ads.ADGEIST_API_KEY"
-            android:value="ADGEIST_API_KEY"/>
-
     </application>
 </manifest>
 ```
 
-Replace `ADGEIST_APP_ID`, `ADGEIST_API_KEY` with your actual Adgeist credentials.
+Replace `ADGEIST_APP_ID` with your actual Adgeist credentials.
 
 ## Initialize the Adgeist Mobile Ads SDK
 

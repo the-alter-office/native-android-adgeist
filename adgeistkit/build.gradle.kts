@@ -45,6 +45,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            buildConfigField("String", "VERSION_NAME", "\"${project.property("VERSION_NAME")}\"")
+        }
+        debug {
+            buildConfigField("String", "VERSION_NAME", "\"${project.property("VERSION_NAME")}-${project.property("VERSION_SUFFIX")}\"")
         }
     }
     compileOptions {
