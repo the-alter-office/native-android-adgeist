@@ -354,6 +354,69 @@ adView?.setAdListener(object : AdListener() {
 
 ---
 
+## 🎯 UTM Parameter Tracking
+
+The SDK now supports automatic tracking of UTM parameters from first install and deeplinks for marketing attribution. This helps you understand which campaigns drive installs and user engagement.
+
+### Features
+
+- ✅ Automatic first-install tracking via Google Play Install Referrer API
+- ✅ Deeplink UTM parameter extraction and tracking
+- ✅ Automatic inclusion in all analytics events
+- ✅ Persistent storage across app sessions
+
+### Quick Setup
+
+To track UTM parameters from deeplinks, add intent filters to your `AndroidManifest.xml`:
+
+```xml
+<activity
+    android:name=".MainActivity"
+    android:launchMode="singleTop">
+
+    <!-- Custom URL scheme for deeplinks -->
+    <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="yourapp" />
+    </intent-filter>
+</activity>
+```
+
+Then handle deeplinks in your activity:
+
+```kotlin
+override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+
+    adGeist = AdgeistCore.initialize(applicationContext)
+
+    // Track UTM from deeplink
+    intent?.data?.let { uri ->
+        adGeist.trackUtmFromDeeplink(uri)
+    }
+}
+
+override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    intent?.data?.let { uri ->
+        adGeist.trackUtmFromDeeplink(uri)
+    }
+}
+```
+
+### Retrieve UTM Parameters
+
+```kotlin
+val utm = adGeist.getUtmParameters()
+utm?.let {
+    Log.d("UTM", "Source: ${it.source}, Campaign: ${it.campaign}")
+}
+```
+
+---
+
 ## Next Steps
 
 Now that you've integrated the Adgeist Mobile Ads SDK and implemented banner/display ads, you can:

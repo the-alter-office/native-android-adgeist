@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
 import android.util.Log
-import com.adgeistkit.ads.network.UTMAnalytics
+import com.adgeistkit.data.network.UTMAnalytics
 import com.android.installreferrer.api.InstallReferrerClient
 import com.android.installreferrer.api.InstallReferrerStateListener
 import java.net.URLDecoder

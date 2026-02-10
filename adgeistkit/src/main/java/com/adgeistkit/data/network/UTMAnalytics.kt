@@ -1,4 +1,4 @@
-package com.adgeistkit.ads.network
+package com.adgeistkit.data.network
 
 import android.util.Log
 import com.adgeistkit.core.UtmParameters
