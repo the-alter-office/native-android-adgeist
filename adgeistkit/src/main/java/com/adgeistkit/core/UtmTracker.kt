@@ -7,6 +7,7 @@ import android.util.Log
 import com.adgeistkit.ads.network.UTMAnalytics
 import com.android.installreferrer.api.InstallReferrerClient
 import com.android.installreferrer.api.InstallReferrerStateListener
+import java.net.URLDecoder
 
 /**
  * Handles tracking and persistence of UTM parameters from install referrer and deeplinks.
@@ -42,7 +43,6 @@ class UtmTracker(
         if (params.isNotEmpty()) {
             val utmParams = UtmParameters.fromMap(params)
             saveUtmParameters(utmParams, "VISIT")
-            Log.d(TAG, "UTM parameters tracked from deeplink: $utmParams")
         }
     }
 
@@ -52,8 +52,11 @@ class UtmTracker(
      */
     fun trackFromInstallReferrer(referrerUrl: String) {
         try {
+            // Decode the URL-encoded referrer string first
+            val decodedReferrerUrl = URLDecoder.decode(referrerUrl, "UTF-8")
+            
             // Parse the referrer URL to extract UTM parameters, using a dummy base URL since referrerUrl is just query parameters
-            val uri = Uri.parse("https://example.com?$referrerUrl")
+            val uri = Uri.parse("https://example.com?$decodedReferrerUrl")
             val params = mutableMapOf<String, String?>()
             
             uri.getQueryParameter("utm_source")?.let { params["utm_source"] = it }
@@ -63,7 +66,6 @@ class UtmTracker(
             if (params.isNotEmpty()) {
                 val utmParams = UtmParameters.fromMap(params)
                 saveUtmParameters(utmParams, "INSTALL")
-                Log.d(TAG, "UTM parameters tracked from install referrer: $utmParams")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing install referrer: ${e.message}")
@@ -91,7 +93,6 @@ class UtmTracker(
                             try {
                                 val response = referrerClient.installReferrer
                                 val referrerUrl = response.installReferrer
-                                Log.d(TAG, "Install referrer received: $referrerUrl")
                                 trackFromInstallReferrer(referrerUrl)
                             } catch (e: Exception) {
                                 Log.e(TAG, "Error reading install referrer: ${e.message}")
@@ -111,6 +112,8 @@ class UtmTracker(
                 }
 
                 override fun onInstallReferrerServiceDisconnected() {
+                    // free up referrerClient resources 
+                    referrerClient.endConnection()
                     Log.d(TAG, "Install referrer service disconnected")
                 }
             })
@@ -172,6 +175,5 @@ class UtmTracker(
             remove(KEY_SESSION_ID)
             apply()
         }
-        Log.d(TAG, "UTM parameters cleared")
     }
 }

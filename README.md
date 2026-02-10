@@ -169,12 +169,6 @@ utm?.let {
 }
 ```
 
-### Documentation
-
-- **Quick Start:** See [UTM_QUICKSTART.md](UTM_QUICKSTART.md)
-- **Full Documentation:** See [UTM_TRACKING.md](UTM_TRACKING.md)
-- **Code Example:** See [UtmTrackingExample.kt](app/src/main/java/com/examplenativeandroidapp/UtmTrackingExample.kt)
-
 ---
 
 ## Banner and Display Ads

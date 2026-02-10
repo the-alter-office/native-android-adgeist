@@ -44,11 +44,7 @@
                 <!-- Replace with your actual domain -->
                 <data
                     android:scheme="https"
-                    android:host="beta.altergame.click"
-                    android:pathPrefix="/" />
-                <data
-                    android:scheme="http"
-                    android:host="beta.altergame.click"
+                    android:host="com.example.app"
                     android:pathPrefix="/" />
             </intent-filter>
             

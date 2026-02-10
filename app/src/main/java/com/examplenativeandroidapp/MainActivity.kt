@@ -135,13 +135,7 @@ class MainActivity : AppCompatActivity() {
      */
     private fun handleDeeplinkUtm(intent: Intent?) {
         intent?.data?.let { uri ->
-            Log.d("MainActivity", "Deeplink received: $uri")
-            Log.d("MainActivity", "Full URI: ${uri.toString()}")
-            Log.d("MainActivity", "Query: ${uri.query}")
-            Log.d("MainActivity", "utm_source: ${uri.getQueryParameter("utm_source")}")
-            Log.d("MainActivity", "utm_campaign: ${uri.getQueryParameter("utm_campaign")}")
-            Log.d("MainActivity", "utm_data: ${uri.getQueryParameter("utm_data")}")
-            
+
             // Track UTM parameters from deeplink
             adGeist.trackUtmFromDeeplink(uri)
             

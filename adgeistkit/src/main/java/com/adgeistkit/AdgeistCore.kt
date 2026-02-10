@@ -133,11 +133,6 @@ class AdgeistCore private constructor(
             val parameters = mutableMapOf<String, Any>()
             event.eventProperties?.forEach { (key, value) -> if (value != null) parameters[key] = value }
             
-            // Add UTM parameters to event if available
-            val utmParams = utmTracker.getUtmParameters()
-            if (utmParams != null && utmParams.hasData()) {
-                parameters["utm_data"] = utmParams.toMap()
-            }
             
             if (localUserDetails != null) parameters["userDetails"] = localUserDetails
             val fullEvent = event.copy(eventProperties = parameters)

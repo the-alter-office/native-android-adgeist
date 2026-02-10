@@ -31,8 +31,6 @@ android {
     productFlavors {
         create("beta") {
             dimension = "environment"
-            //for testing deeplink
-            applicationId = "com.leaguex.crm.beta"
         }
         create("qa") {
             dimension = "environment"
