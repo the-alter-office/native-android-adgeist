@@ -140,16 +140,12 @@ class SessionTracker(
         if (!isTracking) return
 
         val duration = getTotalSessionDuration()
-        val utmSource = prefs.getString(KEY_UTM_SOURCE, "") ?: ""
-        val utmData = prefs.getString(KEY_UTM_DATA, "") ?: ""
 
         prefs.edit().apply {
             putBoolean(PREF_SESSION_TRACKING, true)
             putLong(KEY_ACCUMULATED_DURATION, duration)
             putString(KEY_SESSION_ID, currentSessionId)
             putLong(KEY_LAST_PERSIST_TIME, System.currentTimeMillis())
-            putString(KEY_UTM_SOURCE, utmSource)
-            putString(KEY_UTM_DATA, utmData)
             commit() // Use commit for reliability on app termination
         }
         
