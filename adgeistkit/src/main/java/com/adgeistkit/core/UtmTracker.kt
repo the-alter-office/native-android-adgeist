@@ -29,6 +29,11 @@ class UtmTracker(
 
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val utmAnalytics = UTMAnalytics(bidRequestBackendDomain)
+    private val sessionTracker: SessionTracker = SessionTracker(
+        context.applicationContext,
+        prefs,
+        bidRequestBackendDomain
+    )
 
     /**
      * Track UTM parameters from a deeplink URI
@@ -148,7 +153,15 @@ class UtmTracker(
      * Send UTM parameters to backend API
      */
     private fun sendUtmDataToBackend(params: UtmParameters, sessionId: String, eventType: String) {
-        utmAnalytics.sendUtmData(params, sessionId, eventType)
+        utmAnalytics.sendUtmData(params, sessionId, eventType) { success, error ->
+            if (success) {
+                Log.d(TAG, "UTM $eventType event sent successfully, starting session tracking")
+                // Start session tracking after successful UTM event
+                sessionTracker.startSessionTracking(sessionId)
+            } else {
+                Log.e(TAG, "Failed to send UTM $eventType event: $error")
+            }
+        }
     }
 
     /**
