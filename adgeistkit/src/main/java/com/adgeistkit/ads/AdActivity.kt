@@ -13,7 +13,7 @@ import android.widget.HorizontalScrollView
 import android.widget.ScrollView
 import androidx.core.widget.NestedScrollView
 import com.adgeistkit.AdgeistCore.Companion.getInstance
-import com.adgeistkit.ads.network.AnalyticsRequest
+import com.adgeistkit.request.AnalyticsRequest
 
 class AdActivity(private val baseAdView: BaseAdView) {
     private val postCreativeAnalytics = getInstance().postCreativeAnalytics()
@@ -253,10 +253,6 @@ class AdActivity(private val baseAdView: BaseAdView) {
     fun captureImpression() {
         if (!hasImpression) {
             renderTime = SystemClock.elapsedRealtime() - renderStartTime
-            Log.e(
-                TAG,
-                "renderTime= $renderTime"
-            )
             baseAdView.listener?.onAdLoaded()
             val analyticsRequest: AnalyticsRequest =
                 AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)

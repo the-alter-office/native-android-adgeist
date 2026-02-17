@@ -2,9 +2,13 @@ package com.adgeistkit.data.network
 
 import android.util.Log
 import com.adgeistkit.AdgeistCore
-import com.adgeistkit.ads.network.FetchCreativeRequest
+import com.adgeistkit.request.FetchCreativeRequest
 import com.adgeistkit.data.models.CPMAdResponse
 import com.adgeistkit.data.models.FixedAdResponse
+import com.adgeistkit.data.models.AdData
+import com.adgeistkit.data.models.AdErrorResponse
+import com.adgeistkit.data.models.AdResponseData
+import com.adgeistkit.data.models.AdVisibilityError
 import okhttp3.*
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
@@ -38,7 +42,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
         adUnitID: String,
         buyType: String,
         isTestEnvironment: Boolean = true,
-        callback: (Any?) -> Unit
+        callback: (AdData) -> Unit
     ) {
         scope.launch {
             val deviceId = deviceIdentifier.getDeviceIdentifier()
@@ -110,36 +114,57 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
                     Log.d(TAG, "Request Failed: ${bidRequestBackendDomain} - ${e.message}")
-                    callback(null)
+                    callback(createErrorProp(e.message ?: "Failed to connect to server"))
                 }
 
                 override fun onResponse(call: Call, response: Response) {
                     val jsonString = response.body?.string()
 
-                    if (!response.isSuccessful || jsonString.isNullOrBlank()) {
-                        callback(null)
+                    if (jsonString.isNullOrBlank()) {
+                        callback(createErrorProp("Server returned empty response", response.code))
                         return
                     }
 
-                    val adData = try {
-                        val parsed = parseCreativeData(jsonString, buyType)
-                        if (parsed == null || isEmptyCreative(parsed)) {
-                            null
-                        } else {
-                            parsed
+                    if (!response.isSuccessful) {                        
+                        val errorMessage = try {
+                            val errorResponse = Gson().fromJson(jsonString, AdErrorResponse::class.java)
+                            errorResponse.Error
+                        } catch (e: Exception) {
+                            response.message.ifEmpty { "Request failed" }
                         }
-                    } catch (e: Exception) {
-                        null
+                        
+                        callback(createErrorProp(errorMessage, response.code))
+                        return
                     }
 
-                    callback(adData)
+                    try {
+                        val parsed = parseCreativeData(jsonString, buyType)
+                        
+                        if (parsed == null) {
+                            callback(createErrorProp("Failed to parse creative data"))
+                        } else if (isEmptyCreative(parsed)) {
+                            callback(createErrorProp("No valid ad creative available"))
+                        } else {
+                            callback(AdData(data = parsed, error = null, statusCode = response.code))
+                        }
+                    } catch (e: Exception) {
+                        callback(createErrorProp(e.message ?: "Failed to parse ad response"))
+                    }
                 }
 
             })
         }
     }
 
-    private fun isEmptyCreative(ad: Any): Boolean {
+    private fun createErrorProp(errorMessage: String, statusCode: Int? = null): AdData {
+        return AdData(
+            data = null,
+            error = AdVisibilityError(errorMessage),
+            statusCode = statusCode
+        )
+    }
+
+    private fun isEmptyCreative(ad: AdResponseData): Boolean {
         return when (ad) {
             is FixedAdResponse -> {
                 ad.id.isNullOrEmpty() ||
@@ -153,7 +178,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
         }
     }
 
-    private fun parseCreativeData(json: String, buyType: String): Any {
+    private fun parseCreativeData(json: String, buyType: String): AdResponseData? {
         return if (buyType == "FIXED") {
             Gson().fromJson(json, FixedAdResponse::class.java)
         } else {

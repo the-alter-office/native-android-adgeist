@@ -59,6 +59,22 @@ class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
         }
     }
 
+    @JavascriptInterface
+    fun reportOverflow(contentWidth: Int, contentHeight: Int, viewWidth: Int, viewHeight: Int) {
+        baseAdView.post {
+            baseAdView.listener?.onAdFailedToLoad("Ad content overflow detected")
+            baseAdView.destroy()
+            baseAdView.removeFromParent()
+        }
+    }
+
+    @JavascriptInterface
+    fun showAd() {
+        baseAdView.post {
+            baseAdView.webView?.visibility = android.view.View.VISIBLE
+        }
+    }
+
     companion object {
         private const val TAG = "Javascript Bridge"
     }

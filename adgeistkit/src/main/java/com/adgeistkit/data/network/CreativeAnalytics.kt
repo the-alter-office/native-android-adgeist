@@ -2,8 +2,8 @@ package com.adgeistkit.data.network
 
 import android.util.Log
 import com.adgeistkit.AdgeistCore
-import com.adgeistkit.ads.network.AnalyticsRequest
-import com.adgeistkit.ads.network.AnalyticsRequestDEPRECATED
+import com.adgeistkit.request.AnalyticsRequest
+import com.adgeistkit.request.AnalyticsRequestDEPRECATED
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

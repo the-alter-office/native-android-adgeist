@@ -78,7 +78,7 @@ Add your Adgeist publisher ID (as identified in the Adgeist web interface) to yo
 
 Replace `ADGEIST_APP_ID` with your actual Adgeist credentials.
 
-## Initialize the Adgeist Mobile Ads SDK
+### STEP 4: Initialize the Adgeist Mobile Ads SDK
 
 Before loading ads, initialize the Adgeist Mobile Ads SDK by calling `AdgeistCore.initialize(this)`.
 
@@ -99,69 +99,6 @@ class MainActivity : AppCompatActivity() {
 ```
 
 You're now ready to implement ads in your app!
-
----
-
-## 🎯 UTM Parameter Tracking
-
-The SDK now supports automatic tracking of UTM parameters from first install and deeplinks for marketing attribution. This helps you understand which campaigns drive installs and user engagement.
-
-### Features
-
-- ✅ Automatic first-install tracking via Google Play Install Referrer API
-- ✅ Deeplink UTM parameter extraction and tracking
-- ✅ Automatic inclusion in all analytics events
-- ✅ Persistent storage across app sessions
-
-### Quick Setup
-
-To track UTM parameters from deeplinks, add intent filters to your `AndroidManifest.xml`:
-
-```xml
-<activity
-    android:name=".MainActivity"
-    android:launchMode="singleTop">
-
-    <!-- Custom URL scheme for deeplinks -->
-    <intent-filter>
-        <action android:name="android.intent.action.VIEW" />
-        <category android:name="android.intent.category.DEFAULT" />
-        <category android:name="android.intent.category.BROWSABLE" />
-        <data android:scheme="yourapp" />
-    </intent-filter>
-</activity>
-```
-
-Then handle deeplinks in your activity:
-
-```kotlin
-override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-
-    adGeist = AdgeistCore.initialize(applicationContext)
-
-    // Track UTM from deeplink
-    intent?.data?.let { uri ->
-        adGeist.trackUtmFromDeeplink(uri)
-    }
-}
-
-override fun onNewIntent(intent: Intent) {
-    super.onNewIntent(intent)
-    intent?.data?.let { uri ->
-        adGeist.trackUtmFromDeeplink(uri)
-    }
-}
-```
-
-### Retrieve UTM Parameters
-
-```kotlin
-val utm = adGeist.getUtmParameters()
-utm?.let {
-    Log.d("UTM", "Source: ${it.source}, Campaign: ${it.campaign}")
-}
-```
 
 ---
 
@@ -269,7 +206,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.adgeistkit.AdgeistCore
 import com.adgeistkit.ads.AdSize
 import com.adgeistkit.ads.AdView
-import com.adgeistkit.ads.network.AdRequest
+import com.adgeistkit.request.AdRequest
 
 class MainActivity : AppCompatActivity() {
     private lateinit var adGeist: AdgeistCore
@@ -326,8 +263,8 @@ adView?.setAdListener(object : AdListener() {
     }
 
     override fun onAdClosed() {
-        // Code to be executed when the user is about to return
-        // to the app after tapping on an ad.
+        // Code to be executed when the ad is completely removes 
+        // from the screen
     }
 
     override fun onAdFailedToLoad(error: String) {

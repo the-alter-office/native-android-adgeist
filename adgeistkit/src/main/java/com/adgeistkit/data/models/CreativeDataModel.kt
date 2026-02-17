@@ -1,10 +1,14 @@
 package com.adgeistkit.data.models
 
+import com.google.gson.annotations.SerializedName
+
+sealed interface AdResponseData
+
 data class CPMAdResponse(
     val success: Boolean,
     val message: String,
     val data: BidResponseData?
-)
+) : AdResponseData
 
 data class BidResponseData(
     val id: String,
@@ -33,19 +37,23 @@ data class BidExtension(
 )
 
 data class FixedAdResponse(
+    val isTest: Boolean?,
+    val expiresAt: String?,
     val metaData: String,
     val id: String,
     val generatedAt: String?,
+    val signature: String?,
     val campaignId: String?,
     val advertiser: Advertiser?,
     val type: String?,
     val loadType: String?,
     val campaignValidity: CampaignValidity?,
-    val creatives: List<Creative>?,
+    val creatives: List<Creative>,
+    val creativesV1: List<CreativeV1>,
     val displayOptions: DisplayOptions?,
     val frontendCacheDurationSeconds: Int?,
     val impressionRequirements: ImpressionRequirements?
-)
+) : AdResponseData
 
 data class Advertiser(
     val id: String?,
@@ -70,6 +78,23 @@ data class Creative(
     val title: String?,
     val type: String?,
     val updatedAt: MongoDateWrapper?
+)
+
+// New CreativeV1 structure
+data class CreativeV1(
+    val title: String?,
+    val description: String?,
+    val ctaUrl: String?,
+    val primary: MediaItem?,
+    val companions: List<MediaItem>?
+)
+
+data class MediaItem(
+    val type: String?,
+    val fileName: String?,
+    val fileSize: Int?,
+    val fileUrl: String?,
+    val thumbnailUrl: String?
 )
 
 data class MongoIdWrapper(
@@ -99,6 +124,28 @@ data class StyleOptions(
 )
 
 data class ImpressionRequirements(
-    val impressionType: String?,
+    val impressionType: List<String>?,
     val minViewDurationSeconds: Int?
 )
+
+
+data class AdErrorResponse(
+    val Error: String,
+    val Status: String
+)
+
+data class AdVisibilityError(
+    val errorMessage: String
+)
+
+data class AdData(
+    val data: AdResponseData?,
+    val error: AdVisibilityError?,
+    val statusCode: Int?
+) {
+    val isSuccess: Boolean
+        get() = error == null && data != null
+    
+    val errorMessage: String
+        get() = error?.errorMessage ?: "Unknown error occurred"
+}
