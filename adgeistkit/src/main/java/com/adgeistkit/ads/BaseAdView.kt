@@ -20,7 +20,7 @@ import android.webkit.WebViewClient
 import androidx.annotation.RequiresPermission
 import com.adgeistkit.AdgeistCore.Companion.getInstance
 import com.adgeistkit.R
-import com.adgeistkit.ads.network.AdRequest
+import com.adgeistkit.request.AdRequest
 import com.adgeistkit.data.models.FixedAdResponse
 import com.adgeistkit.data.models.AdResult
 import com.adgeistkit.data.network.FetchCreative

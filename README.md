@@ -206,7 +206,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.adgeistkit.AdgeistCore
 import com.adgeistkit.ads.AdSize
 import com.adgeistkit.ads.AdView
-import com.adgeistkit.ads.network.AdRequest
+import com.adgeistkit.request.AdRequest
 
 class MainActivity : AppCompatActivity() {
     private lateinit var adGeist: AdgeistCore

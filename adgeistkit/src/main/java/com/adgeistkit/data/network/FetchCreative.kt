@@ -2,7 +2,7 @@ package com.adgeistkit.data.network
 
 import android.util.Log
 import com.adgeistkit.AdgeistCore
-import com.adgeistkit.ads.network.FetchCreativeRequest
+import com.adgeistkit.request.FetchCreativeRequest
 import com.adgeistkit.data.models.CPMAdResponse
 import com.adgeistkit.data.models.FixedAdResponse
 import com.adgeistkit.data.models.AdResult

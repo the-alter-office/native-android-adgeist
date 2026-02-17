@@ -1,4 +1,4 @@
-package com.adgeistkit.ads.network
+package com.adgeistkit.request
 
 import org.json.JSONObject
 
