@@ -78,7 +78,7 @@ Add your Adgeist publisher ID (as identified in the Adgeist web interface) to yo
 
 Replace `ADGEIST_APP_ID` with your actual Adgeist credentials.
 
-### STEP 3: Initialize the Adgeist Mobile Ads SDK
+### STEP 4: Initialize the Adgeist Mobile Ads SDK
 
 Before loading ads, initialize the Adgeist Mobile Ads SDK by calling `AdgeistCore.initialize(this)`.
 
