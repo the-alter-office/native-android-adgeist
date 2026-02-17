@@ -253,10 +253,6 @@ class AdActivity(private val baseAdView: BaseAdView) {
     fun captureImpression() {
         if (!hasImpression) {
             renderTime = SystemClock.elapsedRealtime() - renderStartTime
-            Log.e(
-                TAG,
-                "renderTime= $renderTime"
-            )
             baseAdView.listener?.onAdLoaded()
             val analyticsRequest: AnalyticsRequest =
                 AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)

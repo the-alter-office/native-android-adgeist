@@ -22,7 +22,6 @@ import com.adgeistkit.AdgeistCore.Companion.getInstance
 import com.adgeistkit.R
 import com.adgeistkit.request.AdRequest
 import com.adgeistkit.data.models.FixedAdResponse
-import com.adgeistkit.data.models.AdResult
 import com.adgeistkit.data.network.FetchCreative
 import com.google.gson.Gson
 import kotlin.math.max
@@ -32,18 +31,30 @@ open class BaseAdView : ViewGroup {
         private const val TAG = "BaseAdView"
     }
 
+    /**
+     * Required parameters for ad rendering configuration
+     */
     var adSize: AdSize? = null
     var adUnitId: String = ""
     var adType: String = "banner"
     var adIsResponsive: Boolean = false
-
     var isTestMode: Boolean = false
+
+    /**
+     * Metadata and media type for ad tracking
+     */
     var metaData: String = ""
     var mediaType: String? = null
 
+    /**
+     * WebView and JavaScript bridge instances
+     */
     internal var webView: WebView? = null
     private var jsInterface: JsBridge? = null
 
+    /**
+     * Listener for ad lifecycle events
+     */
     var listener: AdListener? = null
 
     private var isLoading: Boolean = false
@@ -70,6 +81,13 @@ open class BaseAdView : ViewGroup {
         initialize(context, attrs)
     }
 
+    /**
+     * Initializes the BaseAdView with context and attributes.
+     * Sets up the main thread handler and parses XML attributes if provided.
+     *
+     * @param context The Android context
+     * @param attrs AttributeSet from XML layout (nullable)
+     */
     private fun initialize(context: Context, attrs: AttributeSet?) {
         mainHandler = Handler(Looper.getMainLooper())
 
@@ -87,27 +105,51 @@ open class BaseAdView : ViewGroup {
         }
     }
 
+    /**
+     * Sets the ad listener to receive ad lifecycle events.
+     *
+     * @param listener AdListener implementation or null to remove listener
+     */
     fun setAdListener(listener: AdListener?) {
         this.listener = listener
     }
 
+    /**
+     * Converts density-independent pixels (dp) to actual pixels.
+     *
+     * @param dp Value in density-independent pixels
+     * @return Value in pixels based on device density
+     */
     private fun dpToPx(dp: Int): Int {
         return (dp * resources.displayMetrics.density).toInt()
     }
 
+    /**
+     * Converts pixels to density-independent pixels (dp).
+     *
+     * @param px Value in pixels
+     * @return Value in density-independent pixels
+     */
     private fun pxToDp(px: Int): Int {
         return (px / resources.displayMetrics.density).toInt()
     }
 
+    /**
+     * Loads an ad with the specified AdRequest.
+     * This is the main entry point for publishers to request and display ads.
+     * Note: If an ad is already loading, this call will be ignored.
+     *
+     * @param adRequest The AdRequest containing ad configuration (test mode, etc.)
+     * @throws SecurityException if INTERNET permission is not granted
+     */
     @RequiresPermission("android.permission.INTERNET")
     fun loadAd(adRequest: AdRequest) {
         if (isLoading) {
-            Log.w(TAG, "Ad is already loading")
             return
         }
 
         if (adUnitId == null || adUnitId.isEmpty()) {
-            Log.e(TAG, "Ad unit ID is null or empty")
+            listener?.onAdFailedToLoad("Ad unit ID is null or empty")
             return
         }
 
@@ -128,6 +170,11 @@ open class BaseAdView : ViewGroup {
         }, 400)
     }
 
+    /**
+     * Initiates the actual ad loading process by fetching creative from the server.
+     *
+     * @param adRequest The AdRequest containing configuration parameters
+     */
     private fun startAdLoad(adRequest: AdRequest) {
         try {
             val adgeist = getInstance()
@@ -136,14 +183,12 @@ open class BaseAdView : ViewGroup {
             isTestMode = adRequest.isTestMode
 
             fetchCreative.fetchCreative(
-              adUnitId,"FIXED", isTestMode
+                adUnitId, "FIXED", isTestMode
             ) { result ->
-
                 mainHandler?.post {
-
                     if (isDestroyed) return@post
                     isLoading = false
-                    
+
                     if (!result.isSuccess) {
                         listener?.onAdFailedToLoad(result.errorMessage)
                         return@post
@@ -206,39 +251,36 @@ open class BaseAdView : ViewGroup {
                         val creativeJson = Gson().toJson(propertiesForAdCard)
 
                         renderAdWithAdCard(creativeJson)
-                        notifyAdLoaded()
                     } catch (err: Exception) {
-                        Log.e(TAG, "Error parsing creativeData", err)
                         listener?.onAdFailedToLoad(err.message ?: "Error")
                     }
                 }
-
-                null
             }
-
         } catch (e: Exception) {
             listener?.onAdFailedToLoad(e.message ?: "Unknown error")
             mainHandler?.post {
                 isLoading = false
-                Log.e(
-                    TAG,
-                    "Error loading ad",
-                    e
-                )
             }
         }
     }
 
+    /**
+     * Creates and configures a new WebView, sets up JavaScript bridge,
+     *
+     * @param creativeJsonData JSON string containing creative data for rendering
+     */
     private fun renderAdWithAdCard(creativeJsonData: String) {
         if (isDestroyed) return
 
         removeAllViews()
-        webView = WebView(context)
-        webView!!.setBackgroundColor(Color.TRANSPARENT)
-        webView!!.settings.javaScriptEnabled = true
-        webView!!.settings.domStorageEnabled = true
-        webView!!.settings.loadWithOverviewMode = true
-        webView!!.settings.useWideViewPort = true
+
+        webView = WebView(context).apply {
+            setBackgroundColor(Color.TRANSPARENT)
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.loadWithOverviewMode = true
+            settings.useWideViewPort = true
+        }
 
         jsInterface = JsBridge(this, context)
         listener?.onAdOpened()
@@ -319,7 +361,7 @@ open class BaseAdView : ViewGroup {
             }
         }
 
-
+        // JavaScript bridge interface accessible as 'Android' from WebView HTML
         webView!!.addJavascriptInterface(jsInterface!!, "Android")
 
         val htmlContent = buildAdCardHtml(creativeJsonData)
@@ -330,18 +372,28 @@ open class BaseAdView : ViewGroup {
             "UTF-8",
             null
         )
+
+        // Add WebView to container with full dimensions
         addView(
             webView, LayoutParams(
                 LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT
             )
         )
-        
+
         // Hide companion ads initially until overflow check completes
         if (adType == "companion") {
             webView!!.visibility = View.INVISIBLE
         }
     }
 
+    /**
+     * Builds the HTML content for ad rendering in WebView.
+     * Loads the main ad view file from assets and injects creative data.
+     * This file loads the AdCard library from S3 and renders the ad.
+     *
+     * @param creativeJsonData JSON string with creative data
+     * @return Complete HTML string ready to be loaded in WebView
+     */
     private fun buildAdCardHtml(creativeJsonData: String): String {
         val escapedJson = creativeJsonData
             .replace("\\", "\\\\")
@@ -351,98 +403,25 @@ open class BaseAdView : ViewGroup {
             .replace("\t", "\\t")
             .replace("`", "\\`")
 
-        return "<!DOCTYPE html>" +
-                "<html>" +
-                "<head>" +
-                "    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>" +
-                "    <style>" +
-                "        * {" +
-                "            margin: 0;" +
-                "            padding: 0;" +
-                "            box-sizing: border-box;" +
-                "        }" +
-                "        html, body {" +
-                "            width: 100%;" +
-                "            height: 100%;" +
-                "            margin: 0;" +
-                "            padding: 0;" +
-                "            overflow: hidden;" +
-                "            display: flex;" +
-                "            justify-content: center;" +
-                "            align-items: center;" +
-                "        }" +
-                "        #ad-content {" +
-                "            display: flex;" +
-                "            justify-content: center;" +
-                "            align-items: center;" +
-                "            max-width: 100%;" +
-                "            max-height: 100%;" +
-                "        }" +
-                "        #ad-content > * {" +
-                "            max-width: 100%;" +
-                "            max-height: 100%;" +
-                "            object-fit: contain;" +
-                "        }" +
-                "    </style>" +
-                "</head>" +
-                "<body>" +
-                "    <div id='ad-content'></div>" +
-                "    <!-- Load AdCard.js library from S3 -->" +
-                "    <script src='https://cdn.adgeist.ai/adcard-beta.js'></script>" +
-                "    <script>" +
-                "        function initAd() {" +
-                "            if (typeof AdCard === 'undefined') {" +
-                "                console.error('AdCard library not loaded');" +
-                "                return;" +
-                "            }" +
-                "            try {" +
-                "                const creativeData = JSON.parse(\"" + escapedJson + "\");" +
-                "                const adCard = new AdCard(creativeData);" +
-                "                const html = adCard.renderHtml();" +
-                "                document.getElementById('ad-content').innerHTML = html;" +
-                "                document.getElementById('ad-content').addEventListener('click', function(e) {" +
-                "                    console.log('Ad clicked');" +
-                "                });" +
- 
-                "                function checkOverflow() {" +
-                "                    try {" +
-                "                        const adgeistCard = document.getElementById('adgeist-card');" +
-                "                        if (!adgeistCard) {" +
-                "                            console.error('adgeist-card not found');" +
-                "                            return;" +
-                "                        }" +
-                "                        const viewWidth = window.innerWidth;" +
-                "                        const viewHeight = window.innerHeight;" +
-                "                        const cardWidth = adgeistCard.scrollWidth;" +
-                "                        const cardHeight = adgeistCard.scrollHeight;" +
-                "                        if (viewWidth && viewHeight && (cardWidth > viewWidth || cardHeight > viewHeight)) {" +
-                "                            Android.reportOverflow(cardWidth, cardHeight, viewWidth, viewHeight);" +
-                "                        } else {" +
-                "                            Android.showAd();" +
-                "                        }" +
-                "                    } catch (e) {" +
-                "                        console.error('Error checking overflow: ' + e.message);" +
-                "                    }" +
-                "                }" +
-                "                if(creativeData.adspaceType === 'companion') {" +
-                "                   checkOverflow();" +
-                "                }" +
-                "            } catch (error) {" +
-                "                console.error('Error rendering ad:', error);" +
-                "            }" +
-                "        }" +
-                "        if (document.readyState === 'loading') {" +
-                "            document.addEventListener('DOMContentLoaded', function() {" +
-                "                setTimeout(initAd, 100);" +
-                "            });" +
-                "        } else {" +
-                "            setTimeout(initAd, 100);" +
-                "        }" +
-                "    </script>" +
-                "</body>" +
-                "</html>"
+        return try {
+            val template = context.assets.open("ad_view.html").bufferedReader().use { it.readText() }
+            template.replace("{{CREATIVE_DATA}}", escapedJson)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load ad view from assets", e)
+            return ""
+        }
     }
 
+    /**
+     * Positions the child view (WebView) within the ad container.
+     * Centers the ad content both horizontally and vertically.
+     *
+     * @param changed True if this is a different layout than the previous one
+     * @param left Left position relative to parent
+     * @param top Top position relative to parent
+     * @param right Right position relative to parent
+     * @param bottom Bottom position relative to parent
+     */
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         val child = getChildAt(0)
         if (child != null && child.visibility != GONE) {
@@ -461,6 +440,13 @@ open class BaseAdView : ViewGroup {
         }
     }
 
+    /**
+     * Measures the dimensions of the ad view based on ad size or child view.
+     * Handles responsive sizing and fixed ad sizes.
+     *
+     * @param widthMeasureSpec Width measurement specification from parent
+     * @param heightMeasureSpec Height measurement specification from parent
+     */
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val child = getChildAt(0)
         var width: Int
@@ -492,6 +478,12 @@ open class BaseAdView : ViewGroup {
         )
     }
 
+    /**
+     * Opens a URL in the device's default browser.
+     *
+     * @param context Android context for launching intent
+     * @param url URL to open in browser
+     */
     private fun openInBrowser(context: Context, url: String) {
         try {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
@@ -505,6 +497,10 @@ open class BaseAdView : ViewGroup {
         }
     }
 
+    /**
+     * Called when the view is attached to a window.
+     * Resumes WebView rendering if available.
+     */
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         if (webView != null && !isDestroyed) {
@@ -515,6 +511,12 @@ open class BaseAdView : ViewGroup {
         }
     }
 
+    /**
+     * Called when window visibility changes.
+     * Pauses/resumes WebView rendering to conserve resources.
+     *
+     * @param visibility New visibility state (VISIBLE, INVISIBLE, or GONE)
+     */
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
         if (webView == null || isDestroyed) return
@@ -532,11 +534,21 @@ open class BaseAdView : ViewGroup {
         }
     }
 
+    /**
+     * Called when the view is detached from a window.
+     * Triggers WebView cleanup and notifies listener.
+     */
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         onDestroyWebView()
     }
 
+    /**
+     * Sets the ad dimensions for fixed-size ads.
+     *
+     * @param adSize The desired ad size
+     * @throws IllegalArgumentException if adSize is null
+     */
     fun setAdDimension(adSize: AdSize) {
         requireNotNull(adSize) { "AdSize cannot be null" }
         this.adSize = adSize
@@ -546,11 +558,17 @@ open class BaseAdView : ViewGroup {
     val isCollapsible: Boolean
         get() = false
 
+    /**
+     * Destroys the ad view and releases all resources.
+     */
     fun destroy() {
         isLoading = false
         safelyDestroyWebView()
     }
 
+    /**
+     * Removes this view from its parent ViewGroup.
+     */
     fun removeFromParent() {
         try {
             (parent as? ViewGroup)?.removeView(this)
@@ -558,6 +576,16 @@ open class BaseAdView : ViewGroup {
         }
     }
 
+    /**
+     * Safely destroys the WebView to prevent memory leaks.
+     * Performs cleanup in the correct order:
+     * 1. Removes JavaScript interface
+     * 2. Stops loading and pauses rendering
+     * 3. Clears history and cache
+     * 4. Removes from view hierarchy
+     * 5. Loads blank page
+     * 6. Destroys WebView instance
+     */
     private fun safelyDestroyWebView() {
         if (isDestroyed) return
         isDestroyed = true
@@ -578,7 +606,6 @@ open class BaseAdView : ViewGroup {
 
                 webViewToDestroy.stopLoading()
                 webViewToDestroy.onPause()
-
                 webViewToDestroy.clearHistory()
                 webViewToDestroy.clearCache(true)
                 (webViewToDestroy.parent as? ViewGroup)?.removeView(webViewToDestroy)
@@ -603,11 +630,11 @@ open class BaseAdView : ViewGroup {
         }
     }
 
+    /**
+     * Internal method called when WebView is being destroyed.
+     */
     private fun onDestroyWebView() {
         listener?.onAdClosed()
         safelyDestroyWebView()
-    }
-
-    private fun notifyAdLoaded() {
     }
 }

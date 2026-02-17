@@ -47,8 +47,8 @@ class MainActivity : AppCompatActivity() {
     private var currentAdView: AdView? = null
 
     private val defaultPackageId = "com.examplenativeandroidapp"
-    private val defaultAdgeistAppId = "695e797d6fcfb14c38cfd1d6"
-    private val defaultBidRequestBackendDomain = "https://qa.v2.bg-services.adgeist.ai"
+    private val defaultAdgeistAppId = "6954fb79f1f561d105315f5b"
+    private val defaultBidRequestBackendDomain = "https://beta.v2.bg-services.adgeist.ai"
 
     private fun dpToPx(dp: Int): Int {
         return (dp * resources.displayMetrics.density).toInt()
@@ -182,10 +182,10 @@ class MainActivity : AppCompatActivity() {
     private fun loadNewAd() {
         destroyCurrentAd()
 
-        val adspaceId = "69898c6b255e422aeed94c4a"
-        val adSpaceType = "banner"
-        val width = 450
-        val height = 800
+        val adspaceId = "698c5005b7295b986a37e879"
+        val adSpaceType = "companion"
+        val width = 320
+        val height = 320
         val containerWidth = 300
         val containerHeight = 250
 

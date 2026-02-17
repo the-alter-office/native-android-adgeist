@@ -263,8 +263,8 @@ adView?.setAdListener(object : AdListener() {
     }
 
     override fun onAdClosed() {
-        // Code to be executed when the user is about to return
-        // to the app after tapping on an ad.
+        // Code to be executed when the ad is completely removes 
+        // from the screen
     }
 
     override fun onAdFailedToLoad(error: String) {

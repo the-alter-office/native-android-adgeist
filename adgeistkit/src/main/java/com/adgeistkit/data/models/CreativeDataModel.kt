@@ -2,11 +2,13 @@ package com.adgeistkit.data.models
 
 import com.google.gson.annotations.SerializedName
 
+sealed interface AdResponseData
+
 data class CPMAdResponse(
     val success: Boolean,
     val message: String,
     val data: BidResponseData?
-)
+) : AdResponseData
 
 data class BidResponseData(
     val id: String,
@@ -51,7 +53,7 @@ data class FixedAdResponse(
     val displayOptions: DisplayOptions?,
     val frontendCacheDurationSeconds: Int?,
     val impressionRequirements: ImpressionRequirements?
-)
+) : AdResponseData
 
 data class Advertiser(
     val id: String?,
@@ -126,42 +128,24 @@ data class ImpressionRequirements(
     val minViewDurationSeconds: Int?
 )
 
+
 data class AdErrorResponse(
-    @SerializedName("Status")
-    val status: String?,
-    @SerializedName("Error")
-    val errorMessage: String?,
-    @SerializedName("success")
-    val success: Boolean?,
-    @SerializedName("error")
-    val error: String?,
-    @SerializedName("message")
-    val message: String?,
+    val Error: String,
+    val Status: String
+)
+
+data class AdVisibilityError(
+    val errorMessage: String
+)
+
+data class AdData(
+    val data: AdResponseData?,
+    val error: AdVisibilityError?,
     val statusCode: Int?
 ) {
-    override fun toString(): String {
-        return "AdErrorResponse(status='$status', errorMessage='$errorMessage', success=$success, error='$error', message='$message', statusCode=$statusCode)"
-    }
-}
-
-data class AdResult(
-    val data: Any?,
-    val error: AdErrorResponse?
-) {
-
     val isSuccess: Boolean
         get() = error == null && data != null
     
     val errorMessage: String
-        get() {
-            return when {
-                // API format: {"Status":"error","Error":"message"}
-                error?.errorMessage != null && error.errorMessage!!.isNotEmpty() -> error.errorMessage!!
-                // Alternative format: {"message":"..."}
-                error?.message != null && error.message!!.isNotEmpty() -> error.message!!
-                // Alternative format: {"error":"..."}
-                error?.error != null && error.error!!.isNotEmpty() -> error.error!!
-                else -> "Unknown error occurred"
-            }
-        }
+        get() = error?.errorMessage ?: "Unknown error occurred"
 }
