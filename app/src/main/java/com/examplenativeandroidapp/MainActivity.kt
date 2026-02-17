@@ -1,6 +1,7 @@
 package com.examplenativeandroidapp
 
 import android.content.DialogInterface
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -60,6 +61,9 @@ class MainActivity : AppCompatActivity() {
         // Initialize AdgeistCore with default packageId from build.gradle.kts
         adGeist = AdgeistCore.initialize(applicationContext)
 
+        // Handle deeplink UTM parameters
+        handleDeeplinkUtm(intent)
+
         // Configuration Section
         packageIdInput = findViewById(R.id.packageIdInput)
         adgeistAppIdInput = findViewById(R.id.adgeistAppIdInput)
@@ -117,6 +121,44 @@ class MainActivity : AppCompatActivity() {
         cancelAdBtn.setOnClickListener {
             destroyCurrentAd()
             clearInputFields()
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleDeeplinkUtm(intent)
+    }
+
+    /**
+     * Handle deeplink UTM parameters from intent
+     */
+    private fun handleDeeplinkUtm(intent: Intent?) {
+        intent?.data?.let { uri ->
+
+            // Track UTM parameters from deeplink
+            adGeist.trackUtmFromDeeplink(uri)
+            
+            // // Retrieve and display the tracked parameters
+            // // For testing purposes, we can log them or show in an alert dialog
+            // val utmParams = adGeist.getUtmParameters()
+            // utmParams?.let {
+            //     Log.d("MainActivity", "UTM Parameters tracked:")
+            //     Log.d("MainActivity", "  Source: ${it.source}")
+            //     Log.d("MainActivity", "  Campaign: ${it.campaign}")
+            //     Log.d("MainActivity", "  Data: ${it.data}")
+            //     Log.d("MainActivity", "  Session ID: ${it.sessionId}")
+                
+            //     showAlertDialog(
+            //         "UTM Parameters Tracked",
+            //         "Source: ${it.source ?: "N/A"}\n" +
+            //         "Campaign: ${it.campaign ?: "N/A"}\n" +
+            //         "Data: ${it.data ?: "N/A"}\n" +
+            //         "Session ID: ${it.sessionId ?: "N/A"}"
+            //     )
+            // } ?: run {
+            //     Log.d("MainActivity", "No UTM parameters found")
+            // }
         }
     }
 
