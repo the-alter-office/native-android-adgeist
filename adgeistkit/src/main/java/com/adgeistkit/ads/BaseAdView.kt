@@ -2,12 +2,14 @@ package com.adgeistkit.ads
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
 import android.util.Log
+import android.view.View
 import android.view.ViewGroup
 import android.webkit.ConsoleMessage
 import android.webkit.ConsoleMessage.MessageLevel
@@ -20,6 +22,7 @@ import com.adgeistkit.AdgeistCore.Companion.getInstance
 import com.adgeistkit.R
 import com.adgeistkit.ads.network.AdRequest
 import com.adgeistkit.data.models.FixedAdResponse
+import com.adgeistkit.data.models.AdResult
 import com.adgeistkit.data.network.FetchCreative
 import com.google.gson.Gson
 import kotlin.math.max
@@ -38,13 +41,12 @@ open class BaseAdView : ViewGroup {
     var metaData: String = ""
     var mediaType: String? = null
 
-    private var webView: WebView? = null
+    internal var webView: WebView? = null
     private var jsInterface: JsBridge? = null
 
     var listener: AdListener? = null
 
     private var isLoading: Boolean = false
-
     private var isDestroyed = false
     private var mainHandler: Handler? = null
 
@@ -135,65 +137,76 @@ open class BaseAdView : ViewGroup {
 
             fetchCreative.fetchCreative(
               adUnitId,"FIXED", isTestMode
-            ) { creativeData ->
+            ) { result ->
 
                 mainHandler?.post {
 
                     if (isDestroyed) return@post
                     isLoading = false
-
-                    if (creativeData == null) {
-                        listener?.onAdFailedToLoad("No creative returned")
+                    
+                    if (!result.isSuccess) {
+                        listener?.onAdFailedToLoad(result.errorMessage)
                         return@post
                     }
 
                     try {
-                        val fixed = creativeData as FixedAdResponse
+                        val campaignDetails = result.data as FixedAdResponse
 
-                        if (fixed.creatives.isNullOrEmpty()) {
+                        if (campaignDetails.creativesV1.isNullOrEmpty()) {
                             listener?.onAdFailedToLoad("Empty creative")
                             return@post
                         }
 
-                        val c = fixed.creatives[0]
-                        mediaType = c.type
-                        metaData = fixed.metaData
+                        metaData = campaignDetails.metaData
+                        val propertiesForAdCard = mutableMapOf<String, Any?>()
 
-                        val simpleCreative = mutableMapOf<String, Any?>()
-                        simpleCreative["adElementId"] = "adgeist_ads_iframe_$adUnitId"
-                        simpleCreative["title"] = c.title
-                        simpleCreative["description"] = c.description
-                        simpleCreative["name"] = fixed.advertiser?.name ?: "-"
-                        simpleCreative["ctaUrl"] = c.ctaUrl
-                        simpleCreative["fileUrl"] = c.fileUrl
-                        simpleCreative["type"] = c.type
+                        propertiesForAdCard["adspaceType"] = adType
+                        propertiesForAdCard["adElementId"] = "adgeist_ads_iframe_$adUnitId"
+                        propertiesForAdCard["name"] = campaignDetails.advertiser?.name ?: "-"
 
-                        val options = fixed.displayOptions
+                        val options = campaignDetails.displayOptions
 
-                        simpleCreative["isResponsive"] = options?.isResponsive ?: false
-                        simpleCreative["responsiveType"] = options?.responsiveType ?: "Square"
+                        propertiesForAdCard["isResponsive"] = options?.isResponsive ?: false
+                        propertiesForAdCard["responsiveType"] = options?.responsiveType ?: "Square"
+
+                        val creativeDataFromApiResponse = campaignDetails.creativesV1[0]
+
+                        propertiesForAdCard["title"] = creativeDataFromApiResponse.title
+                        propertiesForAdCard["description"] = creativeDataFromApiResponse.description
+                        propertiesForAdCard["ctaUrl"] = creativeDataFromApiResponse.ctaUrl
 
                         if (adIsResponsive) {
-                            simpleCreative["width"] = pxToDp(measuredWidth)
-                            simpleCreative["height"] = pxToDp(measuredHeight)
+                            propertiesForAdCard["width"] = pxToDp(measuredWidth)
+                            propertiesForAdCard["height"] = pxToDp(measuredHeight)
                         } else {
-                            simpleCreative["width"] = adSize!!.width ?: 300
-                            simpleCreative["height"] = adSize!!.height ?: 300
+                            propertiesForAdCard["width"] = adSize!!.width
+                            propertiesForAdCard["height"] = adSize!!.height
                         }
-                        simpleCreative["adspaceType"] = adType
+
+                        // Add primaryCreative
+                        val primaryCreative = mutableMapOf<String, String?>()
+                        primaryCreative["src"] = creativeDataFromApiResponse.primary?.fileUrl
+                        primaryCreative["thumbnailUrl"] = creativeDataFromApiResponse.primary?.thumbnailUrl
+                        primaryCreative["type"] = creativeDataFromApiResponse.primary?.type
+
+                        // Add companionCreative
+                        val companionCreative = creativeDataFromApiResponse.companions?.map { companion ->
+                            mapOf(
+                                "src" to companion.fileUrl,
+                                "thumbnailUrl" to companion.thumbnailUrl,
+                                "type" to companion.type
+                            )
+                        } ?: emptyList()
 
                         val mediaList = mutableListOf<Map<String, String?>>()
-                        if (c.fileUrl != null) {
-                            mediaList.add(mapOf("src" to c.fileUrl))
-                        }
-                        simpleCreative["media"] = mediaList
-                        simpleCreative["mediaType"] = c.type ?: "image"
+                        mediaList.add(primaryCreative)
+                        mediaList.addAll(companionCreative)
+                        propertiesForAdCard["media"] = mediaList
 
-                        val creativeJson = Gson().toJson(simpleCreative)
+                        val creativeJson = Gson().toJson(propertiesForAdCard)
 
                         renderAdWithAdCard(creativeJson)
                         notifyAdLoaded()
-
                     } catch (err: Exception) {
                         Log.e(TAG, "Error parsing creativeData", err)
                         listener?.onAdFailedToLoad(err.message ?: "Error")
@@ -221,6 +234,7 @@ open class BaseAdView : ViewGroup {
 
         removeAllViews()
         webView = WebView(context)
+        webView!!.setBackgroundColor(Color.TRANSPARENT)
         webView!!.settings.javaScriptEnabled = true
         webView!!.settings.domStorageEnabled = true
         webView!!.settings.loadWithOverviewMode = true
@@ -284,7 +298,6 @@ open class BaseAdView : ViewGroup {
                             TAG,
                             "🔴 JS Error: $fullLog"
                         )
-                        listener?.onAdFailedToLoad(fullLog)
                     }
 
                     MessageLevel.WARNING -> Log.w(
@@ -322,6 +335,11 @@ open class BaseAdView : ViewGroup {
                 LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT
             )
         )
+        
+        // Hide companion ads initially until overflow check completes
+        if (adType == "companion") {
+            webView!!.visibility = View.INVISIBLE
+        }
     }
 
     private fun buildAdCardHtml(creativeJsonData: String): String {
@@ -330,6 +348,8 @@ open class BaseAdView : ViewGroup {
             .replace("\"", "\\\"")
             .replace("\n", "\\n")
             .replace("\r", "\\r")
+            .replace("\t", "\\t")
+            .replace("`", "\\`")
 
         return "<!DOCTYPE html>" +
                 "<html>" +
@@ -347,20 +367,21 @@ open class BaseAdView : ViewGroup {
                 "            margin: 0;" +
                 "            padding: 0;" +
                 "            overflow: hidden;" +
-                "        }" +
-                "        body {" +
                 "            display: flex;" +
                 "            justify-content: center;" +
                 "            align-items: center;" +
                 "        }" +
                 "        #ad-content {" +
-                "            width: 100%;" +
-                "            height: 100%;" +
+                "            display: flex;" +
+                "            justify-content: center;" +
+                "            align-items: center;" +
+                "            max-width: 100%;" +
+                "            max-height: 100%;" +
                 "        }" +
                 "        #ad-content > * {" +
-                "            width: 100%;" +
-                "            height: 100%;" +
-                "            object-fit: inherit;" +
+                "            max-width: 100%;" +
+                "            max-height: 100%;" +
+                "            object-fit: contain;" +
                 "        }" +
                 "    </style>" +
                 "</head>" +
@@ -382,6 +403,30 @@ open class BaseAdView : ViewGroup {
                 "                document.getElementById('ad-content').addEventListener('click', function(e) {" +
                 "                    console.log('Ad clicked');" +
                 "                });" +
+ 
+                "                function checkOverflow() {" +
+                "                    try {" +
+                "                        const adgeistCard = document.getElementById('adgeist-card');" +
+                "                        if (!adgeistCard) {" +
+                "                            console.error('adgeist-card not found');" +
+                "                            return;" +
+                "                        }" +
+                "                        const viewWidth = window.innerWidth;" +
+                "                        const viewHeight = window.innerHeight;" +
+                "                        const cardWidth = adgeistCard.scrollWidth;" +
+                "                        const cardHeight = adgeistCard.scrollHeight;" +
+                "                        if (viewWidth && viewHeight && (cardWidth > viewWidth || cardHeight > viewHeight)) {" +
+                "                            Android.reportOverflow(cardWidth, cardHeight, viewWidth, viewHeight);" +
+                "                        } else {" +
+                "                            Android.showAd();" +
+                "                        }" +
+                "                    } catch (e) {" +
+                "                        console.error('Error checking overflow: ' + e.message);" +
+                "                    }" +
+                "                }" +
+                "                if(creativeData.adspaceType === 'companion') {" +
+                "                   checkOverflow();" +
+                "                }" +
                 "            } catch (error) {" +
                 "                console.error('Error rendering ad:', error);" +
                 "            }" +
@@ -504,6 +549,13 @@ open class BaseAdView : ViewGroup {
     fun destroy() {
         isLoading = false
         safelyDestroyWebView()
+    }
+
+    fun removeFromParent() {
+        try {
+            (parent as? ViewGroup)?.removeView(this)
+        } catch (e: Exception) {
+        }
     }
 
     private fun safelyDestroyWebView() {

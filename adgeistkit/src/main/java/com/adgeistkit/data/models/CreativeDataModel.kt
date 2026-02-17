@@ -1,5 +1,7 @@
 package com.adgeistkit.data.models
 
+import com.google.gson.annotations.SerializedName
+
 data class CPMAdResponse(
     val success: Boolean,
     val message: String,
@@ -33,15 +35,19 @@ data class BidExtension(
 )
 
 data class FixedAdResponse(
+    val isTest: Boolean?,
+    val expiresAt: String?,
     val metaData: String,
     val id: String,
     val generatedAt: String?,
+    val signature: String?,
     val campaignId: String?,
     val advertiser: Advertiser?,
     val type: String?,
     val loadType: String?,
     val campaignValidity: CampaignValidity?,
-    val creatives: List<Creative>?,
+    val creatives: List<Creative>,
+    val creativesV1: List<CreativeV1>,
     val displayOptions: DisplayOptions?,
     val frontendCacheDurationSeconds: Int?,
     val impressionRequirements: ImpressionRequirements?
@@ -72,6 +78,23 @@ data class Creative(
     val updatedAt: MongoDateWrapper?
 )
 
+// New CreativeV1 structure
+data class CreativeV1(
+    val title: String?,
+    val description: String?,
+    val ctaUrl: String?,
+    val primary: MediaItem?,
+    val companions: List<MediaItem>?
+)
+
+data class MediaItem(
+    val type: String?,
+    val fileName: String?,
+    val fileSize: Int?,
+    val fileUrl: String?,
+    val thumbnailUrl: String?
+)
+
 data class MongoIdWrapper(
     val `$oid`: String?
 )
@@ -99,6 +122,46 @@ data class StyleOptions(
 )
 
 data class ImpressionRequirements(
-    val impressionType: String?,
+    val impressionType: List<String>?,
     val minViewDurationSeconds: Int?
 )
+
+data class AdErrorResponse(
+    @SerializedName("Status")
+    val status: String?,
+    @SerializedName("Error")
+    val errorMessage: String?,
+    @SerializedName("success")
+    val success: Boolean?,
+    @SerializedName("error")
+    val error: String?,
+    @SerializedName("message")
+    val message: String?,
+    val statusCode: Int?
+) {
+    override fun toString(): String {
+        return "AdErrorResponse(status='$status', errorMessage='$errorMessage', success=$success, error='$error', message='$message', statusCode=$statusCode)"
+    }
+}
+
+data class AdResult(
+    val data: Any?,
+    val error: AdErrorResponse?
+) {
+
+    val isSuccess: Boolean
+        get() = error == null && data != null
+    
+    val errorMessage: String
+        get() {
+            return when {
+                // API format: {"Status":"error","Error":"message"}
+                error?.errorMessage != null && error.errorMessage!!.isNotEmpty() -> error.errorMessage!!
+                // Alternative format: {"message":"..."}
+                error?.message != null && error.message!!.isNotEmpty() -> error.message!!
+                // Alternative format: {"error":"..."}
+                error?.error != null && error.error!!.isNotEmpty() -> error.error!!
+                else -> "Unknown error occurred"
+            }
+        }
+}
