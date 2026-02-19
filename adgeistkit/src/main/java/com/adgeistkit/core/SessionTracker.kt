@@ -2,6 +2,8 @@ package com.adgeistkit.core
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import androidx.lifecycle.DefaultLifecycleObserver
@@ -68,8 +70,16 @@ class SessionTracker(
     private var periodicPersistJob: Job? = null
 
     init {
-        // Register lifecycle observer
-        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+        // Register lifecycle observer on the main thread to avoid IllegalStateException
+        // especially when initialized from background threads (e.g. in React Native)
+        Handler(Looper.getMainLooper()).post {
+            try {
+                ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+                Log.d(TAG, "SessionTracker: Lifecycle observer registered on main thread")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to register lifecycle observer", e)
+            }
+        }
         
         // Check for orphaned sessions from previous app run
         checkForOrphanedSession()
@@ -333,7 +343,13 @@ class SessionTracker(
     fun destroy() {
         stopPeriodicPersist()
         scope.cancel()
-        ProcessLifecycleOwner.get().lifecycle.removeObserver(this)
+        Handler(Looper.getMainLooper()).post {
+            try {
+                ProcessLifecycleOwner.get().lifecycle.removeObserver(this)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to remove lifecycle observer", e)
+            }
+        }
         Log.d(TAG, "SessionTracker destroyed")
     }
 }

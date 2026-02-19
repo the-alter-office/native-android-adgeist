@@ -38,7 +38,7 @@
     <script>
         function initAd() {
             if (typeof AdCard === 'undefined') {
-                console.error('AdCard library not loaded');
+                console.error('❌ AdCard library not loaded');
                 return;
             }
             try {
@@ -47,35 +47,64 @@
                 const html = adCard.renderHtml();
                 document.getElementById('ad-content').innerHTML = html;
                 document.getElementById('ad-content').addEventListener('click', function(e) {
-                    console.log('Ad clicked');
+                    console.log('👆 Ad clicked');
                 });
+                
                 function checkOverflow() {
                     try {
                         const adgeistCard = document.getElementById('adgeist-card');
                         if (!adgeistCard) {
-                            console.error('adgeist-card not found');
+                            console.error('❌ adgeist-card element not found');
                             return;
                         }
+                        
                         const viewWidth = window.innerWidth;
                         const viewHeight = window.innerHeight;
                         const cardWidth = adgeistCard.scrollWidth;
                         const cardHeight = adgeistCard.scrollHeight;
-                        if (viewWidth && viewHeight && (cardWidth > viewWidth || cardHeight > viewHeight)) {
+                        
+                        const widthOverflow = cardWidth > viewWidth;
+                        const heightOverflow = cardHeight > viewHeight;
+                        const hasOverflow = (widthOverflow || heightOverflow);
+                        
+                        console.log('Overflow check - View:', viewWidth + 'x' + viewHeight, 'Card:', cardWidth + 'x' + cardHeight, 'Overflow:', hasOverflow);
+                        
+                        if (hasOverflow) {
                             Android.reportOverflow(cardWidth, cardHeight, viewWidth, viewHeight);
                         } else {
                             Android.showAd();
                         }
                     } catch (e) {
-                        console.error('Error checking overflow: ' + e.message);
+                        console.error('❌ Error checking overflow:', e.message, e.stack);
                     }
                 }
+                
                 if(creativeData.adspaceType === 'companion') {
-                   checkOverflow();
+                   // Use ResizeObserver to automatically detect when body gets valid dimensions
+                   const resizeObserver = new ResizeObserver(function(entries) {
+                       const viewWidth = window.innerWidth;
+                       const viewHeight = window.innerHeight;
+                       
+                       if (viewWidth > 0 && viewHeight > 0) {
+                           resizeObserver.disconnect();
+                           checkOverflow();
+                       }
+                   });
+                   
+                   resizeObserver.observe(document.body);
+                   
+                   // Fallback: Check immediately in case dimensions are already available
+                   if (window.innerWidth > 0 && window.innerHeight > 0) {
+                       resizeObserver.disconnect();
+                       checkOverflow();
+                   }
                 }
             } catch (error) {
-                console.error('Error rendering ad:', error);
+                console.error('❌ Error rendering ad:', error.message);
+                console.error('Stack trace:', error.stack);
             }
         }
+        
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(initAd, 100);

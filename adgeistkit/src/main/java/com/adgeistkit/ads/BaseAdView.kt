@@ -36,7 +36,7 @@ open class BaseAdView : ViewGroup {
      */
     var adSize: AdSize? = null
     var adUnitId: String = ""
-    var adType: String = "banner"
+    var adType: AdType = AdType.BANNER
     var adIsResponsive: Boolean = false
     var isTestMode: Boolean = false
 
@@ -145,10 +145,12 @@ open class BaseAdView : ViewGroup {
     @RequiresPermission("android.permission.INTERNET")
     fun loadAd(adRequest: AdRequest) {
         if (isLoading) {
+            Log.w(TAG, "loadAd ignored - ad is already loading")
             return
         }
 
         if (adUnitId == null || adUnitId.isEmpty()) {
+            Log.e(TAG, "Ad unit ID is null or empty")
             listener?.onAdFailedToLoad("Ad unit ID is null or empty")
             return
         }
@@ -190,6 +192,7 @@ open class BaseAdView : ViewGroup {
                     isLoading = false
 
                     if (!result.isSuccess) {
+                        Log.e(TAG, "API error: ${result.errorMessage}, statusCode: ${result.statusCode}")
                         listener?.onAdFailedToLoad(result.errorMessage)
                         return@post
                     }
@@ -198,6 +201,7 @@ open class BaseAdView : ViewGroup {
                         val campaignDetails = result.data as FixedAdResponse
 
                         if (campaignDetails.creativesV1.isNullOrEmpty()) {
+                            Log.e(TAG, "Empty creative list")
                             listener?.onAdFailedToLoad("Empty creative")
                             return@post
                         }
@@ -205,7 +209,7 @@ open class BaseAdView : ViewGroup {
                         metaData = campaignDetails.metaData
                         val propertiesForAdCard = mutableMapOf<String, Any?>()
 
-                        propertiesForAdCard["adspaceType"] = adType
+                        propertiesForAdCard["adspaceType"] = adType.value
                         propertiesForAdCard["adElementId"] = "adgeist_ads_iframe_$adUnitId"
                         propertiesForAdCard["name"] = campaignDetails.advertiser?.name ?: "-"
 
@@ -220,6 +224,7 @@ open class BaseAdView : ViewGroup {
                         propertiesForAdCard["description"] = creativeDataFromApiResponse.description
                         propertiesForAdCard["ctaUrl"] = creativeDataFromApiResponse.ctaUrl
 
+                        Log.d(TAG, "measuredWidth: ${pxToDp(measuredWidth)}, measuredHeight: ${pxToDp(measuredHeight)}")
                         if (adIsResponsive) {
                             propertiesForAdCard["width"] = pxToDp(measuredWidth)
                             propertiesForAdCard["height"] = pxToDp(measuredHeight)
@@ -249,14 +254,15 @@ open class BaseAdView : ViewGroup {
                         propertiesForAdCard["media"] = mediaList
 
                         val creativeJson = Gson().toJson(propertiesForAdCard)
-
                         renderAdWithAdCard(creativeJson)
                     } catch (err: Exception) {
+                        Log.e(TAG, "Parsing error: ${err.message}", err)
                         listener?.onAdFailedToLoad(err.message ?: "Error")
                     }
                 }
             }
         } catch (e: Exception) {
+            Log.e(TAG, "startAdLoad exception: ${e.message}", e)
             listener?.onAdFailedToLoad(e.message ?: "Unknown error")
             mainHandler?.post {
                 isLoading = false
@@ -310,18 +316,12 @@ open class BaseAdView : ViewGroup {
 
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
-                Log.i(
-                    TAG,
-                    "✅ WebView page finished loading: $url"
-                )
+                Log.i(TAG, "✅ WebView page finished loading: $url")
             }
 
             override fun onLoadResource(view: WebView, url: String) {
                 super.onLoadResource(view, url)
-                Log.d(
-                    TAG,
-                    "📦 Loading resource: $url"
-                )
+                Log.d(TAG, "📦 Loading resource: $url")
             }
         }
 
@@ -335,27 +335,9 @@ open class BaseAdView : ViewGroup {
 
                 val fullLog = String.format("[%s] %s (%s:%d)", logLevel, message, source, line)
                 when (consoleMessage.messageLevel()) {
-                    MessageLevel.ERROR -> {
-                        Log.e(
-                            TAG,
-                            "🔴 JS Error: $fullLog"
-                        )
-                    }
-
-                    MessageLevel.WARNING -> Log.w(
-                        TAG,
-                        "🟡 JS Warning: $fullLog"
-                    )
-
-                    MessageLevel.DEBUG, MessageLevel.LOG, MessageLevel.TIP -> Log.d(
-                        TAG,
-                        "🔵 JS Log: $fullLog"
-                    )
-
-                    else -> Log.d(
-                        TAG,
-                        "🔵 JS Log: $fullLog"
-                    )
+                    MessageLevel.ERROR -> Log.e(TAG, "JS Error: $fullLog")
+                    MessageLevel.WARNING -> Log.w(TAG, "JS Warning: $fullLog")
+                    else -> Log.d(TAG,"🔵 JS Log: $fullLog")
                 }
                 return true
             }
@@ -381,7 +363,7 @@ open class BaseAdView : ViewGroup {
         )
 
         // Hide companion ads initially until overflow check completes
-        if (adType == "companion") {
+        if (adType == AdType.COMPANION) {
             webView!!.visibility = View.INVISIBLE
         }
     }
@@ -458,6 +440,7 @@ open class BaseAdView : ViewGroup {
             height = child.measuredHeight
         } else {
             if (adIsResponsive) {
+                Log.d(TAG, "Ad is responsive - using available space for measurement")
                 width = android.view.View.MeasureSpec.getSize(widthMeasureSpec)
                 height = android.view.View.MeasureSpec.getSize(heightMeasureSpec)
             } else if (adSize != null) {
@@ -472,6 +455,7 @@ open class BaseAdView : ViewGroup {
         width = max(width.toDouble(), suggestedMinimumWidth.toDouble()).toInt()
         height = max(height.toDouble(), suggestedMinimumHeight.toDouble()).toInt()
 
+        Log.d(TAG, "onMeasure - width: ${resolveSize(width, widthMeasureSpec)}, height: ${resolveSize(height, heightMeasureSpec)}")
         setMeasuredDimension(
             resolveSize(width, widthMeasureSpec),
             resolveSize(height, heightMeasureSpec)
@@ -506,7 +490,8 @@ open class BaseAdView : ViewGroup {
         if (webView != null && !isDestroyed) {
             try {
                 webView!!.onResume()
-            } catch (ignored: Exception) {
+            } catch (e: Exception) {
+                Log.e(TAG, "Error resuming WebView: ${e.message}", e)
             }
         }
     }
@@ -519,17 +504,20 @@ open class BaseAdView : ViewGroup {
      */
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
+        
         if (webView == null || isDestroyed) return
 
         if (visibility == VISIBLE) {
             try {
                 webView!!.onResume()
-            } catch (ignored: Exception) {
+            } catch (e: Exception) {
+                Log.e(TAG, "Error resuming WebView: ${e.message}", e)
             }
         } else {
             try {
                 webView!!.onPause()
-            } catch (ignored: Exception) {
+            } catch (e: Exception) {
+                Log.e(TAG, "Error pausing WebView: ${e.message}", e)
             }
         }
     }
@@ -573,6 +561,7 @@ open class BaseAdView : ViewGroup {
         try {
             (parent as? ViewGroup)?.removeView(this)
         } catch (e: Exception) {
+            Log.e(TAG, "Error removing from parent: ${e.message}", e)
         }
     }
 
@@ -619,13 +608,12 @@ open class BaseAdView : ViewGroup {
                 mainHandler?.postDelayed({
                     try {
                         webViewToDestroy.destroy()
-                        Log.d(TAG, "WebView destroyed safely")
                     } catch (e: Exception) {
-                        Log.e(TAG, "Final destroy failed (harmless)", e)
+                        Log.e(TAG, "WebView final destroy failed", e)
                     }
                 }, 600)
             } catch (e: Exception) {
-                Log.e(TAG, "Error during WebView cleanup", e)
+                Log.e(TAG, "WebView cleanup error", e)
             }
         }
     }
