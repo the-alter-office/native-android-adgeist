@@ -28,6 +28,7 @@ class AdgeistCore private constructor(
     private val customVersioning: String? = null,
 ) {
     companion object {
+        private const val TAG = "AdgeistCore"
         private const val BidRequestBackendDomain = com.adgeistkit.BuildConfig.BASE_API_URL
         @Volatile private var instance: AdgeistCore? = null
         private val lock = Any()
@@ -39,16 +40,28 @@ class AdgeistCore private constructor(
                        customAdgeistAppID : String? = null,
                        customVersioning: String? = null): AdgeistCore
         {
-                    return instance ?: synchronized(this) {
-                        Log.e("Core-----------------------", "${com.adgeistkit.BuildConfig.BASE_API_URL} ${context.packageName} ${context.toString()}")
-                        instance ?: AdgeistCore(
-                            context.applicationContext,
-                            customBidRequestBackendDomain ?: BidRequestBackendDomain,
-                            customPackageOrBundleID,
-                            customAdgeistAppID,
-                            customVersioning,
-                        ).also { instance = it }
+            return instance ?: synchronized(this) {
+                instance ?: try {
+                    AdgeistCore(
+                        context.applicationContext,
+                        customBidRequestBackendDomain ?: BidRequestBackendDomain,
+                        customPackageOrBundleID,
+                        customAdgeistAppID,
+                        customVersioning,
+                    ).also {
+                        instance = it
+                        Log.i(TAG, "AdgeistCore initialized successfully")
+
+                        // Validate critical configuration after successful initialization
+                        if (it.adgeistAppID.isEmpty()) {
+                            Log.w(TAG, "WARNING: adgeistAppID is empty. Set com.adgeistkit.ads.ADGEIST_APP_ID in AndroidManifest.xml")
+                        }
                     }
+                } catch (e: Throwable) {
+                    Log.e(TAG, "CRITICAL: AdgeistCore initialization failed", e)
+                    throw IllegalStateException("AdgeistCore initialization failed. See logs for details.", e)
+                }
+            }
         }
 
         @JvmStatic
@@ -60,7 +73,18 @@ class AdgeistCore private constructor(
 
         @JvmStatic
         fun getInstance(): AdgeistCore {
-            return instance ?: throw IllegalStateException("AdgeistCore is not initialized")
+            return instance ?: run {
+                Log.e(TAG, "ERROR: AdgeistCore not initialized")
+                throw IllegalStateException("AdgeistCore is not initialized. Call AdgeistCore.initialize() first.")
+            }
+        }
+        
+        /**
+         * Check if AdgeistCore has been initialized
+         */
+        @JvmStatic
+        fun isInitialized(): Boolean {
+            return instance != null
         }
     }
 
@@ -136,8 +160,9 @@ class AdgeistCore private constructor(
             val parameters = mutableMapOf<String, Any>()
             event.eventProperties?.forEach { (key, value) -> if (value != null) parameters[key] = value }
             
-            
-            if (localUserDetails != null) parameters["userDetails"] = localUserDetails
+            if (localUserDetails != null) {
+                parameters["userDetails"] = localUserDetails
+            }
             val fullEvent = event.copy(eventProperties = parameters)
             cdpClient.sendEventToCdp(fullEvent, consentGiven)
         }

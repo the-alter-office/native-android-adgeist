@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import com.adgeistkit.AdgeistCore
 import com.adgeistkit.ads.AdListener
 import com.adgeistkit.ads.AdSize
+import com.adgeistkit.ads.AdType
 import com.adgeistkit.ads.AdView
 import com.adgeistkit.request.AdRequest
 import com.adgeistkit.request.AnalyticsRequestDEPRECATED
@@ -46,9 +47,9 @@ class MainActivity : AppCompatActivity() {
 
     private var currentAdView: AdView? = null
 
-    private val defaultPackageId = "com.examplenativeandroidapp"
-    private val defaultAdgeistAppId = "6954fb79f1f561d105315f5b"
-    private val defaultBidRequestBackendDomain = "https://beta.v2.bg-services.adgeist.ai"
+    private val defaultPackageId = "com.leaguex.crm"
+    private val defaultAdgeistAppId = "695e797d6fcfb14c38cfd1d6"
+    private val defaultBidRequestBackendDomain = "https://qa.v2.bg-services.adgeist.ai"
 
     private fun dpToPx(dp: Int): Int {
         return (dp * resources.displayMetrics.density).toInt()
@@ -182,14 +183,14 @@ class MainActivity : AppCompatActivity() {
     private fun loadNewAd() {
         destroyCurrentAd()
 
-        val adspaceId = "698c5005b7295b986a37e879"
-        val adSpaceType = "companion"
+        val adspaceId = "69944b1cf0afd4ba698bc780"
+        val adSpaceType = AdType.COMPANION
         val width = 320
         val height = 320
-        val containerWidth = 300
-        val containerHeight = 250
+        val containerWidth = 320
+        val containerHeight = 320
 
-        val isResponsive = responsiveAdSwitch.isChecked
+        val isResponsive = true
 
         // val containerWidth = containerWidthInput.text.toString().toIntOrNull()
         // val containerHeight = containerHeightInput.text.toString().toIntOrNull()
@@ -201,7 +202,6 @@ class MainActivity : AppCompatActivity() {
         val missingFields = mutableListOf<String>()
 
         if (adspaceId.isEmpty()) missingFields.add("Adspace ID")
-        if (adSpaceType.isEmpty()) missingFields.add("Adspace Type")
         
         if (!isResponsive) {
             if (width <= 0) missingFields.add("Width")
@@ -230,12 +230,7 @@ class MainActivity : AppCompatActivity() {
             responsiveContainer.visibility = View.VISIBLE
             
             // Create AdView that fills the responsive container
-            val adView = AdView(this).apply {
-                layoutParams = FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-            }
+            val adView = AdView(this)
             
             // Add directly to responsive container
             responsiveContainer.removeAllViews()
@@ -252,7 +247,6 @@ class MainActivity : AppCompatActivity() {
             
             setupAdListener(adView)
             loadAdRequest(adView)
-            
         } else {
             val pxWidth = dpToPx(width)
             val pxHeight = dpToPx(height)
@@ -317,7 +311,7 @@ class MainActivity : AppCompatActivity() {
         val adRequest = AdRequest.Builder()
             .setTestMode(testModeSwitch.isChecked)
             .build()
-        adView.loadAd(adRequest)
+       adView.loadAd(adRequest)
     }
 
     private fun destroyCurrentAd() {

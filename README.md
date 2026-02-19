@@ -158,10 +158,13 @@ Replace `YOUR_AD_UNIT_ID` with the ad unit ID you created in the Adgeist dashboa
 **Ad Type:**
 
 ```kotlin
-adView.adType = "banner"  // or "display"
+adView.adType = AdType.BANNER  // or AdType.DISPLAY, AdType.COMPANION
 ```
 
-Replace with the ad type you created in the Adgeist dashboard (e.g., `"banner"`, `"display"`).
+Replace with the ad type you created in the Adgeist dashboard:
+- `AdType.BANNER` - Small rectangular banner ads
+- `AdType.DISPLAY` - Standard display ads  
+- `AdType.COMPANION` - Companion ads (requires minimum 320x320 dimensions)
 
 ### Create an Ad Request
 
@@ -229,7 +232,7 @@ class MainActivity : AppCompatActivity() {
 
         // Configure AdView
         adView.adUnitId = "YOUR_AD_UNIT_ID"
-        adView.adType = "banner"
+        adView.adType = AdType.BANNER
         setAdDimension(AdSize(320, 50))
 
         // Create ad request
