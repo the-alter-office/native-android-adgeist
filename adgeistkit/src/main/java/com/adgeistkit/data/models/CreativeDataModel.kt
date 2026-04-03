@@ -48,7 +48,6 @@ data class FixedAdResponse(
     val type: String?,
     val loadType: String?,
     val campaignValidity: CampaignValidity?,
-    val creatives: List<Creative>,
     val creativesV1: List<CreativeV1>,
     val displayOptions: DisplayOptions?,
     val frontendCacheDurationSeconds: Int?,
@@ -64,20 +63,6 @@ data class Advertiser(
 data class CampaignValidity(
     val startTime: String?,
     val endTime: String?
-)
-
-data class Creative(
-    val contentModerationResult: MongoIdWrapper?,
-    val createdAt: MongoDateWrapper?,
-    val ctaUrl: String?,
-    val description: String?,
-    val fileName: String?,
-    val fileSize: Int?,
-    val fileUrl: String?,
-    val thumbnailUrl: String?,
-    val title: String?,
-    val type: String?,
-    val updatedAt: MongoDateWrapper?
 )
 
 // New CreativeV1 structure
