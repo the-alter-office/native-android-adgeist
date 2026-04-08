@@ -112,6 +112,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
             }
 
             val client = OkHttpClient()
+            val fetchStartTime = System.currentTimeMillis()
 
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
@@ -134,7 +135,15 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
 
                 override fun onResponse(call: Call, response: Response) {
                     SdkShield.runSafely("FetchCreative.onResponse") {
+                    val networkLatency = System.currentTimeMillis() - fetchStartTime
                     val jsonString = response.body?.string()
+
+                    EventCollector.logEvent("creative_fetch", mapOf(
+                        "endpoint" to url,
+                        "network_latency_ms" to networkLatency,
+                        "response_code" to response.code,
+                        "payload_size_bytes" to (jsonString?.length ?: 0)
+                    ))
 
                     if (jsonString.isNullOrBlank()) {
                         callback(createErrorProp("Server returned empty response", response.code))

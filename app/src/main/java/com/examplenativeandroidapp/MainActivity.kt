@@ -60,7 +60,9 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         // Initialize AdgeistCore with default packageId from build.gradle.kts
-        adGeist = AdgeistCore.initialize(applicationContext)
+        adGeist = AdgeistCore.initialize(applicationContext) ?: run {
+            throw IllegalStateException("AdgeistCore initialization failed")
+        }
 
         // Handle deeplink UTM parameters
         handleDeeplinkUtm(intent)
@@ -174,7 +176,9 @@ class MainActivity : AppCompatActivity() {
 
         // Reinitialize AdgeistCore with new configuration
         AdgeistCore.destroy()
-        adGeist = AdgeistCore.initialize(applicationContext, defaultBidRequestBackendDomain, packageId, adgeistAppId)
+        adGeist = AdgeistCore.initialize(applicationContext, defaultBidRequestBackendDomain, packageId, adgeistAppId) ?: run {
+            return
+        }
         
         showAlertDialog("Success", "SDK configured successfully with:\nPackage ID: $packageId\nApp ID: $adgeistAppId")
         Log.d("MainActivity", "SDK reinitialized with Package ID: $packageId, App ID: $adgeistAppId")

@@ -64,6 +64,7 @@ open class BaseAdView : ViewGroup {
     private var isDestroyed = false
     private var mainHandler: Handler? = null
     private var adLoadStartTime: Long = 0L
+    private var networkResponseTime: Long = 0L
 
     protected constructor(context: Context, adViewType: Int) : super(context) {
         initialize(context, null)
@@ -164,12 +165,6 @@ open class BaseAdView : ViewGroup {
             isDestroyed = false
             isLoading = true
 
-            EventCollector.logEvent("ad_requested", mapOf(
-                "placement_id" to adUnitId,
-                "ad_type" to adType.value,
-                "is_test_mode" to adRequest.isTestMode
-            ))
-
             // Destroy any existing WebView before loading new ad
             if (webView != null) {
                 safelyDestroyWebView()
@@ -204,13 +199,15 @@ open class BaseAdView : ViewGroup {
                     if (isDestroyed) return@post
                     isLoading = false
 
+                    networkResponseTime = System.currentTimeMillis()
+
                     if (!result.isSuccess) {
                         Log.e(TAG, "API error: ${result.errorMessage}, statusCode: ${result.statusCode}")
                         EventCollector.logEvent("ad_response_error", mapOf(
                             "placement_id" to adUnitId,
                             "http_status" to (result.statusCode ?: -1),
                             "error_message" to (result.errorMessage ?: "Unknown"),
-                            "latency_ms" to (System.currentTimeMillis() - adLoadStartTime)
+                            "network_latency_ms" to (networkResponseTime - adLoadStartTime)
                         ))
                         listener?.onAdFailedToLoad(result.errorMessage)
                         return@post
@@ -279,12 +276,6 @@ open class BaseAdView : ViewGroup {
 
                         val creativeJson = Gson().toJson(propertiesForAdCard)
 
-                        EventCollector.logEvent("ad_response_ok", mapOf(
-                            "placement_id" to adUnitId,
-                            "latency_ms" to (System.currentTimeMillis() - adLoadStartTime),
-                            "creative_type" to (creativeDataFromApiResponse.primary?.type ?: "unknown")
-                        ))
-
                         renderAdWithAdCard(creativeJson)
                     } catch (err: Exception) {
                         Log.e(TAG, "Parsing error: ${err.message}", err)
@@ -316,6 +307,7 @@ open class BaseAdView : ViewGroup {
 
         removeAllViews()
 
+        val webViewCreateStart = System.currentTimeMillis()
         webView = WebView(context).apply {
             setBackgroundColor(Color.TRANSPARENT)
             settings.javaScriptEnabled = true
@@ -323,6 +315,12 @@ open class BaseAdView : ViewGroup {
             settings.loadWithOverviewMode = true
             settings.useWideViewPort = true
         }
+
+        val webViewCreateDuration = System.currentTimeMillis() - webViewCreateStart
+        EventCollector.logEvent("webview_create", mapOf(
+            "placement_id" to adUnitId,
+            "create_duration_ms" to webViewCreateDuration
+        ))
 
         jsInterface = JsBridge(this, context)
         listener?.onAdOpened()
@@ -357,9 +355,13 @@ open class BaseAdView : ViewGroup {
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
                 Log.i(TAG, "✅ WebView page finished loading: $url")
-                EventCollector.logEvent("ad_render_success", mapOf(
+                val now = System.currentTimeMillis()
+                EventCollector.logEvent("ad_load_complete", mapOf(
                     "placement_id" to adUnitId,
-                    "render_time_ms" to (System.currentTimeMillis() - adLoadStartTime)
+                    "ad_type" to adType.value,
+                    "network_latency_ms" to (networkResponseTime - adLoadStartTime),
+                    "render_latency_ms" to (now - networkResponseTime),
+                    "total_latency_ms" to (now - adLoadStartTime)
                 ))
             }
 
