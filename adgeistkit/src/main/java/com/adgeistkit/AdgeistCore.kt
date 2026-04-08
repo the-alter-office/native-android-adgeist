@@ -45,6 +45,7 @@ class AdgeistCore private constructor(
         {
             return instance ?: synchronized(this) {
                 instance ?: SdkShield.runSafelyWithReturn("AdgeistCore.initialize", null) {
+                    val initStartTime = System.currentTimeMillis()
                     AdgeistCore(
                         context.applicationContext,
                         customBidRequestBackendDomain ?: BidRequestBackendDomain,
@@ -57,6 +58,12 @@ class AdgeistCore private constructor(
 
                         EventBuffer.initialize(context.applicationContext)
                         EventCollector.initialize(it.adgeistAppID, it.packageOrBundleID)
+
+                        EventCollector.logEvent("sdk_init_success", mapOf(
+                            "sdk_version" to it.version,
+                            "build_type" to BuildConfig.BUILD_TYPE,
+                            "init_duration_ms" to (System.currentTimeMillis() - initStartTime)
+                        ))
 
                         // Validate critical configuration after successful initialization
                         if (it.adgeistAppID.isEmpty()) {

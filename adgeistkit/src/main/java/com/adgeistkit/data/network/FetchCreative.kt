@@ -9,6 +9,8 @@ import com.adgeistkit.data.models.AdData
 import com.adgeistkit.data.models.AdErrorResponse
 import com.adgeistkit.data.models.AdResponseData
 import com.adgeistkit.data.models.AdVisibilityError
+import com.adgeistkit.logging.EventCollector
+import com.adgeistkit.logging.SdkShield
 import okhttp3.*
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
@@ -113,11 +115,25 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
 
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    Log.d(TAG, "Request Failed: ${bidRequestBackendDomain} - ${e.message}")
+                    SdkShield.runSafely("FetchCreative.onFailure") {
+                        Log.d(TAG, "Request Failed: ${bidRequestBackendDomain} - ${e.message}")
+
+                        val eventName = if (e is java.net.SocketTimeoutException) "network_timeout" else "network_error"
+                        val params = mutableMapOf<String, Any>(
+                            "endpoint" to url,
+                            "error_class" to e.javaClass.simpleName,
+                            "message" to (e.message ?: "Unknown")
+                        )
+                        if (e is java.net.SocketTimeoutException) {
+                            params["timeout_ms"] = 10000
+                        }
+                        EventCollector.logEvent(eventName, params)
+                    }
                     callback(createErrorProp(e.message ?: "Failed to connect to server"))
                 }
 
                 override fun onResponse(call: Call, response: Response) {
+                    SdkShield.runSafely("FetchCreative.onResponse") {
                     val jsonString = response.body?.string()
 
                     if (jsonString.isNullOrBlank()) {
@@ -149,6 +165,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                         }
                     } catch (e: Exception) {
                         callback(createErrorProp(e.message ?: "Failed to parse ad response"))
+                    }
                     }
                 }
 

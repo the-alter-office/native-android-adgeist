@@ -14,6 +14,7 @@ import android.view.ViewGroup
 import android.webkit.ConsoleMessage
 import android.webkit.ConsoleMessage.MessageLevel
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -23,6 +24,7 @@ import com.adgeistkit.R
 import com.adgeistkit.request.AdRequest
 import com.adgeistkit.data.models.FixedAdResponse
 import com.adgeistkit.data.network.FetchCreative
+import com.adgeistkit.logging.EventCollector
 import com.adgeistkit.logging.SdkShield
 import com.google.gson.Gson
 import kotlin.math.max
@@ -61,6 +63,7 @@ open class BaseAdView : ViewGroup {
     private var isLoading: Boolean = false
     private var isDestroyed = false
     private var mainHandler: Handler? = null
+    private var adLoadStartTime: Long = 0L
 
     protected constructor(context: Context, adViewType: Int) : super(context) {
         initialize(context, null)
@@ -161,6 +164,12 @@ open class BaseAdView : ViewGroup {
             isDestroyed = false
             isLoading = true
 
+            EventCollector.logEvent("ad_requested", mapOf(
+                "placement_id" to adUnitId,
+                "ad_type" to adType.value,
+                "is_test_mode" to adRequest.isTestMode
+            ))
+
             // Destroy any existing WebView before loading new ad
             if (webView != null) {
                 safelyDestroyWebView()
@@ -181,6 +190,7 @@ open class BaseAdView : ViewGroup {
      * @param adRequest The AdRequest containing configuration parameters
      */
     private fun startAdLoad(adRequest: AdRequest) {
+        adLoadStartTime = System.currentTimeMillis()
         try {
             val adgeist = getInstance()
             val fetchCreative: FetchCreative = adgeist.getCreative()
@@ -196,6 +206,12 @@ open class BaseAdView : ViewGroup {
 
                     if (!result.isSuccess) {
                         Log.e(TAG, "API error: ${result.errorMessage}, statusCode: ${result.statusCode}")
+                        EventCollector.logEvent("ad_response_error", mapOf(
+                            "placement_id" to adUnitId,
+                            "http_status" to (result.statusCode ?: -1),
+                            "error_message" to (result.errorMessage ?: "Unknown"),
+                            "latency_ms" to (System.currentTimeMillis() - adLoadStartTime)
+                        ))
                         listener?.onAdFailedToLoad(result.errorMessage)
                         return@post
                     }
@@ -205,6 +221,11 @@ open class BaseAdView : ViewGroup {
 
                         if (campaignDetails.creativesV1.isNullOrEmpty()) {
                             Log.e(TAG, "Empty creative list")
+                            EventCollector.logEvent("ad_render_failed", mapOf(
+                                "placement_id" to adUnitId,
+                                "error_type" to "empty_creative",
+                                "error_message" to "Empty creative list from server"
+                            ))
                             listener?.onAdFailedToLoad("Empty creative")
                             return@post
                         }
@@ -257,9 +278,21 @@ open class BaseAdView : ViewGroup {
                         propertiesForAdCard["media"] = mediaList
 
                         val creativeJson = Gson().toJson(propertiesForAdCard)
+
+                        EventCollector.logEvent("ad_response_ok", mapOf(
+                            "placement_id" to adUnitId,
+                            "latency_ms" to (System.currentTimeMillis() - adLoadStartTime),
+                            "creative_type" to (creativeDataFromApiResponse.primary?.type ?: "unknown")
+                        ))
+
                         renderAdWithAdCard(creativeJson)
                     } catch (err: Exception) {
                         Log.e(TAG, "Parsing error: ${err.message}", err)
+                        EventCollector.logEvent("ad_render_failed", mapOf(
+                            "placement_id" to adUnitId,
+                            "error_type" to "parse_error",
+                            "error_message" to (err.message ?: "Unknown parse error")
+                        ))
                         listener?.onAdFailedToLoad(err.message ?: "Error")
                     }
                 }
@@ -324,11 +357,33 @@ open class BaseAdView : ViewGroup {
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
                 Log.i(TAG, "✅ WebView page finished loading: $url")
+                EventCollector.logEvent("ad_render_success", mapOf(
+                    "placement_id" to adUnitId,
+                    "render_time_ms" to (System.currentTimeMillis() - adLoadStartTime)
+                ))
             }
 
             override fun onLoadResource(view: WebView, url: String) {
                 super.onLoadResource(view, url)
                 Log.d(TAG, "📦 Loading resource: $url")
+            }
+
+            override fun onReceivedError(
+                view: WebView,
+                request: WebResourceRequest,
+                error: WebResourceError
+            ) {
+                super.onReceivedError(view, request, error)
+                SdkShield.runSafely("BaseAdView.onReceivedError") {
+                    if (request.isForMainFrame) {
+                        EventCollector.logEvent("webview_error", mapOf(
+                            "error_code" to error.errorCode,
+                            "description" to error.description.toString(),
+                            "url" to request.url.toString(),
+                            "placement_id" to adUnitId
+                        ))
+                    }
+                }
             }
         }
 

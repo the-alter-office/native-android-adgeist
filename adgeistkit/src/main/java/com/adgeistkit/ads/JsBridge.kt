@@ -3,6 +3,7 @@ package com.adgeistkit.ads
 import android.content.Context
 import android.util.Log
 import android.webkit.JavascriptInterface
+import com.adgeistkit.logging.EventCollector
 import com.adgeistkit.logging.SdkShield
 import org.json.JSONObject
 
@@ -31,12 +32,21 @@ class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
     @JavascriptInterface
     fun postMessage(json: String) {        
         SdkShield.runSafely("JsBridge.postMessage") {
-            val obj = JSONObject(json)
-            val type = obj.optString("type")
-            val msg = obj.optString("message")
+            try {
+                val obj = JSONObject(json)
+                val type = obj.optString("type")
+                val msg = obj.optString("message")
 
-            if ("RENDER_STATUS" == type && "Success" == msg) {
-                adActivity?.captureImpression()
+                if ("RENDER_STATUS" == type && "Success" == msg) {
+                    adActivity?.captureImpression()
+                }
+            } catch (e: Exception) {
+                EventCollector.logEvent("js_bridge_error", mapOf(
+                    "method" to "postMessage",
+                    "error_message" to (e.message ?: "Unknown"),
+                    "raw_json" to json.take(200)
+                ))
+                throw e
             }
         }
     }
@@ -44,16 +54,25 @@ class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
     @JavascriptInterface
     fun postVideoStatus(json: String) {        
         SdkShield.runSafely("JsBridge.postVideoStatus") {
-            val obj = JSONObject(json)
-            val type = obj.optString("type")
-            val msg = obj.optString("message")
+            try {
+                val obj = JSONObject(json)
+                val type = obj.optString("type")
+                val msg = obj.optString("message")
 
-            if ("PLAY" == type) {
-                adActivity?.onVideoPlay()
-            } else if ("PAUSE" == type) {
-                adActivity?.onVideoPause()
-            } else if ("ENDED" == type) {
-                adActivity?.onVideoEnd()
+                if ("PLAY" == type) {
+                    adActivity?.onVideoPlay()
+                } else if ("PAUSE" == type) {
+                    adActivity?.onVideoPause()
+                } else if ("ENDED" == type) {
+                    adActivity?.onVideoEnd()
+                }
+            } catch (e: Exception) {
+                EventCollector.logEvent("js_bridge_error", mapOf(
+                    "method" to "postVideoStatus",
+                    "error_message" to (e.message ?: "Unknown"),
+                    "raw_json" to json.take(200)
+                ))
+                throw e
             }
         }
     }
