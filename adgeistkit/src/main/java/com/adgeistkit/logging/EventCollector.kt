@@ -77,6 +77,8 @@ object EventCollector {
             events.add(event)
         }
 
+        EventBuffer.write(event)
+
         Log.d(TAG, "[${event.event}] ${event.params}")
     }
 }

@@ -16,6 +16,7 @@ import com.adgeistkit.data.models.UserDetails
 import com.adgeistkit.data.network.CdpClient
 import com.adgeistkit.data.network.CreativeAnalytics
 import com.adgeistkit.data.network.FetchCreative
+import com.adgeistkit.logging.EventBuffer
 import com.adgeistkit.logging.EventCollector
 import com.adgeistkit.logging.SdkShield
 import kotlinx.coroutines.CoroutineScope
@@ -54,6 +55,7 @@ class AdgeistCore private constructor(
                         instance = it
                         Log.i(TAG, "AdgeistCore initialized successfully")
 
+                        EventBuffer.initialize(context.applicationContext)
                         EventCollector.initialize(it.adgeistAppID, it.packageOrBundleID)
 
                         // Validate critical configuration after successful initialization
