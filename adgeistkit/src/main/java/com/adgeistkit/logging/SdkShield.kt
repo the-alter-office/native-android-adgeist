@@ -31,6 +31,8 @@ object SdkShield {
         val payload = buildErrorPayload(tag, t)
         Log.e(TAG, payload)
 
+        EventCollector.logError(tag, t)
+
         if (BuildConfig.DEBUG) {
             throw t
         }
