@@ -13,6 +13,7 @@ import android.widget.HorizontalScrollView
 import android.widget.ScrollView
 import androidx.core.widget.NestedScrollView
 import com.adgeistkit.AdgeistCore.Companion.getInstance
+import com.adgeistkit.logging.SdkShield
 import com.adgeistkit.request.AnalyticsRequest
 
 class AdActivity(private val baseAdView: BaseAdView) {
@@ -51,11 +52,15 @@ class AdActivity(private val baseAdView: BaseAdView) {
     private fun setupVisibilityTracking() {
         val vto = baseAdView.viewTreeObserver
 
-        scrollListener = OnScrollChangedListener { this.checkVisibility() }
+        scrollListener = OnScrollChangedListener {
+            SdkShield.runSafely("AdActivity.onScrollChanged") { this.checkVisibility() }
+        }
         vto.addOnScrollChangedListener(scrollListener)
 
         focusListener =
-            OnWindowFocusChangeListener { hasFocus: Boolean -> onVisibilityChange(hasFocus) }
+            OnWindowFocusChangeListener { hasFocus: Boolean ->
+                SdkShield.runSafely("AdActivity.onWindowFocusChange") { onVisibilityChange(hasFocus) }
+            }
         vto.addOnWindowFocusChangeListener(focusListener)
 
         checkVisibility()
@@ -251,25 +256,29 @@ class AdActivity(private val baseAdView: BaseAdView) {
     }
 
     fun captureImpression() {
-        if (!hasImpression) {
-            renderTime = SystemClock.elapsedRealtime() - renderStartTime
-            baseAdView.listener?.onAdLoaded()
-            val analyticsRequest: AnalyticsRequest =
-                AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
-                    .trackImpression(renderTime)
-                    .build()
-            postCreativeAnalytics.sendTrackingDataV2(analyticsRequest)
-            hasImpression = true
+        SdkShield.runSafely("AdActivity.captureImpression") {
+            if (!hasImpression) {
+                renderTime = SystemClock.elapsedRealtime() - renderStartTime
+                baseAdView.listener?.onAdLoaded()
+                val analyticsRequest: AnalyticsRequest =
+                    AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
+                        .trackImpression(renderTime)
+                        .build()
+                postCreativeAnalytics.sendTrackingDataV2(analyticsRequest)
+                hasImpression = true
+            }
         }
     }
 
     fun captureClick() {
-        baseAdView.listener?.onAdClicked()
-        val analyticsRequest: AnalyticsRequest =
-            AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
-                .trackClick()
-                .build()
-        postCreativeAnalytics.sendTrackingDataV2(analyticsRequest)
+        SdkShield.runSafely("AdActivity.captureClick") {
+            baseAdView.listener?.onAdClicked()
+            val analyticsRequest: AnalyticsRequest =
+                AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
+                    .trackClick()
+                    .build()
+            postCreativeAnalytics.sendTrackingDataV2(analyticsRequest)
+        }
     }
 
     fun captureTotalViewTime() {
@@ -300,15 +309,17 @@ class AdActivity(private val baseAdView: BaseAdView) {
         }
 
     fun destroy() {
-        val vto = baseAdView.viewTreeObserver
-        if (vto.isAlive) {
-            vto.removeOnScrollChangedListener(scrollListener)
-        }
+        SdkShield.runSafely("AdActivity.destroy") {
+            val vto = baseAdView.viewTreeObserver
+            if (vto.isAlive) {
+                vto.removeOnScrollChangedListener(scrollListener)
+            }
 
-        captureTotalViewTime()
-        captureTotalVideoPlaybackTime()
-        updateViewTime()
-        stopVisibilityCheck()
+            captureTotalViewTime()
+            captureTotalVideoPlaybackTime()
+            updateViewTime()
+            stopVisibilityCheck()
+        }
     }
 
     companion object {

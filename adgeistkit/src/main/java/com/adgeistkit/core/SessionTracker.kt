@@ -17,6 +17,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.adgeistkit.data.network.UTMAnalytics
+import com.adgeistkit.logging.SdkShield
 import com.adgeistkit.workers.SessionUploadWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -73,11 +74,9 @@ class SessionTracker(
         // Register lifecycle observer on the main thread to avoid IllegalStateException
         // especially when initialized from background threads (e.g. in React Native)
         Handler(Looper.getMainLooper()).post {
-            try {
+            SdkShield.runSafely("SessionTracker.initLifecycle") {
                 ProcessLifecycleOwner.get().lifecycle.addObserver(this)
                 Log.d(TAG, "SessionTracker: Lifecycle observer registered on main thread")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to register lifecycle observer", e)
             }
         }
         
@@ -318,22 +317,26 @@ class SessionTracker(
     // Lifecycle callbacks
 
     override fun onStart(owner: LifecycleOwner) {
-        Log.d(TAG, "App foregrounded")
-        resumeSessionTracking()
+        SdkShield.runSafely("SessionTracker.onStart") {
+            Log.d(TAG, "App foregrounded")
+            resumeSessionTracking()
+        }
     }
 
     override fun onStop(owner: LifecycleOwner) {
-        Log.d(TAG, "App backgrounded")
-        
-        if (isTracking) {
-            pauseSessionTracking()
-            persistSessionState()
-            
-            // Schedule WorkManager upload
-            scheduleSessionEventUpload()
-            
-            // Also attempt immediate send
-            sendSessionDurationEvent()
+        SdkShield.runSafely("SessionTracker.onStop") {
+            Log.d(TAG, "App backgrounded")
+
+            if (isTracking) {
+                pauseSessionTracking()
+                persistSessionState()
+
+                // Schedule WorkManager upload
+                scheduleSessionEventUpload()
+
+                // Also attempt immediate send
+                sendSessionDurationEvent()
+            }
         }
     }
 
@@ -344,10 +347,8 @@ class SessionTracker(
         stopPeriodicPersist()
         scope.cancel()
         Handler(Looper.getMainLooper()).post {
-            try {
+            SdkShield.runSafely("SessionTracker.destroy") {
                 ProcessLifecycleOwner.get().lifecycle.removeObserver(this)
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to remove lifecycle observer", e)
             }
         }
         Log.d(TAG, "SessionTracker destroyed")

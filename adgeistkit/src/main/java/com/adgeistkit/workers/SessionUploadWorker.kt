@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.work.Worker
 import androidx.work.WorkerParameters
+import com.adgeistkit.logging.SdkShield
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -40,6 +41,12 @@ class SessionUploadWorker(
     private val client = OkHttpClient()
 
     override fun doWork(): Result {
+        return SdkShield.runSafelyWithReturn("SessionUploadWorker.doWork", Result.retry()) {
+            doWorkInternal()
+        }
+    }
+
+    private fun doWorkInternal(): Result {
         // Extract input data
         val sessionId = inputData.getString(KEY_SESSION_ID)
         val durationMs = inputData.getLong(KEY_DURATION_MS, 0)

@@ -16,6 +16,7 @@ import com.adgeistkit.data.models.UserDetails
 import com.adgeistkit.data.network.CdpClient
 import com.adgeistkit.data.network.CreativeAnalytics
 import com.adgeistkit.data.network.FetchCreative
+import com.adgeistkit.logging.SdkShield
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,10 +39,10 @@ class AdgeistCore private constructor(
                        customBidRequestBackendDomain: String? = null,
                        customPackageOrBundleID : String? = null,
                        customAdgeistAppID : String? = null,
-                       customVersioning: String? = null): AdgeistCore
+                       customVersioning: String? = null): AdgeistCore?
         {
             return instance ?: synchronized(this) {
-                instance ?: try {
+                instance ?: SdkShield.runSafelyWithReturn("AdgeistCore.initialize", null) {
                     AdgeistCore(
                         context.applicationContext,
                         customBidRequestBackendDomain ?: BidRequestBackendDomain,
@@ -57,9 +58,6 @@ class AdgeistCore private constructor(
                             Log.w(TAG, "WARNING: adgeistAppID is empty. Set com.adgeistkit.ads.ADGEIST_APP_ID in AndroidManifest.xml")
                         }
                     }
-                } catch (e: Throwable) {
-                    Log.e(TAG, "CRITICAL: AdgeistCore initialization failed", e)
-                    throw IllegalStateException("AdgeistCore initialization failed. See logs for details.", e)
                 }
             }
         }
@@ -134,7 +132,9 @@ class AdgeistCore private constructor(
 
     @Synchronized
     fun setUserDetails(details: UserDetails) {
-        userDetails = details
+        SdkShield.runSafely("AdgeistCore.setUserDetails") {
+            userDetails = details
+        }
     }
 
     fun updateConsentStatus(consentGiven: Boolean) {
@@ -155,16 +155,20 @@ class AdgeistCore private constructor(
     }
 
     fun logEvent(event: Event) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val localUserDetails = userDetails
-            val parameters = mutableMapOf<String, Any>()
-            event.eventProperties?.forEach { (key, value) -> if (value != null) parameters[key] = value }
-            
-            if (localUserDetails != null) {
-                parameters["userDetails"] = localUserDetails
+        SdkShield.runSafely("AdgeistCore.logEvent") {
+            CoroutineScope(Dispatchers.IO).launch {
+                SdkShield.runSafely("AdgeistCore.logEvent.coroutine") {
+                    val localUserDetails = userDetails
+                    val parameters = mutableMapOf<String, Any>()
+                    event.eventProperties?.forEach { (key, value) -> if (value != null) parameters[key] = value }
+
+                    if (localUserDetails != null) {
+                        parameters["userDetails"] = localUserDetails
+                    }
+                    val fullEvent = event.copy(eventProperties = parameters)
+                    cdpClient.sendEventToCdp(fullEvent, consentGiven)
+                }
             }
-            val fullEvent = event.copy(eventProperties = parameters)
-            cdpClient.sendEventToCdp(fullEvent, consentGiven)
         }
     }
 
@@ -180,7 +184,9 @@ class AdgeistCore private constructor(
      * Track UTM parameters from a deeplink URI
      */
     fun trackUtmFromDeeplink(uri: Uri) {
-        utmTracker.trackFromDeeplink(uri)
+        SdkShield.runSafely("AdgeistCore.trackUtmFromDeeplink") {
+            utmTracker.trackFromDeeplink(uri)
+        }
     }
 
     /**

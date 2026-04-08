@@ -23,6 +23,7 @@ import com.adgeistkit.R
 import com.adgeistkit.request.AdRequest
 import com.adgeistkit.data.models.FixedAdResponse
 import com.adgeistkit.data.network.FetchCreative
+import com.adgeistkit.logging.SdkShield
 import com.google.gson.Gson
 import kotlin.math.max
 
@@ -144,32 +145,34 @@ open class BaseAdView : ViewGroup {
      */
     @RequiresPermission("android.permission.INTERNET")
     fun loadAd(adRequest: AdRequest) {
-        if (isLoading) {
-            Log.w(TAG, "loadAd ignored - ad is already loading")
-            return
-        }
-
-        if (adUnitId == null || adUnitId.isEmpty()) {
-            Log.e(TAG, "Ad unit ID is null or empty")
-            listener?.onAdFailedToLoad("Ad unit ID is null or empty")
-            return
-        }
-
-        // Reset destroyed flag to allow reloading
-        isDestroyed = false
-        isLoading = true
-
-        // Destroy any existing WebView before loading new ad
-        if (webView != null) {
-            safelyDestroyWebView()
-        }
-
-        // Wait a bit before loading new ad to ensure cleanup completes
-        mainHandler?.postDelayed({
-            if (!isDestroyed) {
-                startAdLoad(adRequest)
+        SdkShield.runSafely("BaseAdView.loadAd") {
+            if (isLoading) {
+                Log.w(TAG, "loadAd ignored - ad is already loading")
+                return@runSafely
             }
-        }, 400)
+
+            if (adUnitId == null || adUnitId.isEmpty()) {
+                Log.e(TAG, "Ad unit ID is null or empty")
+                listener?.onAdFailedToLoad("Ad unit ID is null or empty")
+                return@runSafely
+            }
+
+            // Reset destroyed flag to allow reloading
+            isDestroyed = false
+            isLoading = true
+
+            // Destroy any existing WebView before loading new ad
+            if (webView != null) {
+                safelyDestroyWebView()
+            }
+
+            // Wait a bit before loading new ad to ensure cleanup completes
+            mainHandler?.postDelayed({
+                if (!isDestroyed) {
+                    startAdLoad(adRequest)
+                }
+            }, 400)
+        }
     }
 
     /**
@@ -299,19 +302,23 @@ open class BaseAdView : ViewGroup {
 
         webView!!.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-                openInBrowser(context, url)
-                jsInterface!!.recordClickListener()
-                return true
+                return SdkShield.runSafelyWithReturn("BaseAdView.shouldOverrideUrlLoading", false) {
+                    openInBrowser(context, url)
+                    jsInterface!!.recordClickListener()
+                    true
+                }
             }
 
             override fun shouldOverrideUrlLoading(
                 view: WebView,
                 request: WebResourceRequest
             ): Boolean {
-                val url = request.url.toString()
-                openInBrowser(context, url)
-                jsInterface!!.recordClickListener()
-                return true
+                return SdkShield.runSafelyWithReturn("BaseAdView.shouldOverrideUrlLoading", false) {
+                    val url = request.url.toString()
+                    openInBrowser(context, url)
+                    jsInterface!!.recordClickListener()
+                    true
+                }
             }
 
             override fun onPageFinished(view: WebView, url: String) {
@@ -487,11 +494,9 @@ open class BaseAdView : ViewGroup {
      */
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        if (webView != null && !isDestroyed) {
-            try {
+        SdkShield.runSafely("BaseAdView.onAttachedToWindow") {
+            if (webView != null && !isDestroyed) {
                 webView!!.onResume()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error resuming WebView: ${e.message}", e)
             }
         }
     }
@@ -504,20 +509,13 @@ open class BaseAdView : ViewGroup {
      */
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
-        
-        if (webView == null || isDestroyed) return
+        SdkShield.runSafely("BaseAdView.onWindowVisibilityChanged") {
+            if (webView == null || isDestroyed) return@runSafely
 
-        if (visibility == VISIBLE) {
-            try {
+            if (visibility == VISIBLE) {
                 webView!!.onResume()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error resuming WebView: ${e.message}", e)
-            }
-        } else {
-            try {
+            } else {
                 webView!!.onPause()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error pausing WebView: ${e.message}", e)
             }
         }
     }
@@ -528,7 +526,9 @@ open class BaseAdView : ViewGroup {
      */
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        onDestroyWebView()
+        SdkShield.runSafely("BaseAdView.onDetachedFromWindow") {
+            onDestroyWebView()
+        }
     }
 
     /**

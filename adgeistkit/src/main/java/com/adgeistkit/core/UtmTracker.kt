@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.net.Uri
 import android.util.Log
 import com.adgeistkit.data.network.UTMAnalytics
+import com.adgeistkit.logging.SdkShield
 import com.android.installreferrer.api.InstallReferrerClient
 import com.android.installreferrer.api.InstallReferrerStateListener
 import java.net.URLDecoder
@@ -93,33 +94,33 @@ class UtmTracker(
             
             referrerClient.startConnection(object : InstallReferrerStateListener {
                 override fun onInstallReferrerSetupFinished(responseCode: Int) {
-                    when (responseCode) {
-                        InstallReferrerClient.InstallReferrerResponse.OK -> {
-                            try {
+                    SdkShield.runSafely("UtmTracker.onInstallReferrerSetupFinished") {
+                        when (responseCode) {
+                            InstallReferrerClient.InstallReferrerResponse.OK -> {
                                 val response = referrerClient.installReferrer
                                 val referrerUrl = response.installReferrer
                                 trackFromInstallReferrer(referrerUrl)
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Error reading install referrer: ${e.message}")
+                            }
+                            InstallReferrerClient.InstallReferrerResponse.FEATURE_NOT_SUPPORTED -> {
+                                Log.w(TAG, "Install referrer API not supported")
+                            }
+                            InstallReferrerClient.InstallReferrerResponse.SERVICE_UNAVAILABLE -> {
+                                Log.w(TAG, "Install referrer service unavailable")
+                            }
+                            else -> {
+                                Log.w(TAG, "Install referrer response code: $responseCode")
                             }
                         }
-                        InstallReferrerClient.InstallReferrerResponse.FEATURE_NOT_SUPPORTED -> {
-                            Log.w(TAG, "Install referrer API not supported")
-                        }
-                        InstallReferrerClient.InstallReferrerResponse.SERVICE_UNAVAILABLE -> {
-                            Log.w(TAG, "Install referrer service unavailable")
-                        }
-                        else -> {
-                            Log.w(TAG, "Install referrer response code: $responseCode")
-                        }
+                        referrerClient.endConnection()
                     }
-                    referrerClient.endConnection()
                 }
 
                 override fun onInstallReferrerServiceDisconnected() {
-                    // free up referrerClient resources 
-                    referrerClient.endConnection()
-                    Log.d(TAG, "Install referrer service disconnected")
+                    SdkShield.runSafely("UtmTracker.onInstallReferrerServiceDisconnected") {
+                        // free up referrerClient resources 
+                        referrerClient.endConnection()
+                        Log.d(TAG, "Install referrer service disconnected")
+                    }
                 }
             })
         }
