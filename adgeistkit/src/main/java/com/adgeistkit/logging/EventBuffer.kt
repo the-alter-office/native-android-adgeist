@@ -78,6 +78,28 @@ object EventBuffer {
         }
     }
 
+    fun removeFirst(count: Int) {
+        if (!isInitialized || count <= 0) return
+
+        synchronized(lock) {
+            try {
+                val bufferFile = file ?: return
+                if (!bufferFile.exists()) return
+
+                val lines = bufferFile.readLines().filter { it.isNotBlank() }
+                val remaining = lines.drop(count)
+                if (remaining.isEmpty()) {
+                    bufferFile.delete()
+                } else {
+                    bufferFile.writeText(remaining.joinToString("\n") + "\n")
+                }
+                Log.d(TAG, "Removed $count events, ${remaining.size} remaining")
+            } catch (e: IOException) {
+                Log.e(TAG, "Failed to remove events: ${e.message}")
+            }
+        }
+    }
+
     fun eventCount(): Int {
         if (!isInitialized) return 0
 

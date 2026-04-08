@@ -78,6 +78,7 @@ object EventCollector {
         }
 
         EventBuffer.write(event)
+        EventUploadScheduler.checkThreshold()
 
         Log.d(TAG, "[${event.event}] ${event.params}")
     }

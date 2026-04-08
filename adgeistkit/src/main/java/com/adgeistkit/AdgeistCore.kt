@@ -18,6 +18,7 @@ import com.adgeistkit.data.network.CreativeAnalytics
 import com.adgeistkit.data.network.FetchCreative
 import com.adgeistkit.logging.EventBuffer
 import com.adgeistkit.logging.EventCollector
+import com.adgeistkit.logging.EventUploadScheduler
 import com.adgeistkit.logging.SdkShield
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -64,6 +65,12 @@ class AdgeistCore private constructor(
                             "build_type" to BuildConfig.BUILD_TYPE,
                             "init_duration_ms" to (System.currentTimeMillis() - initStartTime)
                         ))
+
+                        EventUploadScheduler.initialize(
+                            context.applicationContext,
+                            it.bidRequestBackendDomain,
+                            it.adgeistAppID
+                        )
 
                         // Validate critical configuration after successful initialization
                         if (it.adgeistAppID.isEmpty()) {
