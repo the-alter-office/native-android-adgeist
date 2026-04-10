@@ -196,9 +196,6 @@
             "screenWidth": 1440,
             // Screen height in pixels
             "screenHeight": 3200,
-            // Screen density (Optional)
-            // Examples: 1.0, 2.0, 3.0, 3.5
-            "screenDensity": 3.5,
             // Network connection type
             // Acceptable values: "WIFI" | "MOBILE_2G" | "MOBILE_3G" | "MOBILE_4G" | "MOBILE_5G" | "OFFLINE" | "UNKNOWN"
             "networkType": "WIFI",

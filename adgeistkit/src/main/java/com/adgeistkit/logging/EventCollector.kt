@@ -1,8 +1,6 @@
 package com.adgeistkit.logging
 
-import android.os.Build
 import android.util.Log
-import com.adgeistkit.BuildConfig
 import java.util.Collections
 
 object EventCollector {
@@ -13,13 +11,9 @@ object EventCollector {
 
     private val events: MutableList<SdkEvent> = Collections.synchronizedList(mutableListOf())
 
-    private var appId: String = ""
-    private var packageName: String = ""
     private var isInitialized = false
 
-    fun initialize(appId: String, packageName: String) {
-        this.appId = appId
-        this.packageName = packageName
+    fun initialize() {
         this.isInitialized = true
         Log.d(TAG, "EventCollector initialized")
     }
@@ -32,8 +26,7 @@ object EventCollector {
             "exceptionClass" to t.javaClass.simpleName,
             "message" to (t.message ?: ""),
             "stackTrace" to stackFrames,
-            "threadName" to Thread.currentThread().name,
-            "timestamp" to System.currentTimeMillis()
+            "threadName" to Thread.currentThread().name
         )
 
         addEvent("sdk_error", params)
@@ -59,12 +52,8 @@ object EventCollector {
         val event = SdkEvent(
             event = name,
             timestamp = System.currentTimeMillis(),
-            sdkVersion = BuildConfig.VERSION_NAME,
-            deviceModel = "${Build.MANUFACTURER}/${Build.MODEL}",
-            osVersion = Build.VERSION.RELEASE,
-            appId = appId,
-            packageName = packageName,
-            params = params
+            params = params,
+            context = ContextCollector.getFullContext()
         )
 
         synchronized(events) {
@@ -77,7 +66,6 @@ object EventCollector {
         EventBuffer.write(event)
         EventUploadScheduler.checkThreshold()
 
-        Log.d(TAG, "${event.event}")
-        Log.d(TAG, "[${event.event}] ${event.params}")
+        Log.d(TAG, "${event}")
     }
 }

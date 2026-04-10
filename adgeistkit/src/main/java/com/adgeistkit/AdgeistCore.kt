@@ -8,6 +8,7 @@ import android.net.Uri
 import com.adgeistkit.core.TargetingOptions
 import com.adgeistkit.core.UtmTracker
 import com.adgeistkit.core.UtmParameters
+import com.adgeistkit.core.SdkFramework
 import com.adgeistkit.core.device.DeviceIdentifier
 import com.adgeistkit.core.device.DeviceMeta
 import com.adgeistkit.core.device.NetworkUtils
@@ -19,6 +20,7 @@ import com.adgeistkit.data.network.FetchCreative
 import com.adgeistkit.logging.EventBuffer
 import com.adgeistkit.logging.EventCollector
 import com.adgeistkit.logging.EventUploadScheduler
+import com.adgeistkit.logging.ContextCollector
 import com.adgeistkit.logging.SdkShield
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +32,7 @@ class AdgeistCore private constructor(
     private val customPackageOrBundleID: String? = null,
     private val customAdgeistAppID: String? = null,
     private val customVersioning: String? = null,
+    val framework: SdkFramework = SdkFramework.KOTLIN,
 ) {
     companion object {
         private const val TAG = "AdgeistCore"
@@ -42,7 +45,8 @@ class AdgeistCore private constructor(
                        customBidRequestBackendDomain: String? = null,
                        customPackageOrBundleID : String? = null,
                        customAdgeistAppID : String? = null,
-                       customVersioning: String? = null): AdgeistCore?
+                       customVersioning: String? = null,
+                       framework: SdkFramework = SdkFramework.KOTLIN): AdgeistCore?
         {
             return instance ?: synchronized(this) {
                 instance ?: SdkShield.runSafelyWithReturn("AdgeistCore.initialize", null) {
@@ -53,12 +57,26 @@ class AdgeistCore private constructor(
                         customPackageOrBundleID,
                         customAdgeistAppID,
                         customVersioning,
+                        framework,
                     ).also {
                         instance = it
                         Log.i(TAG, "AdgeistCore initialized successfully")
 
+                        // Initialize DeviceIdentifier eagerly
+                        it.deviceIdentifier.initialize()
+
                         EventBuffer.initialize(context.applicationContext)
-                        EventCollector.initialize(it.adgeistAppID, it.packageOrBundleID)
+
+                        ContextCollector.initialize(
+                            context.applicationContext,
+                            it.adgeistAppID,
+                            it.deviceMeta,
+                            it.deviceIdentifier,
+                            it.networkUtils,
+                            it.framework
+                        )
+
+                        EventCollector.initialize()
 
                         EventCollector.logEvent("sdk_init_success", mapOf(
                             "sdk_version" to it.version,
@@ -115,6 +133,7 @@ class AdgeistCore private constructor(
     private val KEY_CONSENT = "adgeist_consent"
     private var consentGiven: Boolean = false
 
+    val deviceMeta = DeviceMeta(context)
     val deviceIdentifier = DeviceIdentifier(context)
     val networkUtils = NetworkUtils(context)
     val utmTracker = UtmTracker(context, bidRequestBackendDomain)

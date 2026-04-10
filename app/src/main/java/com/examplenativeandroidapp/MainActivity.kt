@@ -56,74 +56,78 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        try {
+            super.onCreate(savedInstanceState)
+            setContentView(R.layout.activity_main)
 
-        // Initialize AdgeistCore with default packageId from build.gradle.kts
-        adGeist = AdgeistCore.initialize(applicationContext) ?: run {
-            throw IllegalStateException("AdgeistCore initialization failed")
-        }
-
-        // Handle deeplink UTM parameters
-        handleDeeplinkUtm(intent)
-
-        // Configuration Section
-        packageIdInput = findViewById(R.id.packageIdInput)
-        adgeistAppIdInput = findViewById(R.id.adgeistAppIdInput)
-        configureBtn = findViewById(R.id.configureBtn)
-
-        // Ad Loading Section
-        adspaceIdInput = findViewById(R.id.adspaceIdInput)
-        adspaceTypeInput = findViewById(R.id.adspaceTypeInput)
-        widthInput = findViewById(R.id.widthInput)
-        heightInput = findViewById(R.id.heightInput)
-        generateAdBtn = findViewById(R.id.generateAdBtn)
-        cancelAdBtn = findViewById(R.id.cancelAdBtn)
-        adContainer = findViewById(R.id.adContainer)
-        responsiveContainer = findViewById(R.id.responsiveContainer)
-        testModeSwitch = findViewById(R.id.testModeSwitch)
-        responsiveAdSwitch = findViewById(R.id.responsiveAdSwitch)
-        responsiveSizeSection = findViewById(R.id.responsiveSizeSection)
-        containerWidthInput = findViewById(R.id.containerWidthInput)
-        containerHeightInput = findViewById(R.id.containerHeightInput)
-
-        // Set default values in input fields
-        packageIdInput.setText(defaultPackageId)
-        adgeistAppIdInput.setText(defaultAdgeistAppId)
-
-        generateAdBtn.isEnabled = true
-        cancelAdBtn.isEnabled = false
-
-        // Responsive ad switch listener
-        responsiveAdSwitch.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                responsiveSizeSection.visibility = View.VISIBLE
-                widthInput.isEnabled = false
-                heightInput.isEnabled = false
-                // Set default container sizes
-                containerWidthInput.setText("300")
-                containerHeightInput.setText("250")
-            } else {
-                responsiveSizeSection.visibility = View.GONE
-                widthInput.isEnabled = true
-                heightInput.isEnabled = true
+            // Initialize AdgeistCore with default packageId from build.gradle.kts
+            adGeist = AdgeistCore.initialize(applicationContext) ?: run {
+                throw IllegalStateException("AdgeistCore initialization failed")
             }
-        }
 
-        // Configuration button listener
-        configureBtn.setOnClickListener {
-            configureSDK()
-        }
+            // Handle deeplink UTM parameters
+            handleDeeplinkUtm(intent)
 
-        // Generate Ad button listener
-        generateAdBtn.setOnClickListener {
-            loadNewAd()
-        }
+            // Configuration Section
+            packageIdInput = findViewById(R.id.packageIdInput)
+            adgeistAppIdInput = findViewById(R.id.adgeistAppIdInput)
+            configureBtn = findViewById(R.id.configureBtn)
 
-        // Cancel button listener
-        cancelAdBtn.setOnClickListener {
-            destroyCurrentAd()
-            clearInputFields()
+            // Ad Loading Section
+            adspaceIdInput = findViewById(R.id.adspaceIdInput)
+            adspaceTypeInput = findViewById(R.id.adspaceTypeInput)
+            widthInput = findViewById(R.id.widthInput)
+            heightInput = findViewById(R.id.heightInput)
+            generateAdBtn = findViewById(R.id.generateAdBtn)
+            cancelAdBtn = findViewById(R.id.cancelAdBtn)
+            adContainer = findViewById(R.id.adContainer)
+            responsiveContainer = findViewById(R.id.responsiveContainer)
+            testModeSwitch = findViewById(R.id.testModeSwitch)
+            responsiveAdSwitch = findViewById(R.id.responsiveAdSwitch)
+            responsiveSizeSection = findViewById(R.id.responsiveSizeSection)
+            containerWidthInput = findViewById(R.id.containerWidthInput)
+            containerHeightInput = findViewById(R.id.containerHeightInput)
+
+            // Set default values in input fields
+            packageIdInput.setText(defaultPackageId)
+            adgeistAppIdInput.setText(defaultAdgeistAppId)
+
+            generateAdBtn.isEnabled = true
+            cancelAdBtn.isEnabled = false
+
+            // Responsive ad switch listener
+            responsiveAdSwitch.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked) {
+                    responsiveSizeSection.visibility = View.VISIBLE
+                    widthInput.isEnabled = false
+                    heightInput.isEnabled = false
+                    // Set default container sizes
+                    containerWidthInput.setText("300")
+                    containerHeightInput.setText("250")
+                } else {
+                    responsiveSizeSection.visibility = View.GONE
+                    widthInput.isEnabled = true
+                    heightInput.isEnabled = true
+                }
+            }
+
+            // Configuration button listener
+            configureBtn.setOnClickListener {
+                configureSDK()
+            }
+
+            // Generate Ad button listener
+            generateAdBtn.setOnClickListener {
+                loadNewAd()
+            }
+
+            // Cancel button listener
+            cancelAdBtn.setOnClickListener {
+                destroyCurrentAd()
+                clearInputFields()
+            }
+        }catch (err: Exception){
+
         }
     }
 
