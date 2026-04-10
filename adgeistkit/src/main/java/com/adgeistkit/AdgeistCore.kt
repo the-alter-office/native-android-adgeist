@@ -62,7 +62,6 @@ class AdgeistCore private constructor(
                         instance = it
                         Log.i(TAG, "AdgeistCore initialized successfully")
 
-                        // Initialize DeviceIdentifier eagerly
                         it.deviceIdentifier.initialize()
 
                         EventBuffer.initialize(context.applicationContext)
@@ -77,12 +76,6 @@ class AdgeistCore private constructor(
                         )
 
                         EventCollector.initialize()
-
-                        EventCollector.logEvent("sdk_init_success", mapOf(
-                            "sdk_version" to it.version,
-                            "build_type" to BuildConfig.BUILD_TYPE,
-                            "init_duration_ms" to (System.currentTimeMillis() - initStartTime)
-                        ))
 
                         EventUploadScheduler.initialize(
                             context.applicationContext,
