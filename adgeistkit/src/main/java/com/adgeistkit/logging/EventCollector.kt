@@ -45,24 +45,6 @@ object EventCollector {
     }
 
     fun logEvent(name: String, params: Map<String, Any> = emptyMap()) {
-        val event = SdkEvent(
-            event = name,
-            timestamp = System.currentTimeMillis(),
-            params = params,
-            context = ContextCollector.getFullContext()
-        )
-
-        synchronized(events) {
-            if (events.size >= MAX_EVENTS) {
-                events.removeAt(0)
-            }
-            events.add(event)
-        }
-
-        EventBuffer.write(event)
-        EventUploadScheduler.checkThreshold()
-
-        Log.d(TAG, "[${event.event}] ${event.params}")
     }
 
     fun getEvents(): List<SdkEvent> {
