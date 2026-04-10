@@ -25,18 +25,15 @@ object EventCollector {
     }
 
     fun logError(tag: String, t: Throwable) {
-        val sdkPackage = BuildConfig.LIBRARY_PACKAGE_NAME
-        val stackFrames = t.stackTrace
-            .filter { it.className.startsWith(sdkPackage) }
-            .take(MAX_STACK_FRAMES)
-            .map { "${it.className.substringAfterLast('.')}.${it.methodName}:${it.lineNumber}" }
+        val stackFrames = t.stackTrace.take(MAX_STACK_FRAMES)
 
         val params = mutableMapOf<String, Any>(
             "component" to tag,
             "exceptionClass" to t.javaClass.simpleName,
             "message" to (t.message ?: ""),
             "stackTrace" to stackFrames,
-            "threadName" to Thread.currentThread().name
+            "threadName" to Thread.currentThread().name,
+            "timestamp" to System.currentTimeMillis()
         )
 
         addEvent("sdk_error", params)
@@ -80,6 +77,7 @@ object EventCollector {
         EventBuffer.write(event)
         EventUploadScheduler.checkThreshold()
 
+        Log.d(TAG, "${event.event}")
         Log.d(TAG, "[${event.event}] ${event.params}")
     }
 }

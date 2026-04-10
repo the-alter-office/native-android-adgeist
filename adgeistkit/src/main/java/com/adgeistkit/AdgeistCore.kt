@@ -115,7 +115,6 @@ class AdgeistCore private constructor(
     private val KEY_CONSENT = "adgeist_consent"
     private var consentGiven: Boolean = false
 
-    val deviceMeta = DeviceMeta(context)
     val deviceIdentifier = DeviceIdentifier(context)
     val networkUtils = NetworkUtils(context)
     val utmTracker = UtmTracker(context, bidRequestBackendDomain)

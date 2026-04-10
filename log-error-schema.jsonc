@@ -1,0 +1,260 @@
+{
+    // ============================================================
+    // LOG ERROR SCHEMA - Kotlin, Swift
+    // Version: 1.0
+    // Last Updated: April 9, 2026
+    // ============================================================
+    // Type of error - Describes both the severity and how the issue was captured/detected.
+    // Acceptable values: "FATAL" | "ANR" | "NON_FATAL" | "SUSPECTED_CRASH"
+    "type": "NON_FATAL",
+    // Severity for dashboard prioritization and alerting
+    // Acceptable values: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
+    "severity": "HIGH",
+    // Internal SDK error code (for easy grouping)
+    // Examples: "ERR_NETWORK_TIMEOUT", "ERR_WEBVIEW_CRASH"
+    "errorCode": "ERR_WEBVIEW_CRASH",
+    // Category of the operation where the issue occurred
+    // Acceptable values: "INITIALIZING" | "AD_LOADING" | "AD_RENDERING" | "JS_BRIDGE_ACTIVE"| "MEDIATION" | "NETWORK"
+    "errorCategory": "AD_RENDERING",
+    // ============================================================
+    // EXCEPTION DETAILS
+    // ============================================================
+    "exception": {
+        // Exception class name
+        // Examples: "NullPointerException", "NSInvalidArgumentException", "WebViewRenderProcessGone"
+        "type": "NullPointerException",
+        // Exception message
+        "message": "Attempted to invoke method on null object reference",
+        // Full raw stack trace (Max 10KB)
+        "stackTrace": "java.lang.NullPointerException: Attempted to invoke method on null object reference\n    at com.example.sdk.AdRenderer.render(AdRenderer.java:142)\n    at com.example.sdk.AdView.showAd(AdView.java:89)",
+        // Structured stack trace (Array of stack frames)
+        "stackFrames": [
+            {
+                "className": "com.example.sdk.AdRenderer",
+                "methodName": "render",
+                "fileName": "AdRenderer.java", // Optional
+                "lineNumber": 142, // Optional
+                "isSdkFrame": true // true if frame belongs to your SDK package
+            },
+            {
+                "className": "com.example.sdk.AdView",
+                "methodName": "showAd",
+                "fileName": "AdView.java",
+                "lineNumber": 89,
+                "isSdkFrame": true
+            }
+        ],
+        // Thread where exception occurred (Optional)
+        // Examples: "main", "background-worker-1"
+        "threadName": "main",
+        // Whether exception caused crash
+        "isFatal": false,
+        // Root cause chain (Optional - for chained exceptions)
+        // Walk the cause chain: IOException → SSLHandshakeException → CertificateException
+        // Max depth: 5 causes
+        "cause": {
+            "type": "SSLHandshakeException",
+            "message": "Chain validation failed",
+            "cause": {
+                "type": "CertificateException",
+                "message": "Trust anchor for certification path not found"
+            }
+        }
+    },
+    // ============================================================
+    // BREADCRUMBS - Event trail leading to error (Max 100 items)
+    // ============================================================
+    "breadcrumbs": [
+        {
+            // Milliseconds since epoch
+            "timestamp": 1744189990000,
+            // Log level
+            // Acceptable values: "DEBUG" | "INFO" | "WARNING" | "ERROR"
+            "level": "INFO",
+            // Event category
+            // Examples: "ad_load", "ad_render", "mediation", "js_bridge", "network", "ui"
+            "category": "ad_load",
+            // Breadcrumb message
+            "message": "Starting ad request"
+        },
+        {
+            "timestamp": 1744189995000,
+            "level": "DEBUG",
+            "category": "ad_render",
+            "message": "Ad creative received"
+        },
+        {
+            "timestamp": 1744189998000,
+            "level": "ERROR",
+            "category": "ad_render",
+            "message": "Failed to initialize WebView"
+        }
+    ],
+    // ============================================================
+    // HTTP REQUESTS - Network calls related to event (Max 50 items)
+    // ============================================================
+    "httpRequests": [
+        {
+            // Milliseconds since epoch
+            "timestamp": 1744189992000,
+            // HTTP method
+            // Acceptable values: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS"
+            "method": "GET",
+            // Sanitized URL (no PII in query params)
+            "url": "https://ads.example.com/api/v1/ad-request",
+            // HTTP status code (Optional)
+            // Examples: 200, 201, 400, 404, 500
+            "statusCode": 200,
+            // Request duration in milliseconds (Optional)
+            "latencyMs": 345,
+            // Sanitized request headers (Optional - remove auth tokens, API keys)
+            "requestHeaders": {
+                "User-Agent": "AdSDK/2.4.1 (Android 13; SM-G998B)",
+                "Content-Type": "application/json"
+            },
+            // Response headers (Optional)
+            "responseHeaders": {
+                "Content-Type": "application/json",
+                "Cache-Control": "no-cache"
+            },
+            // Request body/payload (Optional - sanitize sensitive data, max 50KB)
+            // Can be string (for JSON/text) or object (parsed JSON)
+            "requestPayload": {
+                "companyId": "ca-app-pub-123456789",
+                "adSpaceId": "BANNER"
+            },
+            // Request body size in bytes (Optional)
+            "requestBodySize": 512,
+            // Response body/payload (Optional - sanitize sensitive data, max 50KB)
+            // Can be string (for JSON/text) or object (parsed JSON)
+            "responsePayload": {
+                "metaData": "string"
+            },
+            // Response body size in bytes (Optional)
+            "responseBodySize": 2048,
+            // Error message if request failed (Optional)
+            // Examples: "Connection timeout", "SSL handshake failed", null
+            "errorMessage": null
+        }
+    ],
+    // ============================================================
+    // CONTEXT - SDK, App, Device, Session, and User Information
+    // ============================================================
+    "context": {
+        // ============================================================
+        // SDK CONTEXT
+        // ============================================================
+        "sdk": {
+            // SDK name
+            // Examples: "YourAdSDK", "AdgeistSDK"
+            "sdkName": "YourAdSDK",
+            // SDK version (semantic versioning)
+            // Examples: "2.4.1", "1.0.0-beta"
+            "sdkVersion": "2.4.1",
+            // Platform
+            // Acceptable values: "ANDROID" | "IOS"
+            "platform": "ANDROID",
+            // Programming language
+            // Acceptable values: "KOTLIN" | "JAVA" | "SWIFT" | "OBJECTIVE_C" | "DART" | "OTHER" | "REACT_NATIVE"
+            "language/framework": "KOTLIN"
+        },
+        // ============================================================
+        // APP CONTEXT
+        // ============================================================
+        "app": {
+            // Publisher identifier (assigned by your platform)
+            "publisherId": "pub-1234567890",
+            // Android package name (Required for Android)
+            "packageName": "com.example.app",
+            // iOS bundle identifier (Required for iOS)
+            // "bundleId": "com.example.app",
+            // App version (user-facing)
+            "appVersion": "3.2.1",
+            // Build number / version code (Optional)
+            "appVersionCode": "321"
+        },
+        // ============================================================
+        // DEVICE CONTEXT
+        // ============================================================
+        "device": {
+            // Operating system name
+            // Acceptable values: "Android" | "iOS"
+            "osName": "Android",
+            // OS version
+            // Examples: "13", "14", "16.2", "17.0.1"
+            "osVersion": "13",
+            // Device model
+            // Examples: "SM-G998B", "iPhone14,2", "Pixel 7 Pro"
+            "deviceModel": "SM-G998B",
+            // Device manufacturer/brand
+            // Examples: "Samsung", "Apple", "Google", "OnePlus"
+            "deviceBrand": "Samsung",
+            // Device type
+            // Acceptable values: "PHONE" | "TABLET" | "TV" | "OTHER"
+            "deviceType": "PHONE",
+            // Screen width in pixels
+            "screenWidth": 1440,
+            // Screen height in pixels
+            "screenHeight": 3200,
+            // Screen density (Optional)
+            // Examples: 1.0, 2.0, 3.0, 3.5
+            "screenDensity": 3.5,
+            // Network connection type
+            // Acceptable values: "WIFI" | "MOBILE_2G" | "MOBILE_3G" | "MOBILE_4G" | "MOBILE_5G" | "OFFLINE" | "UNKNOWN"
+            "networkType": "WIFI",
+            // Network carrier/provider (Optional)
+            // Examples: "Airtel", "Verizon", "T-Mobile", "Vodafone"
+            "networkProvider": "Airtel",
+            // CPU architectures supported by device
+            // Android examples: ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"]
+            // iOS examples: ["arm64", "arm64e"]
+            "supportedArchitectures": [
+                "arm64-v8a",
+                "armeabi-v7a"
+            ],
+            // Available memory in bytes at time of error (Optional)
+            // Helps debug WebView OOM / RenderProcessGone crashes
+            "availableMemoryBytes": 1073741824,
+            // Total device memory in bytes (Optional)
+            "totalMemoryBytes": 8589934592,
+            // Whether device is in low-memory state (Optional)
+            // Android: ActivityManager.isLowRamDevice()
+            "isLowMemory": false,
+            // Device locale (Optional)
+            // Examples: "en_US", "ar_SA", "he_IL"
+            // Useful for RTL rendering issues in WebView
+            "locale": "en_US",
+            // Device timezone (Optional)
+            // IANA timezone identifier
+            // Examples: "Asia/Kolkata", "America/New_York", "Europe/London"
+            "timezone": "Asia/Kolkata"
+        },
+        // ============================================================
+        // SESSION CONTEXT
+        // ============================================================
+        "session": {
+            // Session identifier (UUID, per app session)
+            "sessionId": "sess-abc123-def456",
+            // Last known state before error
+            // Acceptable values: "INITIALIZING" | "AD_LOADING" | "AD_RENDERING" | "JS_BRIDGE_ACTIVE" | "AD_SHOWING"
+            "lastKnownState": "AD_RENDERING",
+            "appState": "foreground"
+        },
+        // ============================================================
+        // USER CONTEXT
+        // ============================================================
+        "user": {
+            // User's IP address (IPv4 or IPv6)
+            // Examples: "192.168.1.100", "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
+            "userIP": "203.0.113.42",
+            // Unique device identifier (anonymized/hashed if needed)
+            // Examples: Android ADID, iOS IDFA, or custom device fingerprint
+            "deviceId": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+        }
+    },
+    // Detection method for SUSPECTED_CRASH events
+    // Acceptable values: "next_launch", "try_catch", etc.
+    "detectionMethod": "next_launch",
+    // Milliseconds since Unix epoch (13-digit number)
+    "timestamp": 1744190000000,
+}
