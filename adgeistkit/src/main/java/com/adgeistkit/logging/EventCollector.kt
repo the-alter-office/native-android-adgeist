@@ -7,7 +7,6 @@ object EventCollector {
 
     private const val TAG = "EventCollector"
     private const val MAX_EVENTS = 200
-    private const val MAX_STACK_FRAMES = 5
 
     private val events: MutableList<SdkEvent> = Collections.synchronizedList(mutableListOf())
 
@@ -19,36 +18,33 @@ object EventCollector {
     }
 
     fun logError(tag: String, t: Throwable) {
-        val stackFrames = t.stackTrace.take(MAX_STACK_FRAMES)
+        val errorPayload = ExceptionPayloadBuilder.build(tag, t)
 
-        val params = mutableMapOf<String, Any>(
-            "component" to tag,
-            "exceptionClass" to t.javaClass.simpleName,
-            "message" to (t.message ?: ""),
-            "stackTrace" to stackFrames,
-            "threadName" to Thread.currentThread().name
+        val event = SdkEvent(
+            type = errorPayload["type"] as? String,
+            severity = errorPayload["severity"] as? String,
+            errorCode = errorPayload["errorCode"] as? String,
+            errorCategory = errorPayload["errorCategory"] as? String,
+            exception = errorPayload["exception"] as? Map<String, Any?>,
+            context = ContextCollector.getFullContext(),
+            detectionMethod = errorPayload["detectionMethod"] as? String,
+            timestamp = System.currentTimeMillis(),
         )
 
-        addEvent("sdk_error", params)
+        synchronized(events) {
+            if (events.size >= MAX_EVENTS) {
+                events.removeAt(0)
+            }
+            events.add(event)
+        }
+
+        EventBuffer.write(event)
+        EventUploadScheduler.checkThreshold()
+
+        Log.d(TAG, "$event")
     }
 
     fun logEvent(name: String, params: Map<String, Any> = emptyMap()) {
-        addEvent(name, params)
-    }
-
-    fun getEvents(): List<SdkEvent> {
-        synchronized(events) {
-            return events.toList()
-        }
-    }
-
-    fun clear() {
-        synchronized(events) {
-            events.clear()
-        }
-    }
-
-    private fun addEvent(name: String, params: Map<String, Any>) {
         val event = SdkEvent(
             event = name,
             timestamp = System.currentTimeMillis(),
@@ -66,6 +62,19 @@ object EventCollector {
         EventBuffer.write(event)
         EventUploadScheduler.checkThreshold()
 
-        Log.d(TAG, "${event}")
+        Log.d(TAG, "[${event.event}] ${event.params}")
     }
+
+    fun getEvents(): List<SdkEvent> {
+        synchronized(events) {
+            return events.toList()
+        }
+    }
+
+    fun clear() {
+        synchronized(events) {
+            events.clear()
+        }
+    }
+
 }
