@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Documentation
+    url: https://github.com/the-alter-office/native-android-adgeist#readme
+    about: Read the integration guide and SDK documentation before opening an issue.
+  - name: 📦 Maven Central
+    url: https://central.sonatype.com/artifact/ai.adgeist/adgeistkit
+    about: Check the latest published version of the SDK.
