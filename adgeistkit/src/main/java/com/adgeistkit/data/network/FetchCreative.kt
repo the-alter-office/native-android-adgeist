@@ -52,11 +52,8 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
 
             val envFlag = if (isTestEnvironment) "1" else "0"
 
-            val url = if (buyType == "FIXED") {
-                "$bidRequestBackendDomain/v2/dsp/ad/fixed"
-            } else {
-                "$bidRequestBackendDomain/v1/app/ssp/bid?adSpaceId=$adUnitID&companyId=$adgeistAppID&test=$envFlag"
-            }
+            val url = "$bidRequestBackendDomain/v2/dsp/ad"
+           
 
             val requestBuilder = FetchCreativeRequest.FetchCreativeRequestBuilder(
                 adSpaceId = adUnitID,
