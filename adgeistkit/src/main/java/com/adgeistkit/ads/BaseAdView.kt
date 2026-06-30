@@ -185,7 +185,7 @@ open class BaseAdView : ViewGroup {
             isTestMode = adRequest.isTestMode
 
             fetchCreative.fetchCreative(
-                adUnitId, isTestMode
+                adUnitId, "FIXED", isTestMode
             ) { result ->
                 mainHandler?.post {
                     if (isDestroyed) return@post

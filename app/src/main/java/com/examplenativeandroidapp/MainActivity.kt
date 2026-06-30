@@ -270,7 +270,7 @@ class MainActivity : AppCompatActivity() {
 
             adView.setAdDimension(AdSize(width, height))
             
-            Log.d("MainActivity", "Loading ad: ${width}dp x ${height}dp")
+            Log.d("MainActivity", "Loading FIXED ad: ${width}dp x ${height}dp")
             
             setupAdListener(adView)
             loadAdRequest(adView)

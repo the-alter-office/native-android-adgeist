@@ -39,6 +39,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
 
     fun fetchCreative(
         adUnitID: String,
+        buyType: String,
         isTestEnvironment: Boolean = true,
         callback: (AdData) -> Unit
     ) {
@@ -66,7 +67,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                 }
             }
 
-            
+            if (buyType == "FIXED") {
                 val utcFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
                 utcFormat.timeZone = TimeZone.getTimeZone("UTC")
                 val currentTimestamp = utcFormat.format(Date())
@@ -77,20 +78,32 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                     .setTimeZone(TimeZone.getDefault().id)
                     .setRequestedAt(currentTimestamp)
                     .setSdkVersion(adgeistCore.version)
-            
+            } else {
+                requestBuilder.setAppDto("itwcrm", "com.itwcrm")
+            }
 
             val fetchCreativeRequest = requestBuilder.build()
             val requestPayload = fetchCreativeRequest.toJson().toString()
             val requestBody = requestPayload.toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
 
-            val request = 
+            val request = if (buyType == "FIXED") {
                 Request.Builder()
                     .url(url)
                     .post(requestBody)
                     .header("Content-Type", "application/json")
                     .header("Origin",packageID)
                     .build()
-           
+            } else {
+                Request.Builder()
+                    .url(url)
+                    .post(requestBody)
+                    .header("Content-Type", "application/json")
+                    .header("Origin", packageID)
+                    .header("x-user-id", deviceId ?: "")
+                    .header("x-platform", "mobile_app")
+                    .header("x-forwarded-for", userIP)
+                    .build()
+            }
 
             val client = OkHttpClient()
 
@@ -121,7 +134,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                     }
 
                     try {
-                        val parsed = parseCreativeData(jsonString)
+                        val parsed = parseCreativeData(jsonString, buyType)
                         
                         if (parsed == null) {
                             callback(createErrorProp("Failed to parse creative data"))
@@ -158,7 +171,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
         }
     }
 
-    private fun parseCreativeData(json: String): AdResponseData? {
+    private fun parseCreativeData(json: String, buyType: String): AdResponseData? {
         return Gson().fromJson(json, FixedAdResponse::class.java)
     }
 }

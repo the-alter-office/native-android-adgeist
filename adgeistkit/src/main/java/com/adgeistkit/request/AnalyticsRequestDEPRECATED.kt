@@ -115,11 +115,18 @@ class AnalyticsRequestDEPRECATED private constructor(analyticsRequestDEPRECATED:
     fun toJson(): JSONObject {
         val json = JSONObject()
         try {
-      
-            json.put("metaData", metaData)
-            json.put("isTest", isTestMode)
-            json.put("type", eventType)        
-               
+            when (buyType) {
+                "FIXED" -> {
+                    json.put("metaData", metaData)
+                    json.put("isTest", isTestMode)
+                    json.put("type", eventType)
+                }
+                else -> {
+                    json.put("winningBidId", bidID)
+                    json.put("campaignId", campaignID)
+                    json.put("eventType", eventType)
+                }
+            }
 
             when (eventType) {
                 "IMPRESSION" -> json.put("renderTime", renderTime)
