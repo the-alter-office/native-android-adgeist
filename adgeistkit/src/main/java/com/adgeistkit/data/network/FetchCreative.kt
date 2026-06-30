@@ -3,7 +3,6 @@ package com.adgeistkit.data.network
 import android.util.Log
 import com.adgeistkit.AdgeistCore
 import com.adgeistkit.request.FetchCreativeRequest
-import com.adgeistkit.data.models.CPMAdResponse
 import com.adgeistkit.data.models.FixedAdResponse
 import com.adgeistkit.data.models.AdData
 import com.adgeistkit.data.models.AdErrorResponse
@@ -52,11 +51,8 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
 
             val envFlag = if (isTestEnvironment) "1" else "0"
 
-            val url = if (buyType == "FIXED") {
-                "$bidRequestBackendDomain/v2/dsp/ad/fixed"
-            } else {
-                "$bidRequestBackendDomain/v1/app/ssp/bid?adSpaceId=$adUnitID&companyId=$adgeistAppID&test=$envFlag"
-            }
+            val url = "$bidRequestBackendDomain/v2/dsp/ad"
+           
 
             val requestBuilder = FetchCreativeRequest.FetchCreativeRequestBuilder(
                 adSpaceId = adUnitID,
@@ -171,18 +167,11 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                         ad.campaignId.isNullOrEmpty() ||
                         ad.advertiser == null
             }
-            is CPMAdResponse -> {
-                ad.data?.seatBid.isNullOrEmpty()
-            }
             else -> false
         }
     }
 
     private fun parseCreativeData(json: String, buyType: String): AdResponseData? {
-        return if (buyType == "FIXED") {
-            Gson().fromJson(json, FixedAdResponse::class.java)
-        } else {
-            Gson().fromJson(json, CPMAdResponse::class.java)
-        }
+        return Gson().fromJson(json, FixedAdResponse::class.java)
     }
 }
