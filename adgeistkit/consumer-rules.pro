@@ -10,6 +10,8 @@
 # @SerializedName) and from stripping the @JavascriptInterface WebView bridge.
 -keep class com.adgeistkit.** { *; }
 
+# TODO : add targeted skip instead of blanket disable of minification 
+
 # Gson reads generic type info (TypeToken), annotations (@SerializedName on the
 # CDP models), and inner-class relationships reflectively at runtime.
 -keepattributes Signature, *Annotation*, InnerClasses, EnclosingMethod
