@@ -19,7 +19,7 @@ body:
     attributes:
       label: SDK version
       description: Which version of `ai.adgeist:adgeistkit` are you using?
-      placeholder: "e.g. 1.1.23"
+      placeholder: "e.g. 1.1.24"
   - type: textarea
     id: description
     attributes:

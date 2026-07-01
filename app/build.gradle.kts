@@ -17,13 +17,23 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Run instrumented tests against the minified release variant so they
+    // exercise the R8-processed SDK classes (this is what catches missing
+    // consumer keep rules — see AdModelR8Test).
+    testBuildType = "release"
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // Mirror a real consumer (PixelPlayer): R8 + resource shrinking on.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Sign the minified release with the debug keystore so it (and its
+            // instrumented tests) can be installed without a real keystore.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -72,6 +82,9 @@ dependencies {
     implementation(project(":adgeistkit"))
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    // Gson is an `implementation` dep of :adgeistkit (not exposed transitively),
+    // but AdModelR8Test drives deserialization directly, so it needs Gson too.
+    androidTestImplementation("com.google.code.gson:gson:2.10.1")
     // androidTestImplementation(platform(libs.androidx.compose.bom))
     // androidTestImplementation(libs.androidx.ui.test.junit4)
     // debugImplementation(libs.androidx.ui.tooling)
