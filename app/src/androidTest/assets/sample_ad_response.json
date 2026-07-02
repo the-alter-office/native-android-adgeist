@@ -1,0 +1,61 @@
+{
+  "isTest": true,
+  "expiresAt": "2026-12-31T23:59:59Z",
+  "metaData": "{\"reqId\":\"abc-123\"}",
+  "id": "creative_6789",
+  "generatedAt": "2026-07-01T10:00:00Z",
+  "signature": "sig_deadbeef",
+  "campaignId": "campaign_42",
+  "advertiser": {
+    "id": "adv_1",
+    "name": "Acme Corp",
+    "logoUrl": "https://cdn.example.com/acme/logo.png"
+  },
+  "type": "BANNER",
+  "loadType": "eager",
+  "campaignValidity": {
+    "startTime": "2026-07-01T00:00:00Z",
+    "endTime": "2026-12-31T23:59:59Z"
+  },
+  "creativesV1": [
+    {
+      "title": "Buy Acme Widgets",
+      "description": "The best widgets around.",
+      "ctaUrl": "https://example.com/widgets",
+      "primary": {
+        "type": "image",
+        "fileName": "banner.png",
+        "fileSize": 20480,
+        "fileUrl": "https://cdn.example.com/acme/banner.png",
+        "thumbnailUrl": "https://cdn.example.com/acme/banner_thumb.png"
+      },
+      "companions": [
+        {
+          "type": "image",
+          "fileName": "companion.png",
+          "fileSize": 10240,
+          "fileUrl": "https://cdn.example.com/acme/companion.png",
+          "thumbnailUrl": "https://cdn.example.com/acme/companion_thumb.png"
+        }
+      ]
+    }
+  ],
+  "displayOptions": {
+    "allowedFormats": ["banner", "display"],
+    "dimensions": {
+      "height": 250,
+      "width": 300
+    },
+    "isResponsive": true,
+    "responsiveType": "fluid",
+    "styleOptions": {
+      "fontColor": "#000000",
+      "fontFamily": "Roboto"
+    }
+  },
+  "frontendCacheDurationSeconds": 3600,
+  "impressionRequirements": {
+    "impressionType": ["viewable"],
+    "minViewDurationSeconds": 1
+  }
+}

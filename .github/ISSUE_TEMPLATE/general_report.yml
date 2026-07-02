@@ -1,0 +1,25 @@
+name: 💬 General Report
+description: Ask a question or report something that doesn't fit the other templates.
+title: "[General]: "
+labels: ["general"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for general questions, feedback, or anything that doesn't fit a bug report, feature request, or documentation issue.
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      options:
+        - label: I have searched the [existing issues](../issues) and this has not already been raised.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Describe your question or report clearly.
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: Add any relevant context, code samples, or screenshots.

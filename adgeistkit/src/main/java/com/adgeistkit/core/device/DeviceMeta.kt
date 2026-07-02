@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat
 import android.opengl.GLES20
 import android.annotation.SuppressLint
 import android.opengl.EGLContext
+import android.nfc.NfcAdapter
 
 class DeviceMeta(private val context: Context) {
     companion object {
@@ -42,9 +43,8 @@ class DeviceMeta(private val context: Context) {
     fun getDeviceType(): String {
         val uiModeManager = context.getSystemService(Context.UI_MODE_SERVICE) as android.app.UiModeManager
         return when {
-            uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION -> "TV"
-            Resources.getSystem().configuration.smallestScreenWidthDp >= 600 -> "Tablet"
-            else -> "Mobile"
+            uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION -> "DESKTOP"
+            else -> "MOBILE"
         }
     }
 
@@ -67,7 +67,7 @@ class DeviceMeta(private val context: Context) {
     }
 
     fun getOperatingSystem(): String {
-        return "Android"
+        return "ANDROID"
     }
 
     fun getOSVersion(): String {
@@ -157,6 +157,41 @@ class DeviceMeta(private val context: Context) {
         return accessibilityManager.isTouchExplorationEnabled
     }
 
+    fun getScreenPixelRatio(): Float {
+        return context.resources.displayMetrics.density
+    }
+
+    fun getScreenDensity(): Int {
+        return context.resources.displayMetrics.densityDpi
+    }
+
+    fun isTouchScreenCapable(): Boolean {
+        return context.resources.configuration.touchscreen != Configuration.TOUCHSCREEN_NOTOUCH
+    }
+
+    fun isNFCEnabled(): Boolean {
+        return try {
+            val nfcAdapter = NfcAdapter.getDefaultAdapter(context)
+            nfcAdapter?.isEnabled == true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    fun getCoreArchitecture(): String? {
+
+        val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull()
+
+        val mapSet = mapOf(
+            "armeabi-v7a" to "ARM",
+            "arm64-v8a" to "ARM64",
+            "x86" to "x86",
+            "x86_64" to "x86-64",
+        )
+
+        return mapSet[abi] ?: "Unknown"
+    }
+
 
     fun getAllDeviceInfo(): Map<String, Any?> {
         val (width, height) = getScreenDimensions()
@@ -166,21 +201,26 @@ class DeviceMeta(private val context: Context) {
 
             "screenWidth" to width,
             "screenHeight" to height,
+            "screenPixelRatio" to getScreenPixelRatio(),
+            "screenDensity" to getScreenDensity(),
 
             "osName" to getOperatingSystem(),
             "osVersion" to getOSVersion(),
 
             "supportedArchitectures" to getCpuType(),
+            "architecture" to getCoreArchitecture(),
             "noOfProcessors" to getAvailableProcessors(),
 
             "networkType" to getNetworkType(),
-            "networkProvider" to getNetworkProvider(),
+            "networkConnectionType" to getNetworkProvider(),
 
-            "isScreenReaderPresent" to isScreenReaderPresent(),
+            "isScreenReaderEnabled" to isScreenReaderPresent(),
             "isNfcCapable" to isNfcCapable(),
+            "isNfcEnabled" to isNFCEnabled(),
             "isVrCapable" to isVrCapable(),
 
             "isGpuCapable" to isGpuCapable(),
+            "isTouchScreenCapable" to isTouchScreenCapable(),
         )
     }
 }

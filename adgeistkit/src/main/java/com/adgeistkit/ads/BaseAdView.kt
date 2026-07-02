@@ -437,8 +437,7 @@ open class BaseAdView : ViewGroup {
 
     /**
      * Builds the HTML content for ad rendering in WebView.
-     * Loads the main ad view file from assets and injects creative data.
-     * This file loads the AdCard library from S3 and renders the ad.
+     * Loads the main ad view file and bundled AdCard library from assets and injects creative data.
      *
      * @param creativeJsonData JSON string with creative data
      * @return Complete HTML string ready to be loaded in WebView
@@ -454,7 +453,10 @@ open class BaseAdView : ViewGroup {
 
         return try {
             val template = context.assets.open("ad_view.html").bufferedReader().use { it.readText() }
-            template.replace("{{CREATIVE_DATA}}", escapedJson)
+            val adCardJs = context.assets.open("adcard-beta.js").bufferedReader().use { it.readText() }
+            template
+                .replace("{{ADCARD_JS}}", adCardJs)
+                .replace("{{CREATIVE_DATA}}", escapedJson)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load ad view from assets", e)
             return ""
