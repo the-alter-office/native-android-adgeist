@@ -10,13 +10,28 @@ object ExceptionPayloadBuilder {
     private const val MAX_STACK_FRAMES = 5
     private const val MAX_RAW_TRACE_LENGTH = 250 // 0.2KB
     private const val MAX_CAUSE_DEPTH = 5
+    private const val DEFAULT_CATEGORY = "MEDIATION"
+
+    // Single source of truth for the errorCode <-> errorCategory taxonomy.
+    private val CATEGORY_TO_ERROR_CODES: Map<String, List<String>> = mapOf(
+        "INITIALIZING" to listOf("ERR_INIT_FAILED"),
+        "AD_LOADING" to listOf("ERR_AD_LOAD", "ERR_FETCH_CREATIVE", "ERR_NETWORK_TIMEOUT", "ERR_NETWORK_ERROR"),
+        "AD_RENDERING" to listOf("ERR_RENDER_FAILED", "ERR_WEBVIEW_CRASH"),
+        "JS_BRIDGE_ACTIVE" to listOf("ERR_JS_BRIDGE"),
+        "NETWORK" to listOf("ERR_SESSION_UPLOAD", "ERR_EVENT_UPLOAD"),
+        "MEDIATION" to emptyList() // reserved, no mediation feature yet
+    )
+
+    private val ERROR_CODE_TO_CATEGORY: Map<String, String> =
+        CATEGORY_TO_ERROR_CODES.flatMap { (category, codes) -> codes.map { it to category } }.toMap()
 
     fun build(tag: String, t: Throwable): Map<String, Any?> {
+        val errorCode = deriveErrorCode(tag, t)
         return mapOf(
             "type" to "NON_FATAL",
             "severity" to deriveSeverity(t),
-            "errorCode" to deriveErrorCode(tag, t),
-            "errorCategory" to deriveErrorCategory(tag),
+            "errorCode" to errorCode,
+            "errorCategory" to (ERROR_CODE_TO_CATEGORY[errorCode] ?: DEFAULT_CATEGORY),
             "exception" to buildException(t),
             "detectionMethod" to "try_catch"
         )
@@ -83,24 +98,12 @@ object ExceptionPayloadBuilder {
             t.javaClass.simpleName.contains("RenderProcessGone") -> "ERR_WEBVIEW_CRASH"
             tag.contains("JsBridge") -> "ERR_JS_BRIDGE"
             tag.contains("BaseAdView.loadAd") -> "ERR_AD_LOAD"
-            tag.contains("renderAd") -> "ERR_RENDER_FAILED"
+            tag.contains("renderAd") || tag.contains("onReceivedError") || tag.contains("shouldOverrideUrlLoading") -> "ERR_RENDER_FAILED"
             tag.contains("AdgeistCore.initialize") -> "ERR_INIT_FAILED"
             tag.contains("FetchCreative") -> "ERR_FETCH_CREATIVE"
             tag.contains("SessionUploadWorker") -> "ERR_SESSION_UPLOAD"
             tag.contains("EventUploadWorker") -> "ERR_EVENT_UPLOAD"
             else -> "ERR_UNKNOWN"
-        }
-    }
-
-    private fun deriveErrorCategory(tag: String): String {
-        return when {
-            tag.contains("AdgeistCore.initialize") -> "INITIALIZING"
-            tag.contains("BaseAdView.loadAd") || tag.contains("FetchCreative") -> "AD_LOADING"
-            tag.contains("renderAd") || tag.contains("onPageFinished") || tag.contains("onReceivedError") -> "AD_RENDERING"
-            tag.contains("JsBridge") -> "JS_BRIDGE_ACTIVE"
-            tag.contains("shouldOverrideUrlLoading") -> "AD_RENDERING"
-            tag.contains("SessionUploadWorker") || tag.contains("EventUploadWorker") -> "NETWORK"
-            else -> "AD_LOADING"
         }
     }
 }

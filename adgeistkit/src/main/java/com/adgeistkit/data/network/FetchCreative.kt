@@ -138,7 +138,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore, private val httpReques
                             params["timeout_ms"] = 10000
                         }
                         EventCollector.logEvent(eventName, params)
-                        throw IllegalStateException("Failed to connect to server")
+                        throw e
                     }
                     callback(createErrorProp(e.message ?: "Failed to connect to server"))
                 }

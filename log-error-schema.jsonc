@@ -10,10 +10,14 @@
     // Severity for dashboard prioritization and alerting
     // Acceptable values: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
     "severity": "HIGH",
-    // Internal SDK error code (for easy grouping)
-    // Examples: "ERR_NETWORK_TIMEOUT", "ERR_WEBVIEW_CRASH"
+    // Internal SDK error code (for easy grouping) - identifies the CAUSE of the error.
+    // Acceptable values: "ERR_INIT_FAILED" | "ERR_AD_LOAD" | "ERR_FETCH_CREATIVE" | "ERR_NETWORK_TIMEOUT" |
+    //   "ERR_NETWORK_ERROR" | "ERR_RENDER_FAILED" | "ERR_WEBVIEW_CRASH" | "ERR_JS_BRIDGE" |
+    //   "ERR_SESSION_UPLOAD" | "ERR_EVENT_UPLOAD" | "ERR_UNKNOWN"
     "errorCode": "ERR_WEBVIEW_CRASH",
-    // Category of the operation where the issue occurred
+    // Category of the operation where the issue occurred - identifies WHERE in the lifecycle it happened.
+    // Each errorCode belongs to exactly one errorCategory (see the taxonomy map in ExceptionPayloadBuilder.kt);
+    // e.g. ERR_WEBVIEW_CRASH and ERR_RENDER_FAILED both fall under AD_RENDERING.
     // Acceptable values: "INITIALIZING" | "AD_LOADING" | "AD_RENDERING" | "JS_BRIDGE_ACTIVE"| "MEDIATION" | "NETWORK"
     "errorCategory": "AD_RENDERING",
     // ============================================================

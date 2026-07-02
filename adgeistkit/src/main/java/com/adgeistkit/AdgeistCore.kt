@@ -77,11 +77,7 @@ class AdgeistCore private constructor(
 
                         EventCollector.initialize()
 
-                        EventUploadScheduler.initialize(
-                            context.applicationContext,
-                            it.bidRequestBackendDomain,
-                            it.adgeistAppID
-                        )
+                        EventUploadScheduler.initialize(context.applicationContext)
 
                         // Validate critical configuration after successful initialization
                         if (it.adgeistAppID.isEmpty()) {

@@ -12,7 +12,6 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import androidx.work.workDataOf
 import com.adgeistkit.workers.EventUploadWorker
 import java.util.concurrent.TimeUnit
 
@@ -24,8 +23,6 @@ object EventUploadScheduler {
     private const val UNIQUE_PERIODIC = "adgeist_event_upload_periodic"
     private const val UNIQUE_IMMEDIATE = "adgeist_event_upload_immediate"
 
-    private var backendDomain: String = ""
-    private var appId: String = ""
     private lateinit var appContext: Context
     private var isInitialized = false
 
@@ -39,10 +36,8 @@ object EventUploadScheduler {
         }
     }
 
-    fun initialize(context: Context, backendDomain: String, appId: String) {
+    fun initialize(context: Context) {
         this.appContext = context.applicationContext
-        this.backendDomain = backendDomain
-        this.appId = appId
         this.isInitialized = true
 
         startPeriodicUpload(context)
@@ -61,7 +56,6 @@ object EventUploadScheduler {
     private fun startPeriodicUpload(context: Context) {
         val request = PeriodicWorkRequestBuilder<EventUploadWorker>(PERIODIC_HOURS, TimeUnit.HOURS)
             .setConstraints(networkConstraint)
-            .setInputData(buildInputData())
             .build()
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
@@ -81,7 +75,6 @@ object EventUploadScheduler {
 
         val request = OneTimeWorkRequestBuilder<EventUploadWorker>()
             .setConstraints(networkConstraint)
-            .setInputData(buildInputData())
             .build()
 
         try {
@@ -94,9 +87,4 @@ object EventUploadScheduler {
             Log.w(TAG, "WorkManager not initialized, skipping upload")
         }
     }
-
-    private fun buildInputData() = workDataOf(
-        EventUploadWorker.KEY_BACKEND_DOMAIN to backendDomain,
-        EventUploadWorker.KEY_APP_ID to appId
-    )
 }
