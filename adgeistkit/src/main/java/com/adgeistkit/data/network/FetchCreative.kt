@@ -10,6 +10,7 @@ import com.adgeistkit.data.models.AdErrorResponse
 import com.adgeistkit.data.models.AdResponseData
 import com.adgeistkit.data.models.AdVisibilityError
 import com.adgeistkit.logging.EventCollector
+import com.adgeistkit.logging.HttpRequestLog
 import com.adgeistkit.logging.SdkShield
 import okhttp3.*
 import com.google.gson.Gson
@@ -24,7 +25,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-class FetchCreative(private val adgeistCore: AdgeistCore) {
+class FetchCreative(private val adgeistCore: AdgeistCore, private val httpRequestLog: HttpRequestLog? = null) {
     companion object {
         private const val TAG = "FetchCreative"
     }
@@ -116,7 +117,15 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
 
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    SdkShield.runSafely("FetchCreative.onFailure") {
+                    httpRequestLog?.record(
+                        method = "POST",
+                        url = url,
+                        latencyMs = System.currentTimeMillis() - fetchStartTime,
+                        requestHeaders = request.headers,
+                        requestPayload = requestPayload,
+                        errorMessage = e.message
+                    )
+                    SdkShield.runSafely("FetchCreative.onFailure", httpRequestLog) {
                         Log.d(TAG, "Request Failed: ${bidRequestBackendDomain} - ${e.message}")
 
                         val eventName = if (e is java.net.SocketTimeoutException) "network_timeout" else "network_error"
@@ -129,14 +138,26 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                             params["timeout_ms"] = 10000
                         }
                         EventCollector.logEvent(eventName, params)
+                        throw IllegalStateException("Failed to connect to server")
                     }
                     callback(createErrorProp(e.message ?: "Failed to connect to server"))
                 }
 
                 override fun onResponse(call: Call, response: Response) {
-                    SdkShield.runSafely("FetchCreative.onResponse") {
+                    SdkShield.runSafely("FetchCreative.onResponse", httpRequestLog) {
                     val networkLatency = System.currentTimeMillis() - fetchStartTime
                     val jsonString = response.body?.string()
+
+                    httpRequestLog?.record(
+                        method = "POST",
+                        url = url,
+                        statusCode = response.code,
+                        latencyMs = networkLatency,
+                        requestHeaders = request.headers,
+                        responseHeaders = response.headers,
+                        requestPayload = requestPayload,
+                        responsePayload = jsonString,
+                    )
 
                     EventCollector.logEvent("creative_fetch", mapOf(
                         "endpoint" to url,

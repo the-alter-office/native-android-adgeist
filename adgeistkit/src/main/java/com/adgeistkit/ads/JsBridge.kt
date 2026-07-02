@@ -19,7 +19,7 @@ class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
     }
 
     fun recordClickListener() {
-        SdkShield.runSafely("JsBridge.recordClickListener") {
+        SdkShield.runSafely("JsBridge.recordClickListener", baseAdView.httpRequestLog) {
             adActivity?.captureClick()
         }
     }
@@ -30,8 +30,8 @@ class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
     }
 
     @JavascriptInterface
-    fun postMessage(json: String) {        
-        SdkShield.runSafely("JsBridge.postMessage") {
+    fun postMessage(json: String) {
+        SdkShield.runSafely("JsBridge.postMessage", baseAdView.httpRequestLog) {
             try {
                 val obj = JSONObject(json)
                 val type = obj.optString("type")
@@ -52,8 +52,8 @@ class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
     }
 
     @JavascriptInterface
-    fun postVideoStatus(json: String) {        
-        SdkShield.runSafely("JsBridge.postVideoStatus") {
+    fun postVideoStatus(json: String) {
+        SdkShield.runSafely("JsBridge.postVideoStatus", baseAdView.httpRequestLog) {
             try {
                 val obj = JSONObject(json)
                 val type = obj.optString("type")
@@ -79,10 +79,10 @@ class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
 
     @JavascriptInterface
     fun reportOverflow(contentWidth: Int, contentHeight: Int, viewWidth: Int, viewHeight: Int) {
-        SdkShield.runSafely("JsBridge.reportOverflow") {
+        SdkShield.runSafely("JsBridge.reportOverflow", baseAdView.httpRequestLog) {
             Log.e(TAG, "Ad overflow detected! Content: ${contentWidth}x${contentHeight} > View: ${viewWidth}x${viewHeight}")
             baseAdView.post {
-                SdkShield.runSafely("JsBridge.reportOverflow.post") {
+                SdkShield.runSafely("JsBridge.reportOverflow.post", baseAdView.httpRequestLog) {
                     baseAdView.listener?.onAdFailedToLoad("For companion ads, you should have minimum 320x320 dimensions. But available space is ${viewWidth}x${viewHeight}. So we are collapsing the ad, we won't track impressions, clicks etc for this ad.")
                     baseAdView.destroy()
                     baseAdView.removeFromParent()
@@ -93,9 +93,9 @@ class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
 
     @JavascriptInterface
     fun showAd() {
-        SdkShield.runSafely("JsBridge.showAd") {
+        SdkShield.runSafely("JsBridge.showAd", baseAdView.httpRequestLog) {
             baseAdView.post {
-                SdkShield.runSafely("JsBridge.showAd.post") {
+                SdkShield.runSafely("JsBridge.showAd.post", baseAdView.httpRequestLog) {
                     baseAdView.webView?.visibility = android.view.View.VISIBLE
                 }
             }

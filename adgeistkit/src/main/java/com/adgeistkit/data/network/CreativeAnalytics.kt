@@ -2,6 +2,7 @@ package com.adgeistkit.data.network
 
 import android.util.Log
 import com.adgeistkit.AdgeistCore
+import com.adgeistkit.logging.HttpRequestLog
 import com.adgeistkit.request.AnalyticsRequest
 import com.adgeistkit.request.AnalyticsRequestDEPRECATED
 import kotlinx.coroutines.CoroutineScope
@@ -12,7 +13,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 
-class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
+class CreativeAnalytics(private val adgeistCore: AdgeistCore, private val httpRequestLog: HttpRequestLog? = null) {
     companion object {
         private const val TAG = "CreativeAnalytics"
     }
@@ -28,6 +29,7 @@ class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
     private val deviceIdentifier = adgeistCore.deviceIdentifier
     private val networkUtils = adgeistCore.networkUtils
 
+
     fun sendTrackingDataV2(analyticsRequest: AnalyticsRequest){
         scope.launch {
             val url = "$bidRequestBackendDomain/v2/ssp/impression";
@@ -41,17 +43,36 @@ class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
                 .post(requestBody)
                 .build()
 
+            val fetchStartTime = System.currentTimeMillis()
 
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
+                    httpRequestLog?.record(
+                        method = "POST",
+                        url = url,
+                        latencyMs = System.currentTimeMillis() - fetchStartTime,
+                        requestHeaders = request.headers,
+                        requestPayload = requestPayload,
+                        errorMessage = e.message
+                    )
                     Log.d(TAG, "Failed to send tracking data: ${e.message}")
                 }
 
                 override fun onResponse(call: Call, response: Response) {
                     response.use {
+                        val responseBody = response.body?.string()
+                        httpRequestLog?.record(
+                            method = "POST",
+                            url = url,
+                            statusCode = response.code,
+                            latencyMs = System.currentTimeMillis() - fetchStartTime,
+                            requestHeaders = request.headers,
+                            responseHeaders = response.headers,
+                            requestPayload = requestPayload,
+                            responsePayload = responseBody,
+                        )
                         if (!response.isSuccessful) {
-                            val errorBody = response.body?.string() ?: "No error message"
-                            Log.d(TAG, "Request failed with code: ${response.code}, message: $errorBody")
+                            Log.d(TAG, "Request failed with code: ${response.code}, message: ${responseBody ?: "No error message"}")
                             return
                         }
                     }
@@ -94,21 +115,39 @@ class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
                     .build()
             }
 
+            val fetchStartTime = System.currentTimeMillis()
+
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
+                    httpRequestLog?.record(
+                        method = "POST",
+                        url = url,
+                        latencyMs = System.currentTimeMillis() - fetchStartTime,
+                        requestHeaders = request.headers,
+                        requestPayload = requestPayload,
+                        errorMessage = e.message
+                    )
                     Log.d(TAG, "Failed to send tracking data: ${e.message}")
                 }
 
                 override fun onResponse(call: Call, response: Response) {
                     response.use {
+                        val responseBody = response.body?.string()
+                        httpRequestLog?.record(
+                            method = "POST",
+                            url = url,
+                            statusCode = response.code,
+                            latencyMs = System.currentTimeMillis() - fetchStartTime,
+                            requestHeaders = request.headers,
+                            responseHeaders = response.headers,
+                            requestPayload = requestPayload,
+                            responsePayload = responseBody,
+                        )
                         if (!response.isSuccessful) {
-                            val errorBody = response.body?.string() ?: "No error message"
-                            Log.d(TAG, "Request failed with code: ${response.code}, message: $errorBody")
+                            Log.d(TAG, "Request failed with code: ${response.code}, message: ${responseBody ?: "No error message"}")
                             return
                         }
-
-                        val jsonString = response.body?.string()
-                        Log.d(TAG, "Tracking data sent successfully: $jsonString")
+                        Log.d(TAG, "Tracking data sent successfully: $responseBody")
                     }
                 }
             })

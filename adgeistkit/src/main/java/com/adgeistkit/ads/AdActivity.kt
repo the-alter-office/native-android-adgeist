@@ -13,11 +13,12 @@ import android.widget.HorizontalScrollView
 import android.widget.ScrollView
 import androidx.core.widget.NestedScrollView
 import com.adgeistkit.AdgeistCore.Companion.getInstance
+import com.adgeistkit.data.network.CreativeAnalytics
 import com.adgeistkit.logging.SdkShield
 import com.adgeistkit.request.AnalyticsRequest
 
 class AdActivity(private val baseAdView: BaseAdView) {
-    private val postCreativeAnalytics = getInstance().postCreativeAnalytics()
+    private val postCreativeAnalytics = CreativeAnalytics(getInstance(), baseAdView.httpRequestLog)
 
     private val renderStartTime = SystemClock.elapsedRealtime()
 
@@ -53,13 +54,13 @@ class AdActivity(private val baseAdView: BaseAdView) {
         val vto = baseAdView.viewTreeObserver
 
         scrollListener = OnScrollChangedListener {
-            SdkShield.runSafely("AdActivity.onScrollChanged") { this.checkVisibility() }
+            SdkShield.runSafely("AdActivity.onScrollChanged", baseAdView.httpRequestLog) { this.checkVisibility() }
         }
         vto.addOnScrollChangedListener(scrollListener)
 
         focusListener =
             OnWindowFocusChangeListener { hasFocus: Boolean ->
-                SdkShield.runSafely("AdActivity.onWindowFocusChange") { onVisibilityChange(hasFocus) }
+                SdkShield.runSafely("AdActivity.onWindowFocusChange", baseAdView.httpRequestLog) { onVisibilityChange(hasFocus) }
             }
         vto.addOnWindowFocusChangeListener(focusListener)
 
@@ -256,7 +257,7 @@ class AdActivity(private val baseAdView: BaseAdView) {
     }
 
     fun captureImpression() {
-        SdkShield.runSafely("AdActivity.captureImpression") {
+        SdkShield.runSafely("AdActivity.captureImpression", baseAdView.httpRequestLog) {
             if (!hasImpression) {
                 renderTime = SystemClock.elapsedRealtime() - renderStartTime
                 baseAdView.listener?.onAdLoaded()
@@ -271,7 +272,7 @@ class AdActivity(private val baseAdView: BaseAdView) {
     }
 
     fun captureClick() {
-        SdkShield.runSafely("AdActivity.captureClick") {
+        SdkShield.runSafely("AdActivity.captureClick", baseAdView.httpRequestLog) {
             baseAdView.listener?.onAdClicked()
             val analyticsRequest: AnalyticsRequest =
                 AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
@@ -309,7 +310,7 @@ class AdActivity(private val baseAdView: BaseAdView) {
         }
 
     fun destroy() {
-        SdkShield.runSafely("AdActivity.destroy") {
+        SdkShield.runSafely("AdActivity.destroy", baseAdView.httpRequestLog) {
             val vto = baseAdView.viewTreeObserver
             if (vto.isAlive) {
                 vto.removeOnScrollChangedListener(scrollListener)

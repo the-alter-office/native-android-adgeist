@@ -25,6 +25,7 @@ import com.adgeistkit.request.AdRequest
 import com.adgeistkit.data.models.FixedAdResponse
 import com.adgeistkit.data.network.FetchCreative
 import com.adgeistkit.logging.EventCollector
+import com.adgeistkit.logging.HttpRequestLog
 import com.adgeistkit.logging.SdkShield
 import com.google.gson.Gson
 import kotlin.math.max
@@ -65,6 +66,7 @@ open class BaseAdView : ViewGroup {
     private var mainHandler: Handler? = null
     private var adLoadStartTime: Long = 0L
     private var networkResponseTime: Long = 0L
+    internal val httpRequestLog = HttpRequestLog()
 
     protected constructor(context: Context, adViewType: Int) : super(context) {
         initialize(context, null)
@@ -149,7 +151,7 @@ open class BaseAdView : ViewGroup {
      */
     @RequiresPermission("android.permission.INTERNET")
     fun loadAd(adRequest: AdRequest) {
-        SdkShield.runSafely("BaseAdView.loadAd") {
+        SdkShield.runSafely("BaseAdView.loadAd", httpRequestLog) {
             if (isLoading) {
                 Log.w(TAG, "loadAd ignored - ad is already loading")
                 return@runSafely
@@ -164,6 +166,7 @@ open class BaseAdView : ViewGroup {
             // Reset destroyed flag to allow reloading
             isDestroyed = false
             isLoading = true
+            httpRequestLog.clear()
 
             // Destroy any existing WebView before loading new ad
             if (webView != null) {
@@ -188,7 +191,7 @@ open class BaseAdView : ViewGroup {
         adLoadStartTime = System.currentTimeMillis()
         try {
             val adgeist = getInstance()
-            val fetchCreative: FetchCreative = adgeist.getCreative()
+            val fetchCreative = FetchCreative(adgeist, httpRequestLog)
 
             isTestMode = adRequest.isTestMode
 
@@ -333,7 +336,7 @@ open class BaseAdView : ViewGroup {
 
         webView!!.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-                return SdkShield.runSafelyWithReturn("BaseAdView.shouldOverrideUrlLoading", false) {
+                return SdkShield.runSafelyWithReturn("BaseAdView.shouldOverrideUrlLoading", false, httpRequestLog) {
                     openInBrowser(context, url)
                     jsInterface!!.recordClickListener()
                     true
@@ -344,7 +347,7 @@ open class BaseAdView : ViewGroup {
                 view: WebView,
                 request: WebResourceRequest
             ): Boolean {
-                return SdkShield.runSafelyWithReturn("BaseAdView.shouldOverrideUrlLoading", false) {
+                return SdkShield.runSafelyWithReturn("BaseAdView.shouldOverrideUrlLoading", false, httpRequestLog) {
                     val url = request.url.toString()
                     openInBrowser(context, url)
                     jsInterface!!.recordClickListener()
@@ -376,7 +379,7 @@ open class BaseAdView : ViewGroup {
                 error: WebResourceError
             ) {
                 super.onReceivedError(view, request, error)
-                SdkShield.runSafely("BaseAdView.onReceivedError") {
+                SdkShield.runSafely("BaseAdView.onReceivedError", httpRequestLog) {
                     if (request.isForMainFrame) {
                         EventCollector.logEvent("webview_error", mapOf(
                             "error_code" to error.errorCode,
@@ -551,7 +554,7 @@ open class BaseAdView : ViewGroup {
      */
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        SdkShield.runSafely("BaseAdView.onAttachedToWindow") {
+        SdkShield.runSafely("BaseAdView.onAttachedToWindow", httpRequestLog) {
             if (webView != null && !isDestroyed) {
                 webView!!.onResume()
             }
@@ -566,7 +569,7 @@ open class BaseAdView : ViewGroup {
      */
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
-        SdkShield.runSafely("BaseAdView.onWindowVisibilityChanged") {
+        SdkShield.runSafely("BaseAdView.onWindowVisibilityChanged", httpRequestLog) {
             if (webView == null || isDestroyed) return@runSafely
 
             if (visibility == VISIBLE) {
@@ -583,7 +586,7 @@ open class BaseAdView : ViewGroup {
      */
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        SdkShield.runSafely("BaseAdView.onDetachedFromWindow") {
+        SdkShield.runSafely("BaseAdView.onDetachedFromWindow", httpRequestLog) {
             onDestroyWebView()
         }
     }
@@ -635,6 +638,7 @@ open class BaseAdView : ViewGroup {
     private fun safelyDestroyWebView() {
         if (isDestroyed) return
         isDestroyed = true
+        httpRequestLog.clear()
 
         val webViewToDestroy = webView
         webView = null

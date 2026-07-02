@@ -17,7 +17,7 @@ object EventCollector {
         Log.d(TAG, "EventCollector initialized")
     }
 
-    fun logError(tag: String, t: Throwable) {
+    fun logError(tag: String, t: Throwable, httpRequests: List<Map<String, Any?>>? = null) {
         val errorPayload = ExceptionPayloadBuilder.build(tag, t)
 
         val event = SdkEvent(
@@ -26,6 +26,7 @@ object EventCollector {
             errorCode = errorPayload["errorCode"] as? String,
             errorCategory = errorPayload["errorCategory"] as? String,
             exception = errorPayload["exception"] as? Map<String, Any?>,
+            httpRequests = httpRequests,
             context = ContextCollector.getFullContext(),
             detectionMethod = errorPayload["detectionMethod"] as? String,
             timestamp = System.currentTimeMillis(),

@@ -9,4 +9,5 @@ data class SdkEvent(
     val exception: Map<String, Any?>? = null,
     val context: Map<String, Any?>,
     val detectionMethod: String? = null,
+    val httpRequests: List<Map<String, Any?>>? = null,
 )
