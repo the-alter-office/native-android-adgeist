@@ -43,9 +43,8 @@ class DeviceMeta(private val context: Context) {
     fun getDeviceType(): String {
         val uiModeManager = context.getSystemService(Context.UI_MODE_SERVICE) as android.app.UiModeManager
         return when {
-            uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION -> "TV"
-            Resources.getSystem().configuration.smallestScreenWidthDp >= 600 -> "Tablet"
-            else -> "Mobile"
+            uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION -> "DESKTOP"
+            else -> "MOBILE"
         }
     }
 
@@ -68,7 +67,7 @@ class DeviceMeta(private val context: Context) {
     }
 
     fun getOperatingSystem(): String {
-        return "Android"
+        return "ANDROID"
     }
 
     fun getOSVersion(): String {
@@ -180,7 +179,17 @@ class DeviceMeta(private val context: Context) {
     }
 
     fun getCoreArchitecture(): String? {
-        return Build.SUPPORTED_ABIS.firstOrNull()
+
+        val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull()
+
+        val mapSet = mapOf(
+            "armeabi-v7a" to "ARM",
+            "arm64-v8a" to "ARM64",
+            "x86" to "x86",
+            "x86_64" to "x86-64",
+        )
+
+        return mapSet[abi] ?: "Unknown"
     }
 
 
@@ -199,7 +208,7 @@ class DeviceMeta(private val context: Context) {
             "osVersion" to getOSVersion(),
 
             "supportedArchitectures" to getCpuType(),
-            "coreArchitecture" to getCoreArchitecture(),
+            "architecture" to getCoreArchitecture(),
             "noOfProcessors" to getAvailableProcessors(),
 
             "networkType" to getNetworkType(),
