@@ -14,15 +14,20 @@ import android.view.ViewGroup
 import android.webkit.ConsoleMessage
 import android.webkit.ConsoleMessage.MessageLevel
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.annotation.RequiresPermission
+import com.adgeistkit.AdgeistCore
 import com.adgeistkit.AdgeistCore.Companion.getInstance
 import com.adgeistkit.R
 import com.adgeistkit.request.AdRequest
 import com.adgeistkit.data.models.FixedAdResponse
 import com.adgeistkit.data.network.FetchCreative
+import com.adgeistkit.logging.EventCollector
+import com.adgeistkit.logging.HttpRequestLog
+import com.adgeistkit.logging.SdkShield
 import com.google.gson.Gson
 import kotlin.math.max
 
@@ -60,6 +65,9 @@ open class BaseAdView : ViewGroup {
     private var isLoading: Boolean = false
     private var isDestroyed = false
     private var mainHandler: Handler? = null
+    private var adLoadStartTime: Long = 0L
+    private var networkResponseTime: Long = 0L
+    internal val httpRequestLog = HttpRequestLog()
 
     protected constructor(context: Context, adViewType: Int) : super(context) {
         initialize(context, null)
@@ -144,32 +152,35 @@ open class BaseAdView : ViewGroup {
      */
     @RequiresPermission("android.permission.INTERNET")
     fun loadAd(adRequest: AdRequest) {
-        if (isLoading) {
-            Log.w(TAG, "loadAd ignored - ad is already loading")
-            return
-        }
-
-        if (adUnitId == null || adUnitId.isEmpty()) {
-            Log.e(TAG, "Ad unit ID is null or empty")
-            listener?.onAdFailedToLoad("Ad unit ID is null or empty")
-            return
-        }
-
-        // Reset destroyed flag to allow reloading
-        isDestroyed = false
-        isLoading = true
-
-        // Destroy any existing WebView before loading new ad
-        if (webView != null) {
-            safelyDestroyWebView()
-        }
-
-        // Wait a bit before loading new ad to ensure cleanup completes
-        mainHandler?.postDelayed({
-            if (!isDestroyed) {
-                startAdLoad(adRequest)
+        SdkShield.runSafely("BaseAdView.loadAd", httpRequestLog) {
+            if (isLoading) {
+                Log.w(TAG, "loadAd ignored - ad is already loading")
+                return@runSafely
             }
-        }, 400)
+
+            if (adUnitId == null || adUnitId.isEmpty()) {
+                Log.e(TAG, "Ad unit ID is null or empty")
+                listener?.onAdFailedToLoad("Ad unit ID is null or empty")
+                return@runSafely
+            }
+
+            // Reset destroyed flag to allow reloading
+            isDestroyed = false
+            isLoading = true
+            httpRequestLog.clear()
+
+            // Destroy any existing WebView before loading new ad
+            if (webView != null) {
+                safelyDestroyWebView()
+            }
+
+            // Wait a bit before loading new ad to ensure cleanup completes
+            mainHandler?.postDelayed({
+                if (!isDestroyed) {
+                    startAdLoad(adRequest)
+                }
+            }, 400)
+        }
     }
 
     /**
@@ -178,9 +189,16 @@ open class BaseAdView : ViewGroup {
      * @param adRequest The AdRequest containing configuration parameters
      */
     private fun startAdLoad(adRequest: AdRequest) {
+        adLoadStartTime = System.currentTimeMillis()
+        val adgeist = getInstance()
+        if (adgeist == null) {
+            Log.e(TAG, "AdgeistCore is not initialized. Call AdgeistCore.initialize() first.")
+            listener?.onAdFailedToLoad("AdgeistCore is not initialized. Call AdgeistCore.initialize() first.")
+            isLoading = false
+            return
+        }
         try {
-            val adgeist = getInstance()
-            val fetchCreative: FetchCreative = adgeist.getCreative()
+            val fetchCreative = FetchCreative(adgeist, httpRequestLog)
 
             isTestMode = adRequest.isTestMode
 
@@ -191,8 +209,16 @@ open class BaseAdView : ViewGroup {
                     if (isDestroyed) return@post
                     isLoading = false
 
+                    networkResponseTime = System.currentTimeMillis()
+
                     if (!result.isSuccess) {
                         Log.e(TAG, "API error: ${result.errorMessage}, statusCode: ${result.statusCode}")
+                        EventCollector.logEvent("ad_response_error", mapOf(
+                            "placement_id" to adUnitId,
+                            "http_status" to (result.statusCode ?: -1),
+                            "error_message" to (result.errorMessage ?: "Unknown"),
+                            "network_latency_ms" to (networkResponseTime - adLoadStartTime)
+                        ))
                         listener?.onAdFailedToLoad(result.errorMessage)
                         return@post
                     }
@@ -202,6 +228,11 @@ open class BaseAdView : ViewGroup {
 
                         if (campaignDetails.creativesV1.isNullOrEmpty()) {
                             Log.e(TAG, "Empty creative list")
+                            EventCollector.logEvent("ad_render_failed", mapOf(
+                                "placement_id" to adUnitId,
+                                "error_type" to "empty_creative",
+                                "error_message" to "Empty creative list from server"
+                            ))
                             listener?.onAdFailedToLoad("Empty creative")
                             return@post
                         }
@@ -229,8 +260,9 @@ open class BaseAdView : ViewGroup {
                             propertiesForAdCard["width"] = pxToDp(measuredWidth)
                             propertiesForAdCard["height"] = pxToDp(measuredHeight)
                         } else {
-                            propertiesForAdCard["width"] = adSize!!.width
-                            propertiesForAdCard["height"] = adSize!!.height
+                            val size = adSize ?: throw IllegalStateException("adSize must be set for non-responsive ads")
+                            propertiesForAdCard["width"] = size.width
+                            propertiesForAdCard["height"] = size.height
                         }
 
                         // Add primaryCreative
@@ -254,9 +286,15 @@ open class BaseAdView : ViewGroup {
                         propertiesForAdCard["media"] = mediaList
 
                         val creativeJson = Gson().toJson(propertiesForAdCard)
-                        renderAdWithAdCard(creativeJson)
+
+                        renderAdWithAdCard(creativeJson, adgeist)
                     } catch (err: Exception) {
                         Log.e(TAG, "Parsing error: ${err.message}", err)
+                        EventCollector.logEvent("ad_render_failed", mapOf(
+                            "placement_id" to adUnitId,
+                            "error_type" to "parse_error",
+                            "error_message" to (err.message ?: "Unknown parse error")
+                        ))
                         listener?.onAdFailedToLoad(err.message ?: "Error")
                     }
                 }
@@ -274,21 +312,31 @@ open class BaseAdView : ViewGroup {
      * Creates and configures a new WebView, sets up JavaScript bridge,
      *
      * @param creativeJsonData JSON string containing creative data for rendering
+     * @param adgeistCore The resolved AdgeistCore instance for this ad load
      */
-    private fun renderAdWithAdCard(creativeJsonData: String) {
+    private fun renderAdWithAdCard(creativeJsonData: String, adgeistCore: AdgeistCore) {
         if (isDestroyed) return
 
         removeAllViews()
 
-        webView = WebView(context).apply {
+        val webViewCreateStart = System.currentTimeMillis()
+        val newWebView = WebView(context).apply {
             setBackgroundColor(Color.TRANSPARENT)
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.loadWithOverviewMode = true
             settings.useWideViewPort = true
         }
+        webView = newWebView
 
-        jsInterface = JsBridge(this, context)
+        val webViewCreateDuration = System.currentTimeMillis() - webViewCreateStart
+        EventCollector.logEvent("webview_create", mapOf(
+            "placement_id" to adUnitId,
+            "create_duration_ms" to webViewCreateDuration
+        ))
+
+        val bridge = JsBridge(this, context, adgeistCore)
+        jsInterface = bridge
         listener?.onAdOpened()
 
         // Enable WebView debugging (you can inspect in Chrome DevTools)
@@ -297,36 +345,66 @@ open class BaseAdView : ViewGroup {
             WebView.setWebContentsDebuggingEnabled(true)
         }
 
-        webView!!.webViewClient = object : WebViewClient() {
+        newWebView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-                openInBrowser(context, url)
-                jsInterface!!.recordClickListener()
-                return true
+                return SdkShield.runSafelyWithReturn("BaseAdView.shouldOverrideUrlLoading", false, httpRequestLog) {
+                    openInBrowser(context, url)
+                    bridge.recordClickListener()
+                    true
+                }
             }
 
             override fun shouldOverrideUrlLoading(
                 view: WebView,
                 request: WebResourceRequest
             ): Boolean {
-                val url = request.url.toString()
-                openInBrowser(context, url)
-                jsInterface!!.recordClickListener()
-                return true
+                return SdkShield.runSafelyWithReturn("BaseAdView.shouldOverrideUrlLoading", false, httpRequestLog) {
+                    val url = request.url.toString()
+                    openInBrowser(context, url)
+                    bridge.recordClickListener()
+                    true
+                }
             }
 
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
                 Log.i(TAG, "✅ WebView page finished loading: $url")
+                val now = System.currentTimeMillis()
+                EventCollector.logEvent("ad_load_complete", mapOf(
+                    "placement_id" to adUnitId,
+                    "ad_type" to adType.value,
+                    "network_latency_ms" to (networkResponseTime - adLoadStartTime),
+                    "render_latency_ms" to (now - networkResponseTime),
+                    "total_latency_ms" to (now - adLoadStartTime)
+                ))
             }
 
             override fun onLoadResource(view: WebView, url: String) {
                 super.onLoadResource(view, url)
                 Log.d(TAG, "📦 Loading resource: $url")
             }
+
+            override fun onReceivedError(
+                view: WebView,
+                request: WebResourceRequest,
+                error: WebResourceError
+            ) {
+                super.onReceivedError(view, request, error)
+                SdkShield.runSafely("BaseAdView.onReceivedError", httpRequestLog) {
+                    if (request.isForMainFrame) {
+                        EventCollector.logEvent("webview_error", mapOf(
+                            "error_code" to error.errorCode,
+                            "description" to error.description.toString(),
+                            "url" to request.url.toString(),
+                            "placement_id" to adUnitId
+                        ))
+                    }
+                }
+            }
         }
 
         // Set WebChromeClient to capture console logs
-        webView!!.webChromeClient = object : WebChromeClient() {
+        newWebView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
                 val logLevel = consoleMessage.messageLevel().name
                 val message = consoleMessage.message()
@@ -344,10 +422,10 @@ open class BaseAdView : ViewGroup {
         }
 
         // JavaScript bridge interface accessible as 'Android' from WebView HTML
-        webView!!.addJavascriptInterface(jsInterface!!, "Android")
+        newWebView.addJavascriptInterface(bridge, "Android")
 
         val htmlContent = buildAdCardHtml(creativeJsonData)
-        webView!!.loadDataWithBaseURL(
+        newWebView.loadDataWithBaseURL(
             "https://adgeist.ai",
             htmlContent,
             "text/html",
@@ -357,14 +435,14 @@ open class BaseAdView : ViewGroup {
 
         // Add WebView to container with full dimensions
         addView(
-            webView, LayoutParams(
+            newWebView, LayoutParams(
                 LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT
             )
         )
 
         // Hide companion ads initially until overflow check completes
         if (adType == AdType.COMPANION) {
-            webView!!.visibility = View.INVISIBLE
+            newWebView.visibility = View.INVISIBLE
         }
     }
 
@@ -441,13 +519,14 @@ open class BaseAdView : ViewGroup {
             width = child.measuredWidth
             height = child.measuredHeight
         } else {
+            val size = adSize
             if (adIsResponsive) {
                 Log.d(TAG, "Ad is responsive - using available space for measurement")
                 width = android.view.View.MeasureSpec.getSize(widthMeasureSpec)
                 height = android.view.View.MeasureSpec.getSize(heightMeasureSpec)
-            } else if (adSize != null) {
-                width = adSize!!.getWidthInPixels(context)
-                height = adSize!!.getHeightInPixels(context)
+            } else if (size != null) {
+                width = size.getWidthInPixels(context)
+                height = size.getHeightInPixels(context)
             } else {
                 width = 0
                 height = 0
@@ -489,12 +568,10 @@ open class BaseAdView : ViewGroup {
      */
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        if (webView != null && !isDestroyed) {
-            try {
-                webView!!.onResume()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error resuming WebView: ${e.message}", e)
-            }
+        SdkShield.runSafely("BaseAdView.onAttachedToWindow", httpRequestLog) {
+            val wv = webView ?: return@runSafely
+            if (isDestroyed) return@runSafely
+            wv.onResume()
         }
     }
 
@@ -506,20 +583,14 @@ open class BaseAdView : ViewGroup {
      */
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
-        
-        if (webView == null || isDestroyed) return
+        SdkShield.runSafely("BaseAdView.onWindowVisibilityChanged", httpRequestLog) {
+            val wv = webView ?: return@runSafely
+            if (isDestroyed) return@runSafely
 
-        if (visibility == VISIBLE) {
-            try {
-                webView!!.onResume()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error resuming WebView: ${e.message}", e)
-            }
-        } else {
-            try {
-                webView!!.onPause()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error pausing WebView: ${e.message}", e)
+            if (visibility == VISIBLE) {
+                wv.onResume()
+            } else {
+                wv.onPause()
             }
         }
     }
@@ -530,7 +601,9 @@ open class BaseAdView : ViewGroup {
      */
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        onDestroyWebView()
+        SdkShield.runSafely("BaseAdView.onDetachedFromWindow", httpRequestLog) {
+            onDestroyWebView()
+        }
     }
 
     /**
@@ -580,6 +653,7 @@ open class BaseAdView : ViewGroup {
     private fun safelyDestroyWebView() {
         if (isDestroyed) return
         isDestroyed = true
+        httpRequestLog.clear()
 
         val webViewToDestroy = webView
         webView = null

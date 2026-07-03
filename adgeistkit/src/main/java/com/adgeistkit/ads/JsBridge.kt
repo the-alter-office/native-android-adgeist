@@ -3,9 +3,16 @@ package com.adgeistkit.ads
 import android.content.Context
 import android.util.Log
 import android.webkit.JavascriptInterface
+import com.adgeistkit.AdgeistCore
+import com.adgeistkit.logging.EventCollector
+import com.adgeistkit.logging.SdkShield
 import org.json.JSONObject
 
-class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
+class JsBridge(
+    private val baseAdView: BaseAdView,
+    var mContext: Context,
+    private val adgeistCore: AdgeistCore
+) {
     private var adActivity: AdActivity? = null
 
     init {
@@ -13,11 +20,13 @@ class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
     }
 
     private fun initializeAdTracker() {
-        adActivity = AdActivity(baseAdView)
+        adActivity = AdActivity(baseAdView, adgeistCore)
     }
 
     fun recordClickListener() {
-        adActivity?.captureClick()
+        SdkShield.runSafely("JsBridge.recordClickListener", baseAdView.httpRequestLog) {
+            adActivity?.captureClick()
+        }
     }
 
     fun destroyListeners() {
@@ -26,53 +35,75 @@ class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
     }
 
     @JavascriptInterface
-    fun postMessage(json: String) {        
-        try {
-            val obj = JSONObject(json)
-            val type = obj.optString("type")
-            val msg = obj.optString("message")
+    fun postMessage(json: String) {
+        SdkShield.runSafely("JsBridge.postMessage", baseAdView.httpRequestLog) {
+            try {
+                val obj = JSONObject(json)
+                val type = obj.optString("type")
+                val msg = obj.optString("message")
 
-            if ("RENDER_STATUS" == type && "Success" == msg) {
-                adActivity?.captureImpression()
+                if ("RENDER_STATUS" == type && "Success" == msg) {
+                    adActivity?.captureImpression()
+                }
+            } catch (e: Exception) {
+                EventCollector.logEvent("js_bridge_error", mapOf(
+                    "method" to "postMessage",
+                    "error_message" to (e.message ?: "Unknown"),
+                    "raw_json" to json.take(200)
+                ))
+                throw e
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Invalid JSON: $json")
         }
     }
 
     @JavascriptInterface
-    fun postVideoStatus(json: String) {        
-        try {
-            val obj = JSONObject(json)
-            val type = obj.optString("type")
-            val msg = obj.optString("message")
+    fun postVideoStatus(json: String) {
+        SdkShield.runSafely("JsBridge.postVideoStatus", baseAdView.httpRequestLog) {
+            try {
+                val obj = JSONObject(json)
+                val type = obj.optString("type")
+                val msg = obj.optString("message")
 
-            if ("PLAY" == type) {
-                adActivity?.onVideoPlay()
-            } else if ("PAUSE" == type) {
-                adActivity?.onVideoPause()
-            } else if ("ENDED" == type) {
-                adActivity?.onVideoEnd()
+                if ("PLAY" == type) {
+                    adActivity?.onVideoPlay()
+                } else if ("PAUSE" == type) {
+                    adActivity?.onVideoPause()
+                } else if ("ENDED" == type) {
+                    adActivity?.onVideoEnd()
+                }
+            } catch (e: Exception) {
+                EventCollector.logEvent("js_bridge_error", mapOf(
+                    "method" to "postVideoStatus",
+                    "error_message" to (e.message ?: "Unknown"),
+                    "raw_json" to json.take(200)
+                ))
+                throw e
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Invalid JSON in postVideoStatus: $json", e)
         }
     }
 
     @JavascriptInterface
     fun reportOverflow(contentWidth: Int, contentHeight: Int, viewWidth: Int, viewHeight: Int) {
-        Log.e(TAG, "Ad overflow detected! Content: ${contentWidth}x${contentHeight} > View: ${viewWidth}x${viewHeight}")
-        baseAdView.post {
-            baseAdView.listener?.onAdFailedToLoad("For companion ads, you should have minimum 320x320 dimensions. But available space is ${viewWidth}x${viewHeight}. So we are collapsing the ad, we won't track impressions, clicks etc for this ad.")
-            baseAdView.destroy()
-            baseAdView.removeFromParent()
+        SdkShield.runSafely("JsBridge.reportOverflow", baseAdView.httpRequestLog) {
+            Log.e(TAG, "Ad overflow detected! Content: ${contentWidth}x${contentHeight} > View: ${viewWidth}x${viewHeight}")
+            baseAdView.post {
+                SdkShield.runSafely("JsBridge.reportOverflow.post", baseAdView.httpRequestLog) {
+                    baseAdView.listener?.onAdFailedToLoad("For companion ads, you should have minimum 320x320 dimensions. But available space is ${viewWidth}x${viewHeight}. So we are collapsing the ad, we won't track impressions, clicks etc for this ad.")
+                    baseAdView.destroy()
+                    baseAdView.removeFromParent()
+                }
+            }
         }
     }
 
     @JavascriptInterface
     fun showAd() {
-        baseAdView.post {
-            baseAdView.webView?.visibility = android.view.View.VISIBLE
+        SdkShield.runSafely("JsBridge.showAd", baseAdView.httpRequestLog) {
+            baseAdView.post {
+                SdkShield.runSafely("JsBridge.showAd.post", baseAdView.httpRequestLog) {
+                    baseAdView.webView?.visibility = android.view.View.VISIBLE
+                }
+            }
         }
     }
 

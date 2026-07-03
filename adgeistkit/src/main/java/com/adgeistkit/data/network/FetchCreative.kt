@@ -8,6 +8,9 @@ import com.adgeistkit.data.models.AdData
 import com.adgeistkit.data.models.AdErrorResponse
 import com.adgeistkit.data.models.AdResponseData
 import com.adgeistkit.data.models.AdVisibilityError
+import com.adgeistkit.logging.EventCollector
+import com.adgeistkit.logging.HttpRequestLog
+import com.adgeistkit.logging.SdkShield
 import okhttp3.*
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
@@ -21,7 +24,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-class FetchCreative(private val adgeistCore: AdgeistCore) {
+class FetchCreative(private val adgeistCore: AdgeistCore, private val httpRequestLog: HttpRequestLog? = null) {
     companion object {
         private const val TAG = "FetchCreative"
     }
@@ -106,15 +109,58 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
             }
 
             val client = OkHttpClient()
+            val fetchStartTime = System.currentTimeMillis()
 
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    Log.d(TAG, "Request Failed: ${bidRequestBackendDomain} - ${e.message}")
+                    httpRequestLog?.record(
+                        method = "POST",
+                        url = url,
+                        latencyMs = System.currentTimeMillis() - fetchStartTime,
+                        requestHeaders = request.headers,
+                        requestPayload = requestPayload,
+                        errorMessage = e.message
+                    )
+                    SdkShield.runSafely("FetchCreative.onFailure", httpRequestLog) {
+                        Log.d(TAG, "Request Failed: ${bidRequestBackendDomain} - ${e.message}")
+
+                        val eventName = if (e is java.net.SocketTimeoutException) "network_timeout" else "network_error"
+                        val params = mutableMapOf<String, Any>(
+                            "endpoint" to url,
+                            "error_class" to e.javaClass.simpleName,
+                            "message" to (e.message ?: "Unknown")
+                        )
+                        if (e is java.net.SocketTimeoutException) {
+                            params["timeout_ms"] = 10000
+                        }
+                        EventCollector.logEvent(eventName, params)
+                        throw e
+                    }
                     callback(createErrorProp(e.message ?: "Failed to connect to server"))
                 }
 
                 override fun onResponse(call: Call, response: Response) {
+                    SdkShield.runSafely("FetchCreative.onResponse", httpRequestLog) {
+                    val networkLatency = System.currentTimeMillis() - fetchStartTime
                     val jsonString = response.body?.string()
+
+                    httpRequestLog?.record(
+                        method = "POST",
+                        url = url,
+                        statusCode = response.code,
+                        latencyMs = networkLatency,
+                        requestHeaders = request.headers,
+                        responseHeaders = response.headers,
+                        requestPayload = requestPayload,
+                        responsePayload = jsonString,
+                    )
+
+                    EventCollector.logEvent("creative_fetch", mapOf(
+                        "endpoint" to url,
+                        "network_latency_ms" to networkLatency,
+                        "response_code" to response.code,
+                        "payload_size_bytes" to (jsonString?.length ?: 0)
+                    ))
 
                     if (jsonString.isNullOrBlank()) {
                         callback(createErrorProp("Server returned empty response", response.code))
@@ -145,6 +191,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                         }
                     } catch (e: Exception) {
                         callback(createErrorProp(e.message ?: "Failed to parse ad response"))
+                    }
                     }
                 }
 

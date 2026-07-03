@@ -22,7 +22,7 @@ import com.adgeistkit.ads.AdView
 import com.adgeistkit.request.AdRequest
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var adGeist: AdgeistCore
+    private var adGeist: AdgeistCore? = null
 
     // Configuration Section
     private lateinit var packageIdInput: EditText
@@ -55,74 +55,75 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+            super.onCreate(savedInstanceState)
+            setContentView(R.layout.activity_main)
 
-        // Initialize AdgeistCore with default packageId from build.gradle.kts
-        adGeist = AdgeistCore.initialize(applicationContext)
+            // Initialize AdgeistCore with default packageId from build.gradle.kts
+            adGeist = AdgeistCore.initialize(applicationContext)
 
-        // Handle deeplink UTM parameters
-        handleDeeplinkUtm(intent)
+            // Handle deeplink UTM parameters
+            handleDeeplinkUtm(intent)
 
-        // Configuration Section
-        packageIdInput = findViewById(R.id.packageIdInput)
-        adgeistAppIdInput = findViewById(R.id.adgeistAppIdInput)
-        configureBtn = findViewById(R.id.configureBtn)
+            // Configuration Section
+            packageIdInput = findViewById(R.id.packageIdInput)
+            adgeistAppIdInput = findViewById(R.id.adgeistAppIdInput)
+            configureBtn = findViewById(R.id.configureBtn)
 
-        // Ad Loading Section
-        adspaceIdInput = findViewById(R.id.adspaceIdInput)
-        adspaceTypeInput = findViewById(R.id.adspaceTypeInput)
-        widthInput = findViewById(R.id.widthInput)
-        heightInput = findViewById(R.id.heightInput)
-        generateAdBtn = findViewById(R.id.generateAdBtn)
-        cancelAdBtn = findViewById(R.id.cancelAdBtn)
-        adContainer = findViewById(R.id.adContainer)
-        responsiveContainer = findViewById(R.id.responsiveContainer)
-        testModeSwitch = findViewById(R.id.testModeSwitch)
-        responsiveAdSwitch = findViewById(R.id.responsiveAdSwitch)
-        responsiveSizeSection = findViewById(R.id.responsiveSizeSection)
-        containerWidthInput = findViewById(R.id.containerWidthInput)
-        containerHeightInput = findViewById(R.id.containerHeightInput)
+            // Ad Loading Section
+            adspaceIdInput = findViewById(R.id.adspaceIdInput)
+            adspaceTypeInput = findViewById(R.id.adspaceTypeInput)
+            widthInput = findViewById(R.id.widthInput)
+            heightInput = findViewById(R.id.heightInput)
+            generateAdBtn = findViewById(R.id.generateAdBtn)
+            cancelAdBtn = findViewById(R.id.cancelAdBtn)
+            adContainer = findViewById(R.id.adContainer)
+            responsiveContainer = findViewById(R.id.responsiveContainer)
+            testModeSwitch = findViewById(R.id.testModeSwitch)
+            responsiveAdSwitch = findViewById(R.id.responsiveAdSwitch)
+            responsiveSizeSection = findViewById(R.id.responsiveSizeSection)
+            containerWidthInput = findViewById(R.id.containerWidthInput)
+            containerHeightInput = findViewById(R.id.containerHeightInput)
 
-        // Set default values in input fields
-        packageIdInput.setText(defaultPackageId)
-        adgeistAppIdInput.setText(defaultAdgeistAppId)
+            // Set default values in input fields
+            packageIdInput.setText(defaultPackageId)
+            adgeistAppIdInput.setText(defaultAdgeistAppId)
 
-        generateAdBtn.isEnabled = true
-        cancelAdBtn.isEnabled = false
+            generateAdBtn.isEnabled = true
+            cancelAdBtn.isEnabled = false
 
-        // Responsive ad switch listener
-        responsiveAdSwitch.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                responsiveSizeSection.visibility = View.VISIBLE
-                widthInput.isEnabled = false
-                heightInput.isEnabled = false
-                // Set default container sizes
-                containerWidthInput.setText("300")
-                containerHeightInput.setText("250")
-            } else {
-                responsiveSizeSection.visibility = View.GONE
-                widthInput.isEnabled = true
-                heightInput.isEnabled = true
+            // Responsive ad switch listener
+            responsiveAdSwitch.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked) {
+                    responsiveSizeSection.visibility = View.VISIBLE
+                    widthInput.isEnabled = false
+                    heightInput.isEnabled = false
+                    // Set default container sizes
+                    containerWidthInput.setText("300")
+                    containerHeightInput.setText("250")
+                } else {
+                    responsiveSizeSection.visibility = View.GONE
+                    widthInput.isEnabled = true
+                    heightInput.isEnabled = true
+                }
+            }
+
+            // Configuration button listener
+            configureBtn.setOnClickListener {
+                configureSDK()
+            }
+
+            // Generate Ad button listener
+            generateAdBtn.setOnClickListener {
+                loadNewAd()
+            }
+
+            // Cancel button listener
+            cancelAdBtn.setOnClickListener {
+                destroyCurrentAd()
+                clearInputFields()
             }
         }
 
-        // Configuration button listener
-        configureBtn.setOnClickListener {
-            configureSDK()
-        }
-
-        // Generate Ad button listener
-        generateAdBtn.setOnClickListener {
-            loadNewAd()
-        }
-
-        // Cancel button listener
-        cancelAdBtn.setOnClickListener {
-            destroyCurrentAd()
-            clearInputFields()
-        }
-    }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -135,30 +136,7 @@ class MainActivity : AppCompatActivity() {
      */
     private fun handleDeeplinkUtm(intent: Intent?) {
         intent?.data?.let { uri ->
-
-            // Track UTM parameters from deeplink
-            adGeist.trackUtmFromDeeplink(uri)
-            
-            // // Retrieve and display the tracked parameters
-            // // For testing purposes, we can log them or show in an alert dialog
-            // val utmParams = adGeist.getUtmParameters()
-            // utmParams?.let {
-            //     Log.d("MainActivity", "UTM Parameters tracked:")
-            //     Log.d("MainActivity", "  Source: ${it.source}")
-            //     Log.d("MainActivity", "  Campaign: ${it.campaign}")
-            //     Log.d("MainActivity", "  Data: ${it.data}")
-            //     Log.d("MainActivity", "  Session ID: ${it.sessionId}")
-                
-            //     showAlertDialog(
-            //         "UTM Parameters Tracked",
-            //         "Source: ${it.source ?: "N/A"}\n" +
-            //         "Campaign: ${it.campaign ?: "N/A"}\n" +
-            //         "Data: ${it.data ?: "N/A"}\n" +
-            //         "Session ID: ${it.sessionId ?: "N/A"}"
-            //     )
-            // } ?: run {
-            //     Log.d("MainActivity", "No UTM parameters found")
-            // }
+            adGeist?.trackUtmFromDeeplink(uri)
         }
     }
 
@@ -173,7 +151,9 @@ class MainActivity : AppCompatActivity() {
 
         // Reinitialize AdgeistCore with new configuration
         AdgeistCore.destroy()
-        adGeist = AdgeistCore.initialize(applicationContext, defaultBidRequestBackendDomain, packageId, adgeistAppId)
+        adGeist = AdgeistCore.initialize(applicationContext, defaultBidRequestBackendDomain, packageId, adgeistAppId) ?: run {
+            return
+        }
         
         showAlertDialog("Success", "SDK configured successfully with:\nPackage ID: $packageId\nApp ID: $adgeistAppId")
         Log.d("MainActivity", "SDK reinitialized with Package ID: $packageId, App ID: $adgeistAppId")
@@ -229,19 +209,16 @@ class MainActivity : AppCompatActivity() {
             responsiveContainer.visibility = View.VISIBLE
             
             // Create AdView that fills the responsive container
-            val adView = AdView(this)
-            
+            val adView = AdView(this).apply {
+                adUnitId = adspaceId
+                adType = adSpaceType
+                adIsResponsive = true
+            }
+
             // Add directly to responsive container
             responsiveContainer.removeAllViews()
             responsiveContainer.addView(adView)
-            
-            adView.adUnitId = adspaceId
-            adView.adType = adSpaceType
-            adView.adIsResponsive = true
 
-            // For responsive ads, don't set AdSize - let it measure from parent
-            // The SDK will use measuredWidth and measuredHeight to set dimensions
-            
             Log.d("MainActivity", "Loading RESPONSIVE ad in container: ${containerWidth}dp x ${containerHeight}dp")
             
             setupAdListener(adView)
@@ -258,17 +235,15 @@ class MainActivity : AppCompatActivity() {
             // Create a new AdView instance
             val adView = AdView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(pxWidth, pxHeight)
+                adUnitId = adspaceId
+                adType = adSpaceType
+                setAdDimension(AdSize(width, height))
             }
-            
+
             // Add to container
             adContainer.removeAllViews()
             adContainer.addView(adView)
-            
-            adView.adUnitId = adspaceId
-            adView.adType = adSpaceType
 
-            adView.setAdDimension(AdSize(width, height))
-            
             Log.d("MainActivity", "Loading FIXED ad: ${width}dp x ${height}dp")
             
             setupAdListener(adView)

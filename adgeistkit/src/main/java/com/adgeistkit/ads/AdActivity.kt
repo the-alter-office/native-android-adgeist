@@ -12,11 +12,13 @@ import android.webkit.WebView
 import android.widget.HorizontalScrollView
 import android.widget.ScrollView
 import androidx.core.widget.NestedScrollView
-import com.adgeistkit.AdgeistCore.Companion.getInstance
+import com.adgeistkit.AdgeistCore
+import com.adgeistkit.data.network.CreativeAnalytics
+import com.adgeistkit.logging.SdkShield
 import com.adgeistkit.request.AnalyticsRequest
 
-class AdActivity(private val baseAdView: BaseAdView) {
-    private val postCreativeAnalytics = getInstance().postCreativeAnalytics()
+class AdActivity(private val baseAdView: BaseAdView, private val adgeistCore: AdgeistCore) {
+    private val postCreativeAnalytics = CreativeAnalytics(adgeistCore, baseAdView.httpRequestLog)
 
     private val renderStartTime = SystemClock.elapsedRealtime()
 
@@ -50,11 +52,15 @@ class AdActivity(private val baseAdView: BaseAdView) {
     private fun setupVisibilityTracking() {
         val vto = baseAdView.viewTreeObserver
 
-        scrollListener = OnScrollChangedListener { this.checkVisibility() }
+        scrollListener = OnScrollChangedListener {
+            SdkShield.runSafely("AdActivity.onScrollChanged", baseAdView.httpRequestLog) { this.checkVisibility() }
+        }
         vto.addOnScrollChangedListener(scrollListener)
 
         focusListener =
-            OnWindowFocusChangeListener { hasFocus: Boolean -> onVisibilityChange(hasFocus) }
+            OnWindowFocusChangeListener { hasFocus: Boolean ->
+                SdkShield.runSafely("AdActivity.onWindowFocusChange", baseAdView.httpRequestLog) { onVisibilityChange(hasFocus) }
+            }
         vto.addOnWindowFocusChangeListener(focusListener)
 
         checkVisibility()
@@ -111,7 +117,7 @@ class AdActivity(private val baseAdView: BaseAdView) {
 
     private fun startVisibilityCheck() {
         if (visibilityCheckRunnable != null) return
-        visibilityCheckRunnable = object : Runnable {
+        val runnable = object : Runnable {
             override fun run() {
                 if (isVisible && viewStartTime > 0 && !hasViewEvent) {
                     val timeInView = SystemClock.elapsedRealtime() - viewStartTime
@@ -137,8 +143,8 @@ class AdActivity(private val baseAdView: BaseAdView) {
             }
         }
 
-        val runnable = visibilityCheckRunnable
-        handler.post(runnable!!)
+        visibilityCheckRunnable = runnable
+        handler.post(runnable)
     }
 
     private fun findRootScrollView(view: View?): View? {
@@ -203,10 +209,9 @@ class AdActivity(private val baseAdView: BaseAdView) {
     }
 
     private fun stopVisibilityCheck() {
-        if (visibilityCheckRunnable != null) {
-            handler.removeCallbacks(visibilityCheckRunnable!!)
-            visibilityCheckRunnable = null
-        }
+        val runnable = visibilityCheckRunnable ?: return
+        handler.removeCallbacks(runnable)
+        visibilityCheckRunnable = null
     }
 
     fun onVisibilityChange(hasFocus: Boolean) {
@@ -250,20 +255,24 @@ class AdActivity(private val baseAdView: BaseAdView) {
     }
 
     fun captureImpression() {
-        if (!hasImpression) {
-            renderTime = SystemClock.elapsedRealtime() - renderStartTime
-            baseAdView.listener?.onAdLoaded()
-            hasImpression = true
+        SdkShield.runSafely("AdActivity.captureImpression", baseAdView.httpRequestLog) {
+            if (!hasImpression) {
+                renderTime = SystemClock.elapsedRealtime() - renderStartTime
+                baseAdView.listener?.onAdLoaded()
+                hasImpression = true
+            }
         }
     }
 
     fun captureClick() {
-        baseAdView.listener?.onAdClicked()
-        val analyticsRequest: AnalyticsRequest =
-            AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
-                .trackClick()
-                .build()
-        postCreativeAnalytics.sendTrackingDataV2(analyticsRequest)
+        SdkShield.runSafely("AdActivity.captureClick", baseAdView.httpRequestLog) {
+            baseAdView.listener?.onAdClicked()
+            val analyticsRequest: AnalyticsRequest =
+                AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
+                    .trackClick()
+                    .build()
+            postCreativeAnalytics.sendTrackingDataV2(analyticsRequest)
+        }
     }
 
   
@@ -276,12 +285,14 @@ class AdActivity(private val baseAdView: BaseAdView) {
         }
 
     fun destroy() {
-        val vto = baseAdView.viewTreeObserver
-        if (vto.isAlive) {
-            vto.removeOnScrollChangedListener(scrollListener)
+        SdkShield.runSafely("AdActivity.destroy", baseAdView.httpRequestLog) {
+            val vto = baseAdView.viewTreeObserver
+            if (vto.isAlive) {
+                vto.removeOnScrollChangedListener(scrollListener)
+            }
+            updateViewTime()
+            stopVisibilityCheck()
         }
-        updateViewTime()
-        stopVisibilityCheck()
     }
 
     companion object {

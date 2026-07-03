@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
+import com.adgeistkit.core.SdkFramework
 import com.adgeistkit.core.TargetingOptions
 import com.adgeistkit.core.device.DeviceIdentifier
 import com.adgeistkit.core.device.DeviceMeta
@@ -13,6 +14,11 @@ import com.adgeistkit.data.models.Event
 import com.adgeistkit.data.models.UserDetails
 import com.adgeistkit.data.network.CreativeAnalytics
 import com.adgeistkit.data.network.FetchCreative
+import com.adgeistkit.logging.EventBuffer
+import com.adgeistkit.logging.EventCollector
+import com.adgeistkit.logging.EventUploadScheduler
+import com.adgeistkit.logging.ContextCollector
+import com.adgeistkit.logging.SdkShield
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -23,6 +29,7 @@ class AdgeistCore private constructor(
     private val customPackageOrBundleID: String? = null,
     private val customAdgeistAppID: String? = null,
     private val customVersioning: String? = null,
+    val framework: SdkFramework = SdkFramework.KOTLIN,
 ) {
     companion object {
         private const val TAG = "AdgeistCore"
@@ -35,28 +42,44 @@ class AdgeistCore private constructor(
                        customBidRequestBackendDomain: String? = null,
                        customPackageOrBundleID : String? = null,
                        customAdgeistAppID : String? = null,
-                       customVersioning: String? = null): AdgeistCore
+                       customVersioning: String? = null,
+                       framework: SdkFramework = SdkFramework.KOTLIN): AdgeistCore?
         {
             return instance ?: synchronized(this) {
-                instance ?: try {
+                instance ?: SdkShield.runSafelyWithReturn("AdgeistCore.initialize", null) {
                     AdgeistCore(
                         context.applicationContext,
                         customBidRequestBackendDomain ?: BidRequestBackendDomain,
                         customPackageOrBundleID,
                         customAdgeistAppID,
                         customVersioning,
+                        framework,
                     ).also {
                         instance = it
                         Log.i(TAG, "AdgeistCore initialized successfully")
+
+                        it.deviceIdentifier.initialize()
+
+                        EventBuffer.initialize(context.applicationContext)
+
+                        ContextCollector.initialize(
+                            context.applicationContext,
+                            it.adgeistAppID,
+                            it.deviceMeta,
+                            it.deviceIdentifier,
+                            it.networkUtils,
+                            it.framework
+                        )
+
+                        EventCollector.initialize()
+
+                        EventUploadScheduler.initialize(context.applicationContext)
 
                         // Validate critical configuration after successful initialization
                         if (it.adgeistAppID.isEmpty()) {
                             Log.w(TAG, "WARNING: adgeistAppID is empty. Set com.adgeistkit.ads.ADGEIST_APP_ID in AndroidManifest.xml")
                         }
                     }
-                } catch (e: Throwable) {
-                    Log.e(TAG, "CRITICAL: AdgeistCore initialization failed", e)
-                    throw IllegalStateException("AdgeistCore initialization failed. See logs for details.", e)
                 }
             }
         }
@@ -69,10 +92,12 @@ class AdgeistCore private constructor(
         }
 
         @JvmStatic
-        fun getInstance(): AdgeistCore {
-            return instance ?: run {
-                Log.e(TAG, "ERROR: AdgeistCore not initialized")
-                throw IllegalStateException("AdgeistCore is not initialized. Call AdgeistCore.initialize() first.")
+        fun getInstance(): AdgeistCore? {
+            return SdkShield.runSafelyWithReturn("AdgeistCore.getInstance", null) {
+                instance ?: run {
+                    Log.e(TAG, "ERROR: AdgeistCore not initialized")
+                    null
+                }
             }
         }
         
@@ -128,7 +153,9 @@ class AdgeistCore private constructor(
 
     @Synchronized
     fun setUserDetails(details: UserDetails) {
-        userDetails = details
+        SdkShield.runSafely("AdgeistCore.setUserDetails") {
+            userDetails = details
+        }
     }
 
     fun updateConsentStatus(consentGiven: Boolean) {
@@ -140,24 +167,27 @@ class AdgeistCore private constructor(
         return consentGiven
     }
 
-    fun getCreative(): FetchCreative {
-        return FetchCreative(AdgeistCore.getInstance())
+    fun getCreative(): FetchCreative? {
+        return getInstance()?.let { FetchCreative(it) }
     }
 
-    fun postCreativeAnalytics(): CreativeAnalytics {
-        return CreativeAnalytics(AdgeistCore.getInstance())
+    fun postCreativeAnalytics(): CreativeAnalytics? {
+        return getInstance()?.let { CreativeAnalytics(it) }
     }
 
     fun logEvent(event: Event) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val localUserDetails = userDetails
-            val parameters = mutableMapOf<String, Any>()
-            event.eventProperties?.forEach { (key, value) -> if (value != null) parameters[key] = value }
-            
-            if (localUserDetails != null) {
-                parameters["userDetails"] = localUserDetails
+        SdkShield.runSafely("AdgeistCore.logEvent") {
+            CoroutineScope(Dispatchers.IO).launch {
+                SdkShield.runSafely("AdgeistCore.logEvent.coroutine") {
+                    val localUserDetails = userDetails
+                    val parameters = mutableMapOf<String, Any>()
+                    event.eventProperties?.forEach { (key, value) -> if (value != null) parameters[key] = value }
+
+                    if (localUserDetails != null) {
+                        parameters["userDetails"] = localUserDetails
+                    }
+                }
             }
-            val fullEvent = event.copy(eventProperties = parameters)
         }
     }
 
@@ -168,5 +198,4 @@ class AdgeistCore private constructor(
     fun hasPhoneStatePermission(): Boolean {
         return DeviceMeta.hasPhoneStatePermission(context)
     }
-
 }
