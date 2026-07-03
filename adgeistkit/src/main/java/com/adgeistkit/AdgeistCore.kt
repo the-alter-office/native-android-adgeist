@@ -6,8 +6,6 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
 import com.adgeistkit.core.TargetingOptions
-import com.adgeistkit.core.UtmTracker
-import com.adgeistkit.core.UtmParameters
 import com.adgeistkit.core.device.DeviceIdentifier
 import com.adgeistkit.core.device.DeviceMeta
 import com.adgeistkit.core.device.NetworkUtils
@@ -100,7 +98,6 @@ class AdgeistCore private constructor(
     val deviceMeta = DeviceMeta(context)
     val deviceIdentifier = DeviceIdentifier(context)
     val networkUtils = NetworkUtils(context)
-    val utmTracker = UtmTracker(context, bidRequestBackendDomain)
     var targetingInfo: Map<String, Any?>? = null
 
     private var userDetails: UserDetails? = null
@@ -112,8 +109,7 @@ class AdgeistCore private constructor(
         val targetingOptions = TargetingOptions(context)
         targetingInfo = targetingOptions.getTargetingInfo()
         
-        // Initialize UTM tracking for first install
-        utmTracker.initializeInstallReferrer()
+       
     }
 
     private fun getMetaValue(key: String): String? {
@@ -173,24 +169,4 @@ class AdgeistCore private constructor(
         return DeviceMeta.hasPhoneStatePermission(context)
     }
 
-    /**
-     * Track UTM parameters from a deeplink URI
-     */
-    fun trackUtmFromDeeplink(uri: Uri) {
-        utmTracker.trackFromDeeplink(uri)
-    }
-
-    /**
-     * Get stored UTM parameters
-     */
-    fun getUtmParameters(): UtmParameters? {
-        return utmTracker.getUtmParameters()
-    }
-
-    /**
-     * Clear stored UTM parameters
-     */
-    fun clearUtmParameters() {
-        utmTracker.clearUtmParameters()
-    }
 }
