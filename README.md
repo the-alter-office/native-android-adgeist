@@ -105,13 +105,15 @@ class MainActivity : AppCompatActivity() {
 
 You're now ready to implement ads in your app!
 
----
+## Implement Ad Formats
 
-## Banner and Display Ads
+Once the SDK is integrated and initialized, you can implement one or more of the supported ad formats below.
+
+### Banner and Display Ads
 
 Banner ads are rectangular ads that occupy a portion of an app's layout. They stay on screen while users are interacting with the app, either anchored at the top or bottom of the screen or inline with content as the user scrolls.
 
-### Define the Ad View
+#### Define the Ad View
 
 Banner and display ads are displayed in `AdView` objects, so the first step toward integrating ads is to include an `AdView` in your view hierarchy. Create an `AdView` and add it to your view hierarchy programmatically:
 
@@ -124,7 +126,7 @@ val adView = AdView(this).apply {
 }
 ```
 
-### Set the Ad Size
+#### Set the Ad Size
 
 For a fixed-size ad, set the `AdSize` to one of the predefined sizes or create a custom size:
 
@@ -138,7 +140,7 @@ For a **responsive ad** that sizes itself to fit its parent container, skip `set
 adView.adIsResponsive = true
 ```
 
-### Set Required Properties
+#### Set Required Properties
 
 Configure the following properties on your `AdView`:
 
@@ -161,7 +163,7 @@ Replace with the ad type you created in the Adgeist dashboard:
 - `AdType.DISPLAY` - Standard display ads  
 - `AdType.COMPANION` - Companion ads (requires minimum 320x320 dimensions)
 
-### Create an Ad Request
+#### Create an Ad Request
 
 Once the `AdView` is configured with its properties (`adUnitId`, `adType`, etc.), create an ad request using the builder pattern:
 
@@ -171,7 +173,7 @@ val adRequest = AdRequest.Builder()
     .build()
 ```
 
-### Always Test with Test Ads
+#### Always Test with Test Ads
 
 When building and testing your apps, make sure you use test ads rather than live, production ads. Failure to do so can lead to suspension of your account.
 
@@ -185,7 +187,7 @@ val adRequest = AdRequest.Builder()
 
 **Important:** Make sure you set `testMode` to `false` before publishing your app.
 
-### Load an Ad
+#### Load an Ad
 
 Now it's time to load an ad. This is done by calling `loadAd()` on the `AdView` object:
 
@@ -193,7 +195,7 @@ Now it's time to load an ad. This is done by calling `loadAd()` on the `AdView` 
 adView.loadAd(adRequest)
 ```
 
-### Complete Example
+#### Complete Example
 
 Here's a complete example of loading a banner ad programmatically:
 
@@ -250,7 +252,7 @@ class MainActivity : AppCompatActivity() {
 }
 ```
 
-### Responsive Ad Example
+#### Responsive Ad Example
 
 For an ad that fills its parent container instead of a fixed size, skip `setAdDimension()` and set `adIsResponsive = true`:
 
@@ -271,7 +273,7 @@ container.addView(adView)
 adView.loadAd(AdRequest.Builder().setTestMode(true).build())
 ```
 
-### Ad Events
+#### Ad Events
 
 You can listen for a number of events in the ad's lifecycle, including loading, impression, click, as well as open and close events. It is recommended to set the listener before loading the ad:
 
