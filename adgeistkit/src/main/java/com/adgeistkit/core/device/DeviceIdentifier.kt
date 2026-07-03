@@ -35,8 +35,6 @@ class DeviceIdentifier(private val context: Context) {
 
     /**
      * Returns the cached device identifier.
-     * Returns null only if resolution hasn't finished yet; once resolved, this is either
-     * the real advertising id or [UNAVAILABLE_DEVICE_ID] (never null again).
      */
     fun getDeviceIdentifier(): String? {
         return cachedDeviceId
