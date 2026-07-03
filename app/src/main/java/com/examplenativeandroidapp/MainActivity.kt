@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity() {
 
     private var currentAdView: AdView? = null
 
-    private val defaultPackageId = "com.parag.wallspace"
+    private val defaultPackageId = "com.leaguex.crm.beta"
     private val defaultAdgeistAppId = "69a6777707df2b1527e357f9"
     private val defaultBidRequestBackendDomain = "https://beta.v2.bg-services.adgeist.ai"
 
@@ -164,10 +164,10 @@ class MainActivity : AppCompatActivity() {
 
         val adspaceId = "69ca2675576a0a20dd6c6cfb"
         val adSpaceType = AdType.BANNER
-        val width = 360
-        val height = 360
-        val containerWidth = 360
-        val containerHeight = 360
+        val width = 320
+        val height = 320
+        val containerWidth = 320
+        val containerHeight = 320
 
         val isResponsive = true
 
