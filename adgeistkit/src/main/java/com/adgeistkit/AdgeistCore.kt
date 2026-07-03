@@ -6,14 +6,11 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
 import com.adgeistkit.core.TargetingOptions
-import com.adgeistkit.core.UtmTracker
-import com.adgeistkit.core.UtmParameters
 import com.adgeistkit.core.device.DeviceIdentifier
 import com.adgeistkit.core.device.DeviceMeta
 import com.adgeistkit.core.device.NetworkUtils
 import com.adgeistkit.data.models.Event
 import com.adgeistkit.data.models.UserDetails
-import com.adgeistkit.data.network.CdpClient
 import com.adgeistkit.data.network.CreativeAnalytics
 import com.adgeistkit.data.network.FetchCreative
 import kotlinx.coroutines.CoroutineScope
@@ -101,10 +98,8 @@ class AdgeistCore private constructor(
     val deviceMeta = DeviceMeta(context)
     val deviceIdentifier = DeviceIdentifier(context)
     val networkUtils = NetworkUtils(context)
-    val utmTracker = UtmTracker(context, bidRequestBackendDomain)
     var targetingInfo: Map<String, Any?>? = null
 
-    private val cdpClient = CdpClient(deviceIdentifier, networkUtils, "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJraXNob3JlIiwiaWF0IjoxNzU0Mzc1NzIwLCJuYmYiOjE3NTQzNzU3MjAsImV4cCI6MTc1Nzk3NTcyMCwianRpIjoiOTdmNTI1YjAtM2NhNy00MzQwLTlhOGItZDgwZWI2ZjJmOTAzIiwicm9sZSI6ImFkbWluIiwic2NvcGUiOiJpbmdlc3QiLCJwbGF0Zm9ybSI6Im1vYmlsZSIsImNvbXBhbnlfaWQiOiJraXNob3JlIiwiaXNzIjoiQWRHZWlzdC1DRFAifQ.IYQus53aQETqOaQzEED8L51jwKRN3n-Oq-M8jY_ZSaw")
     private var userDetails: UserDetails? = null
 
     init {
@@ -114,8 +109,7 @@ class AdgeistCore private constructor(
         val targetingOptions = TargetingOptions(context)
         targetingInfo = targetingOptions.getTargetingInfo()
         
-        // Initialize UTM tracking for first install
-        utmTracker.initializeInstallReferrer()
+       
     }
 
     private fun getMetaValue(key: String): String? {
@@ -164,7 +158,6 @@ class AdgeistCore private constructor(
                 parameters["userDetails"] = localUserDetails
             }
             val fullEvent = event.copy(eventProperties = parameters)
-            cdpClient.sendEventToCdp(fullEvent, consentGiven)
         }
     }
 
@@ -176,24 +169,4 @@ class AdgeistCore private constructor(
         return DeviceMeta.hasPhoneStatePermission(context)
     }
 
-    /**
-     * Track UTM parameters from a deeplink URI
-     */
-    fun trackUtmFromDeeplink(uri: Uri) {
-        utmTracker.trackFromDeeplink(uri)
-    }
-
-    /**
-     * Get stored UTM parameters
-     */
-    fun getUtmParameters(): UtmParameters? {
-        return utmTracker.getUtmParameters()
-    }
-
-    /**
-     * Clear stored UTM parameters
-     */
-    fun clearUtmParameters() {
-        utmTracker.clearUtmParameters()
-    }
 }

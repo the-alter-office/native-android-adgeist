@@ -3,7 +3,6 @@ package com.adgeistkit.data.network
 import android.util.Log
 import com.adgeistkit.AdgeistCore
 import com.adgeistkit.request.AnalyticsRequest
-import com.adgeistkit.request.AnalyticsRequestDEPRECATED
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -60,58 +59,4 @@ class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
         }
     }
 
-    fun sendTrackingData(analyticsRequestDEPRECATED: AnalyticsRequestDEPRECATED) {
-        scope.launch {
-            val envFlag = if (analyticsRequestDEPRECATED.isTestMode) "1" else "0"
-
-            val url =  if (analyticsRequestDEPRECATED.buyType == "FIXED") {
-                "$bidRequestBackendDomain/v2/ssp/impression"
-            } else {
-                "$bidRequestBackendDomain/api/analytics/track?adSpaceId=${analyticsRequestDEPRECATED.adUnitID}&companyId=$adgeistAppID&test=$envFlag"
-            }
-
-            val deviceId = deviceIdentifier.getDeviceIdentifier()
-            val userIP = networkUtils.getLocalIpAddress() ?: networkUtils.getWifiIpAddress() ?: "unknown"
-
-            val requestPayload = analyticsRequestDEPRECATED.toJson().toString();
-            val requestBody = requestPayload.toRequestBody("application/json".toMediaType())
-
-            val request = if (analyticsRequestDEPRECATED.buyType == "FIXED") {
-                Request.Builder()
-                    .url(url)
-                    .header("Content-Type", "application/json")
-                    .post(requestBody)
-                    .build()
-            } else {
-                Request.Builder()
-                    .url(url)
-                    .header("Content-Type", "application/json")
-                    .header("Origin", packageOrBundleID)
-                    .header("x-user-id", deviceId ?: "")
-                    .header("x-platform", "mobile_app")
-                    .header("x-forwarded-for", userIP)
-                    .post(requestBody)
-                    .build()
-            }
-
-            client.newCall(request).enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    Log.d(TAG, "Failed to send tracking data: ${e.message}")
-                }
-
-                override fun onResponse(call: Call, response: Response) {
-                    response.use {
-                        if (!response.isSuccessful) {
-                            val errorBody = response.body?.string() ?: "No error message"
-                            Log.d(TAG, "Request failed with code: ${response.code}, message: $errorBody")
-                            return
-                        }
-
-                        val jsonString = response.body?.string()
-                        Log.d(TAG, "Tracking data sent successfully: $jsonString")
-                    }
-                }
-            })
-        }
-    }
 }

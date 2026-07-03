@@ -32,7 +32,6 @@ class AdActivity(private val baseAdView: BaseAdView) {
     private var playbackStartTime: Long = 0
     private var totalPlaybackTime: Long = 0
     private var hasEnded = false
-    private var hasSentPlaybackEvent = false
 
     private var scrollListener: OnScrollChangedListener? = null
     private var focusListener: OnWindowFocusChangeListener? = null
@@ -254,11 +253,6 @@ class AdActivity(private val baseAdView: BaseAdView) {
         if (!hasImpression) {
             renderTime = SystemClock.elapsedRealtime() - renderStartTime
             baseAdView.listener?.onAdLoaded()
-            val analyticsRequest: AnalyticsRequest =
-                AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
-                    .trackImpression(renderTime)
-                    .build()
-            postCreativeAnalytics.sendTrackingDataV2(analyticsRequest)
             hasImpression = true
         }
     }
@@ -272,25 +266,7 @@ class AdActivity(private val baseAdView: BaseAdView) {
         postCreativeAnalytics.sendTrackingDataV2(analyticsRequest)
     }
 
-    fun captureTotalViewTime() {
-        val analyticsRequest: AnalyticsRequest =
-            AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
-                .trackTotalViewTime(totalViewTime)
-                .build()
-        postCreativeAnalytics.sendTrackingDataV2(analyticsRequest)
-    }
-
-    fun captureTotalVideoPlaybackTime() {
-        if (totalPlaybackTime > 0 && !hasSentPlaybackEvent && "video" == mediaType) {
-            val analyticsRequest: AnalyticsRequest =
-                AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
-                    .trackTotalPlaybackTime(totalPlaybackTime)
-                    .build()
-            postCreativeAnalytics.sendTrackingDataV2(analyticsRequest)
-            hasSentPlaybackEvent = true
-        }
-    }
-
+  
     private val webView: WebView?
         get() {
             if (baseAdView.childCount > 0 && baseAdView.getChildAt(0) is WebView) {
@@ -304,9 +280,6 @@ class AdActivity(private val baseAdView: BaseAdView) {
         if (vto.isAlive) {
             vto.removeOnScrollChangedListener(scrollListener)
         }
-
-        captureTotalViewTime()
-        captureTotalVideoPlaybackTime()
         updateViewTime()
         stopVisibilityCheck()
     }

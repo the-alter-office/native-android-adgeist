@@ -15,13 +15,13 @@ Test build of `adgeistkit` using:
    ```bash
    ./gradlew :adgeistkit:publishToMavenLocal \
      -PpublishVariant=betaRelease \
-     -PVERSION_NAME=1.1.25 -PVERSION_SUFFIX=beta \
+     -PVERSION_NAME=1.1.26 -PVERSION_SUFFIX=beta \
      -PRELEASE_SIGNING_ENABLED=false
    ```
 
 2. In the client app's `settings.gradle(.kts)`, add `mavenLocal()` first in `dependencyResolutionManagement.repositories`.
 
-3. Bump the client app's dependency to `ai.adgeist:adgeistkit:1.1.25` (the locally published version).
+3. Bump the client app's dependency to `ai.adgeist:adgeistkit:1.1.26` (the locally published version).
 
 ## Run the example app
 
