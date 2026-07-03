@@ -53,7 +53,7 @@ dependencies {
 }
 ```
 
-_Replace `Tag` with the latest version from the Maven Central badge above._
+_Replace `Tag` with the latest version from the [Maven Central](https://central.sonatype.com/artifact/ai.adgeist/adgeistkit/versions).
 
 Click **Sync Now** to sync your project with Gradle files.
 
@@ -67,20 +67,19 @@ Add your Adgeist publisher ID (as identified in the Adgeist web interface) to yo
 <manifest>
     <application>
         <!-- Sample Adgeist app ID: 69326f9fbb280f9241cabc94 -->
-
         <meta-data
             android:name="com.adgeistkit.ads.ADGEIST_APP_ID"
-            android:value="ADGEIST_APP_ID"/>
+            android:value="YOUR_ADGEIST_ID"/>
 
     </application>
 </manifest>
 ```
 
-Replace `ADGEIST_APP_ID` with your actual Adgeist credentials.
+Replace `YOUR_ADGEIST_ID` with your actual Adgeist publisher ID.
 
 ### STEP 4: Initialize the Adgeist Mobile Ads SDK
 
-Before loading ads, initialize the Adgeist Mobile Ads SDK by calling `AdgeistCore.initialize(this)`.
+Before loading ads, initialize the Adgeist Mobile Ads SDK by calling `AdgeistCore.initialize(this)`. Add this to your launcher activity, e.g. `MainActivity.kt`:
 
 ```kotlin
 import com.adgeistkit.AdgeistCore
