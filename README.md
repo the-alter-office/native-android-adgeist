@@ -77,6 +77,12 @@ Add your Adgeist publisher ID (as identified in the Adgeist web interface) to yo
 
 Replace `YOUR_ADGEIST_ID` with your actual Adgeist publisher ID.
 
+Also make sure your app requests the INTERNET permission, which `loadAd()` requires:
+
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+```
+
 ### STEP 4: Initialize the Adgeist Mobile Ads SDK
 
 Before loading ads, initialize the Adgeist Mobile Ads SDK by calling `AdgeistCore.initialize(this)`. Add this to your launcher activity, e.g. `MainActivity.kt`:
@@ -85,7 +91,7 @@ Before loading ads, initialize the Adgeist Mobile Ads SDK by calling `AdgeistCor
 import com.adgeistkit.AdgeistCore
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var adGeist: AdgeistCore
+    private var adGeist: AdgeistCore? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -107,23 +113,7 @@ Banner ads are rectangular ads that occupy a portion of an app's layout. They st
 
 ### Define the Ad View
 
-Banner and display ads are displayed in `AdView` objects, so the first step toward integrating ads is to include an `AdView` in your view hierarchy. This can be done either in XML or programmatically.
-
-#### Option 1: Using XML Layout
-
-Add the `AdView` to your layout file:
-
-```xml
-<com.adgeistkit.ads.AdView
-    android:id="@+id/adView"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    ads:adUnitId="YOUR_AD_UNIT_ID"/>
-```
-
-#### Option 2: Programmatic Implementation
-
-An `AdView` can also be instantiated directly. The following example creates an `AdView` programmatically:
+Banner and display ads are displayed in `AdView` objects, so the first step toward integrating ads is to include an `AdView` in your view hierarchy. Create an `AdView` and add it to your view hierarchy programmatically:
 
 ```kotlin
 val adView = AdView(this).apply {
@@ -136,10 +126,16 @@ val adView = AdView(this).apply {
 
 ### Set the Ad Size
 
-Set the `AdSize` to one of the predefined sizes or create a custom size:
+For a fixed-size ad, set the `AdSize` to one of the predefined sizes or create a custom size:
 
 ```kotlin
 adView.setAdDimension(AdSize(360, 360))
+```
+
+For a **responsive ad** that sizes itself to fit its parent container, skip `setAdDimension()` entirely and set `adIsResponsive` instead:
+
+```kotlin
+adView.adIsResponsive = true
 ```
 
 ### Set Required Properties
@@ -207,11 +203,12 @@ import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
 import com.adgeistkit.AdgeistCore
 import com.adgeistkit.ads.AdSize
+import com.adgeistkit.ads.AdType
 import com.adgeistkit.ads.AdView
 import com.adgeistkit.request.AdRequest
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var adGeist: AdgeistCore
+    private var adGeist: AdgeistCore? = null
     private var adView: AdView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -222,17 +219,16 @@ class MainActivity : AppCompatActivity() {
         adGeist = AdgeistCore.initialize(applicationContext)
 
         // Create AdView
-        adView = AdView(this).apply {
+        val newAdView = AdView(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
+            adUnitId = "YOUR_AD_UNIT_ID"
+            adType = AdType.BANNER
+            setAdDimension(AdSize(320, 50))
         }
-
-        // Configure AdView
-        adView.adUnitId = "YOUR_AD_UNIT_ID"
-        adView.adType = AdType.BANNER
-        setAdDimension(AdSize(320, 50))
+        adView = newAdView
 
         // Create ad request
         val adRequest = AdRequest.Builder()
@@ -240,11 +236,11 @@ class MainActivity : AppCompatActivity() {
             .build()
 
         // Load ad
-        adView?.loadAd(adRequest)
+        newAdView.loadAd(adRequest)
 
         // Add to layout
         val container = findViewById<LinearLayout>(R.id.adContainer)
-        container.addView(adView)
+        container.addView(newAdView)
     }
 
     override fun onDestroy() {
@@ -252,6 +248,27 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
     }
 }
+```
+
+### Responsive Ad Example
+
+For an ad that fills its parent container instead of a fixed size, skip `setAdDimension()` and set `adIsResponsive = true`:
+
+```kotlin
+val adView = AdView(this).apply {
+    layoutParams = FrameLayout.LayoutParams(
+        FrameLayout.LayoutParams.MATCH_PARENT,
+        FrameLayout.LayoutParams.MATCH_PARENT
+    )
+    adUnitId = "YOUR_AD_UNIT_ID"
+    adType = AdType.BANNER
+    adIsResponsive = true
+}
+
+val container = findViewById<FrameLayout>(R.id.adContainer)
+container.addView(adView)
+
+adView.loadAd(AdRequest.Builder().setTestMode(true).build())
 ```
 
 ### Ad Events
@@ -333,14 +350,14 @@ override fun onCreate(savedInstanceState: Bundle?) {
 
     // Track UTM from deeplink
     intent?.data?.let { uri ->
-        adGeist.trackUtmFromDeeplink(uri)
+        adGeist?.trackUtmFromDeeplink(uri)
     }
 }
 
 override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
     intent?.data?.let { uri ->
-        adGeist.trackUtmFromDeeplink(uri)
+        adGeist?.trackUtmFromDeeplink(uri)
     }
 }
 ```
@@ -348,7 +365,7 @@ override fun onNewIntent(intent: Intent) {
 ### Retrieve UTM Parameters
 
 ```kotlin
-val utm = adGeist.getUtmParameters()
+val utm = adGeist?.getUtmParameters()
 utm?.let {
     Log.d("UTM", "Source: ${it.source}, Campaign: ${it.campaign}")
 }
@@ -356,12 +373,6 @@ utm?.let {
 
 ---
 
-## Next Steps
+## Support
 
-Now that you've integrated the Adgeist Mobile Ads SDK and implemented banner/display ads, you can:
-
-- Explore additional ad formats (if available)
-- Review your ad performance in the Adgeist dashboard
-- Optimize your ad placements for better revenue
-
-For support, please visit the Adgeist documentation or contact support.
+If you run into any difficulties while integrating or using the Adgeist Mobile Ads SDK, reach out to beast@thealteroffice.com and we'll help you get it sorted out.

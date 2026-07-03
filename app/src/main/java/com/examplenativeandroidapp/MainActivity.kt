@@ -20,7 +20,6 @@ import com.adgeistkit.ads.AdSize
 import com.adgeistkit.ads.AdType
 import com.adgeistkit.ads.AdView
 import com.adgeistkit.request.AdRequest
-import com.adgeistkit.request.AnalyticsRequestDEPRECATED
 
 class MainActivity : AppCompatActivity() {
     private var adGeist: AdgeistCore? = null
@@ -137,30 +136,7 @@ class MainActivity : AppCompatActivity() {
      */
     private fun handleDeeplinkUtm(intent: Intent?) {
         intent?.data?.let { uri ->
-
-            // Track UTM parameters from deeplink
             adGeist?.trackUtmFromDeeplink(uri)
-            
-            // // Retrieve and display the tracked parameters
-            // // For testing purposes, we can log them or show in an alert dialog
-            // val utmParams = adGeist.getUtmParameters()
-            // utmParams?.let {
-            //     Log.d("MainActivity", "UTM Parameters tracked:")
-            //     Log.d("MainActivity", "  Source: ${it.source}")
-            //     Log.d("MainActivity", "  Campaign: ${it.campaign}")
-            //     Log.d("MainActivity", "  Data: ${it.data}")
-            //     Log.d("MainActivity", "  Session ID: ${it.sessionId}")
-                
-            //     showAlertDialog(
-            //         "UTM Parameters Tracked",
-            //         "Source: ${it.source ?: "N/A"}\n" +
-            //         "Campaign: ${it.campaign ?: "N/A"}\n" +
-            //         "Data: ${it.data ?: "N/A"}\n" +
-            //         "Session ID: ${it.sessionId ?: "N/A"}"
-            //     )
-            // } ?: run {
-            //     Log.d("MainActivity", "No UTM parameters found")
-            // }
         }
     }
 
@@ -233,19 +209,16 @@ class MainActivity : AppCompatActivity() {
             responsiveContainer.visibility = View.VISIBLE
             
             // Create AdView that fills the responsive container
-            val adView = AdView(this)
-            
+            val adView = AdView(this).apply {
+                adUnitId = adspaceId
+                adType = adSpaceType
+                adIsResponsive = true
+            }
+
             // Add directly to responsive container
             responsiveContainer.removeAllViews()
             responsiveContainer.addView(adView)
-            
-            adView.adUnitId = adspaceId
-            adView.adType = adSpaceType
-            adView.adIsResponsive = true
 
-            // For responsive ads, don't set AdSize - let it measure from parent
-            // The SDK will use measuredWidth and measuredHeight to set dimensions
-            
             Log.d("MainActivity", "Loading RESPONSIVE ad in container: ${containerWidth}dp x ${containerHeight}dp")
             
             setupAdListener(adView)
@@ -262,17 +235,15 @@ class MainActivity : AppCompatActivity() {
             // Create a new AdView instance
             val adView = AdView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(pxWidth, pxHeight)
+                adUnitId = adspaceId
+                adType = adSpaceType
+                setAdDimension(AdSize(width, height))
             }
-            
+
             // Add to container
             adContainer.removeAllViews()
             adContainer.addView(adView)
-            
-            adView.adUnitId = adspaceId
-            adView.adType = adSpaceType
 
-            adView.setAdDimension(AdSize(width, height))
-            
             Log.d("MainActivity", "Loading FIXED ad: ${width}dp x ${height}dp")
             
             setupAdListener(adView)
