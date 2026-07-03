@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
 object EventUploadScheduler {
 
     private const val TAG = "EventUploadScheduler"
-    private const val THRESHOLD = 50
+    private const val THRESHOLD = 5
     private const val PERIODIC_HOURS = 4L
     private const val UNIQUE_PERIODIC = "adgeist_event_upload_periodic"
     private const val UNIQUE_IMMEDIATE = "adgeist_event_upload_immediate"
@@ -70,8 +70,6 @@ object EventUploadScheduler {
 
         val count = EventBuffer.eventCount()
         if (count == 0) return
-
-        Log.d(TAG, "Enqueueing immediate upload ($count events)")
 
         val request = OneTimeWorkRequestBuilder<EventUploadWorker>()
             .setConstraints(networkConstraint)

@@ -30,10 +30,6 @@ object SdkShield {
         Log.e(TAG, payload)
 
         EventCollector.logError(tag, t, httpRequests)
-
-        if (BuildConfig.DEBUG) {
-            throw t
-        }
     }
 
     private fun buildErrorPayload(tag: String, t: Throwable): String {

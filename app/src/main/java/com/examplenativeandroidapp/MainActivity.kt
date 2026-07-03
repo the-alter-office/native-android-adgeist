@@ -23,7 +23,7 @@ import com.adgeistkit.request.AdRequest
 import com.adgeistkit.request.AnalyticsRequestDEPRECATED
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var adGeist: AdgeistCore
+    private var adGeist: AdgeistCore? = null
 
     // Configuration Section
     private lateinit var packageIdInput: EditText
@@ -47,23 +47,20 @@ class MainActivity : AppCompatActivity() {
 
     private var currentAdView: AdView? = null
 
-    private val defaultPackageId = "com.leaguex.crm"
-    private val defaultAdgeistAppId = "695e797d6fcfb14c38cfd1d6"
-    private val defaultBidRequestBackendDomain = "https://qa.v2.bg-services.adgeist.ai"
+    private val defaultPackageId = "com.parag.wallspace"
+    private val defaultAdgeistAppId = "69a6777707df2b1527e357f9"
+    private val defaultBidRequestBackendDomain = "https://beta.v2.bg-services.adgeist.ai"
 
     private fun dpToPx(dp: Int): Int {
         return (dp * resources.displayMetrics.density).toInt()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        try {
             super.onCreate(savedInstanceState)
             setContentView(R.layout.activity_main)
 
             // Initialize AdgeistCore with default packageId from build.gradle.kts
-            adGeist = AdgeistCore.initialize(applicationContext) ?: run {
-                throw IllegalStateException("AdgeistCore initialization failed")
-            }
+            adGeist = AdgeistCore.initialize(applicationContext)
 
             // Handle deeplink UTM parameters
             handleDeeplinkUtm(intent)
@@ -126,10 +123,8 @@ class MainActivity : AppCompatActivity() {
                 destroyCurrentAd()
                 clearInputFields()
             }
-        }catch (err: Exception){
-
         }
-    }
+
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -144,7 +139,7 @@ class MainActivity : AppCompatActivity() {
         intent?.data?.let { uri ->
 
             // Track UTM parameters from deeplink
-            adGeist.trackUtmFromDeeplink(uri)
+            adGeist?.trackUtmFromDeeplink(uri)
             
             // // Retrieve and display the tracked parameters
             // // For testing purposes, we can log them or show in an alert dialog
@@ -191,12 +186,12 @@ class MainActivity : AppCompatActivity() {
     private fun loadNewAd() {
         destroyCurrentAd()
 
-        val adspaceId = "69944b1cf0afd4ba698bc780"
-        val adSpaceType = AdType.COMPANION
-        val width = 320
-        val height = 320
-        val containerWidth = 320
-        val containerHeight = 320
+        val adspaceId = "69ca2675576a0a20dd6c6cfb"
+        val adSpaceType = AdType.BANNER
+        val width = 360
+        val height = 360
+        val containerWidth = 360
+        val containerHeight = 360
 
         val isResponsive = true
 
