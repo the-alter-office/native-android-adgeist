@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 class DeviceIdentifier(private val context: Context) {
     companion object {
         private const val TAG = "DeviceIdentifier"
+        const val UNAVAILABLE_DEVICE_ID = "00000000-0000-0000-0000-000000000000"
     }
 
     @Volatile
@@ -21,19 +22,21 @@ class DeviceIdentifier(private val context: Context) {
      */
     fun initialize() {
         CoroutineScope(Dispatchers.IO).launch {
-            try {
+            cachedDeviceId = try {
                 val info = AdvertisingIdClient.getAdvertisingIdInfo(context)
-                cachedDeviceId = info.id
-                Log.d(TAG, "Device Identifier initialized: $cachedDeviceId")
+                info.id ?: UNAVAILABLE_DEVICE_ID
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to fetch Advertising ID during initialization: ${e.message}")
+                UNAVAILABLE_DEVICE_ID
             }
+            Log.d(TAG, "Device Identifier initialized: $cachedDeviceId")
         }
     }
 
     /**
      * Returns the cached device identifier.
-     * Returns null if not yet initialized or if fetching failed.
+     * Returns null only if resolution hasn't finished yet; once resolved, this is either
+     * the real advertising id or [UNAVAILABLE_DEVICE_ID] (never null again).
      */
     fun getDeviceIdentifier(): String? {
         return cachedDeviceId

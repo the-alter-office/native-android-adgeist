@@ -12,13 +12,13 @@ import android.webkit.WebView
 import android.widget.HorizontalScrollView
 import android.widget.ScrollView
 import androidx.core.widget.NestedScrollView
-import com.adgeistkit.AdgeistCore.Companion.getInstance
+import com.adgeistkit.AdgeistCore
 import com.adgeistkit.data.network.CreativeAnalytics
 import com.adgeistkit.logging.SdkShield
 import com.adgeistkit.request.AnalyticsRequest
 
-class AdActivity(private val baseAdView: BaseAdView) {
-    private val postCreativeAnalytics = CreativeAnalytics(getInstance(), baseAdView.httpRequestLog)
+class AdActivity(private val baseAdView: BaseAdView, private val adgeistCore: AdgeistCore) {
+    private val postCreativeAnalytics = CreativeAnalytics(adgeistCore, baseAdView.httpRequestLog)
 
     private val renderStartTime = SystemClock.elapsedRealtime()
 
@@ -118,7 +118,7 @@ class AdActivity(private val baseAdView: BaseAdView) {
 
     private fun startVisibilityCheck() {
         if (visibilityCheckRunnable != null) return
-        visibilityCheckRunnable = object : Runnable {
+        val runnable = object : Runnable {
             override fun run() {
                 if (isVisible && viewStartTime > 0 && !hasViewEvent) {
                     val timeInView = SystemClock.elapsedRealtime() - viewStartTime
@@ -144,8 +144,8 @@ class AdActivity(private val baseAdView: BaseAdView) {
             }
         }
 
-        val runnable = visibilityCheckRunnable
-        handler.post(runnable!!)
+        visibilityCheckRunnable = runnable
+        handler.post(runnable)
     }
 
     private fun findRootScrollView(view: View?): View? {
@@ -210,10 +210,9 @@ class AdActivity(private val baseAdView: BaseAdView) {
     }
 
     private fun stopVisibilityCheck() {
-        if (visibilityCheckRunnable != null) {
-            handler.removeCallbacks(visibilityCheckRunnable!!)
-            visibilityCheckRunnable = null
-        }
+        val runnable = visibilityCheckRunnable ?: return
+        handler.removeCallbacks(runnable)
+        visibilityCheckRunnable = null
     }
 
     fun onVisibilityChange(hasFocus: Boolean) {

@@ -18,11 +18,11 @@ object ContextCollector {
 
     private const val TAG = "ContextCollector"
 
-    private lateinit var deviceMeta: DeviceMeta
-    private lateinit var deviceIdentifier: DeviceIdentifier
-    private lateinit var networkUtils: NetworkUtils
-    private lateinit var additionalDeviceInfo: AdditionalTemporaryDeviceInfo
-    private lateinit var appContext: Context
+    private var deviceMeta: DeviceMeta? = null
+    private var deviceIdentifier: DeviceIdentifier? = null
+    private var networkUtils: NetworkUtils? = null
+    private var additionalDeviceInfo: AdditionalTemporaryDeviceInfo? = null
+    private var appContext: Context? = null
 
     private var publisherId: String = ""
     private var framework: SdkFramework = SdkFramework.KOTLIN
@@ -56,10 +56,14 @@ object ContextCollector {
         this.deviceMeta = deviceMeta
         this.deviceIdentifier = deviceIdentifier
         this.networkUtils = networkUtils
-        this.additionalDeviceInfo = AdditionalTemporaryDeviceInfo(appContext)
+        this.additionalDeviceInfo = AdditionalTemporaryDeviceInfo(context.applicationContext)
         this.isInitialized = true
 
-        ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver)
+        try {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to add lifecycle observer")
+        }
 
         Log.d(TAG, "ContextCollector initialized")
     }
@@ -78,14 +82,14 @@ object ContextCollector {
     }
 
     fun getAppContext(): Map<String, Any> {
-        if (!isInitialized) return emptyMap()
+        val context = appContext ?: return emptyMap()
 
-        val packageName = appContext.packageName
+        val packageName = context.packageName
         var appVersion = ""
         var appVersionCode = ""
 
         try {
-            val packageInfo = appContext.packageManager.getPackageInfo(packageName, 0)
+            val packageInfo = context.packageManager.getPackageInfo(packageName, 0)
             appVersion = packageInfo.versionName ?: ""
             appVersionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 packageInfo.longVersionCode.toString()
@@ -106,25 +110,26 @@ object ContextCollector {
     }
 
     fun getDeviceContext(): Map<String, Any?> {
-        if (!isInitialized) return emptyMap()
+        val meta = deviceMeta ?: return emptyMap()
+        val additional = additionalDeviceInfo
 
-        val (screenWidth, screenHeight) = deviceMeta.getScreenDimensions()
+        val (screenWidth, screenHeight) = meta.getScreenDimensions()
 
         val deviceContext = mutableMapOf<String, Any?>(
-            "osName" to deviceMeta.getOperatingSystem(),
-            "osVersion" to deviceMeta.getOSVersion(),
+            "osName" to meta.getOperatingSystem(),
+            "osVersion" to meta.getOSVersion(),
             "deviceModel" to Build.MODEL,
-            "deviceBrand" to deviceMeta.getDeviceBrand(),
-            "deviceType" to deviceMeta.getDeviceType(),
+            "deviceBrand" to meta.getDeviceBrand(),
+            "deviceType" to meta.getDeviceType(),
             "screenWidth" to screenWidth,
             "screenHeight" to screenHeight,
-            "networkType" to deviceMeta.getNetworkType(),
-            "networkProvider" to deviceMeta.getNetworkProvider(),
-            "supportedArchitectures" to deviceMeta.getCpuType(),
+            "networkType" to meta.getNetworkType(),
+            "networkProvider" to meta.getNetworkProvider(),
+            "supportedArchitectures" to meta.getCpuType(),
         )
 
         // Merge additional temporary device info (memory, density, locale, timezone)
-        deviceContext.putAll(additionalDeviceInfo.getAll())
+        additional?.let { deviceContext.putAll(it.getAll()) }
 
         return deviceContext
     }
@@ -138,14 +143,15 @@ object ContextCollector {
     }
 
     fun getUserContext(): Map<String, Any?> {
-        if (!isInitialized) return emptyMap()
+        val utils = networkUtils ?: return emptyMap()
+        val identifier = deviceIdentifier
 
-        val userIP = networkUtils.getLocalIpAddress()
-            ?: networkUtils.getWifiIpAddress()
+        val userIP = utils.getLocalIpAddress()
+            ?: utils.getWifiIpAddress()
 
         return mapOf(
             "userIP" to (userIP ?: "unknown"),
-            "deviceId" to (deviceIdentifier.getDeviceIdentifier() ?: "pending")
+            "deviceId" to (identifier?.getDeviceIdentifier() ?: "pending")
         )
     }
 

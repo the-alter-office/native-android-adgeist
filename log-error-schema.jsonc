@@ -239,6 +239,8 @@
             // Last known state before error
             // Acceptable values: "INITIALIZING" | "AD_LOADING" | "AD_RENDERING" | "JS_BRIDGE_ACTIVE" | "AD_SHOWING"
             "lastKnownState": "AD_RENDERING",
+            // Application status
+            // Acceptable values: "foreground" | "background"
             "appState": "foreground"
         },
         // ============================================================

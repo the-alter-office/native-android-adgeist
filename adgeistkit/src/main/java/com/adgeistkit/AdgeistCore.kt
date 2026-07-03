@@ -50,7 +50,6 @@ class AdgeistCore private constructor(
         {
             return instance ?: synchronized(this) {
                 instance ?: SdkShield.runSafelyWithReturn("AdgeistCore.initialize", null) {
-                    val initStartTime = System.currentTimeMillis()
                     AdgeistCore(
                         context.applicationContext,
                         customBidRequestBackendDomain ?: BidRequestBackendDomain,
@@ -96,10 +95,12 @@ class AdgeistCore private constructor(
         }
 
         @JvmStatic
-        fun getInstance(): AdgeistCore {
-            return instance ?: run {
-                Log.e(TAG, "ERROR: AdgeistCore not initialized")
-                throw IllegalStateException("AdgeistCore is not initialized. Call AdgeistCore.initialize() first.")
+        fun getInstance(): AdgeistCore? {
+            return SdkShield.runSafelyWithReturn("AdgeistCore.getInstance", null) {
+                instance ?: run {
+                    Log.e(TAG, "ERROR: AdgeistCore not initialized")
+                    null
+                }
             }
         }
         
@@ -172,12 +173,12 @@ class AdgeistCore private constructor(
         return consentGiven
     }
 
-    fun getCreative(): FetchCreative {
-        return FetchCreative(AdgeistCore.getInstance())
+    fun getCreative(): FetchCreative? {
+        return getInstance()?.let { FetchCreative(it) }
     }
 
-    fun postCreativeAnalytics(): CreativeAnalytics {
-        return CreativeAnalytics(AdgeistCore.getInstance())
+    fun postCreativeAnalytics(): CreativeAnalytics? {
+        return getInstance()?.let { CreativeAnalytics(it) }
     }
 
     fun logEvent(event: Event) {

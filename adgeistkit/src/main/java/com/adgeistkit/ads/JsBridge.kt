@@ -3,11 +3,16 @@ package com.adgeistkit.ads
 import android.content.Context
 import android.util.Log
 import android.webkit.JavascriptInterface
+import com.adgeistkit.AdgeistCore
 import com.adgeistkit.logging.EventCollector
 import com.adgeistkit.logging.SdkShield
 import org.json.JSONObject
 
-class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
+class JsBridge(
+    private val baseAdView: BaseAdView,
+    var mContext: Context,
+    private val adgeistCore: AdgeistCore
+) {
     private var adActivity: AdActivity? = null
 
     init {
@@ -15,7 +20,7 @@ class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
     }
 
     private fun initializeAdTracker() {
-        adActivity = AdActivity(baseAdView)
+        adActivity = AdActivity(baseAdView, adgeistCore)
     }
 
     fun recordClickListener() {
