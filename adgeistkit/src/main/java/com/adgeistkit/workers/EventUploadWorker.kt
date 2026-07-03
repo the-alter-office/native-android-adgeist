@@ -5,12 +5,10 @@ import android.util.Log
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.adgeistkit.data.network.PostHogClient
-import com.adgeistkit.data.network.toISOString
 import com.adgeistkit.logging.EventBuffer
 import com.adgeistkit.logging.SdkEvent
 import com.adgeistkit.logging.SdkShield
 import com.google.gson.Gson
-import java.util.Date
 
 class EventUploadWorker(
     context: Context,

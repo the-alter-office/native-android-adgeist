@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
+import com.adgeistkit.core.SdkFramework
 import com.adgeistkit.core.TargetingOptions
 import com.adgeistkit.core.device.DeviceIdentifier
 import com.adgeistkit.core.device.DeviceMeta
@@ -185,8 +186,6 @@ class AdgeistCore private constructor(
                     if (localUserDetails != null) {
                         parameters["userDetails"] = localUserDetails
                     }
-                    val fullEvent = event.copy(eventProperties = parameters)
-                    cdpClient.sendEventToCdp(fullEvent, consentGiven)
                 }
             }
         }
