@@ -33,7 +33,7 @@ object ExceptionPayloadBuilder {
             "errorCode" to errorCode,
             "errorCategory" to (ERROR_CODE_TO_CATEGORY[errorCode] ?: DEFAULT_CATEGORY),
             "exception" to buildException(t),
-            "detectionMethod" to "try_catch"
+            "detectionMethod" to "TRY_CATCH"
         )
     }
 
