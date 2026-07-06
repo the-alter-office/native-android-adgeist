@@ -272,7 +272,6 @@ class MainActivity : AppCompatActivity() {
     
     private fun loadAdRequest(adView: AdView) {
         val adRequest = AdRequest.Builder()
-            .setTestMode(testModeSwitch.isChecked)
             .build()
        adView.loadAd(adRequest)
     }
