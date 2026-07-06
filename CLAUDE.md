@@ -1,0 +1,1 @@
+Always check for an ARCHITECTURE.md file in any subfolder first and read it for initial context before reading other files. If you run into any uncertainty or conflict with the guidance in ARCHITECTURE.md, ask for an updated version promptly.
