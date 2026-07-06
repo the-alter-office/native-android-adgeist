@@ -5,13 +5,14 @@ import com.google.gson.annotations.SerializedName
 sealed interface AdResponseData
 
 data class FixedAdResponse(
-    val isTest: Boolean?,
     val expiresAt: String?,
     val metaData: String,
     val id: String,
     val generatedAt: String?,
-    val signature: String?,
     val campaignId: String?,
+    val campaignGroupId: String?,
+    val adspaceId: String?,
+    val publisherCompanyId: String?,
     val advertiser: Advertiser?,
     val type: String?,
     val loadType: String?,
@@ -19,7 +20,7 @@ data class FixedAdResponse(
     val creativesV1: List<CreativeV1>,
     val displayOptions: DisplayOptions?,
     val frontendCacheDurationSeconds: Int?,
-    val impressionRequirements: ImpressionRequirements?
+    val maxBid: Long?
 ) : AdResponseData
 
 data class Advertiser(
@@ -38,8 +39,11 @@ data class CreativeV1(
     val title: String?,
     val description: String?,
     val ctaUrl: String?,
+    val ctaShortCode: String?,
     val primary: MediaItem?,
-    val companions: List<MediaItem>?
+    val companions: List<MediaItem>?,
+    val createdAt: String?,
+    val updatedAt: String?
 )
 
 data class MediaItem(
@@ -47,7 +51,8 @@ data class MediaItem(
     val fileName: String?,
     val fileSize: Int?,
     val fileUrl: String?,
-    val thumbnailUrl: String?
+    val thumbnailUrl: String?,
+    val moderation: String?
 )
 
 data class MongoIdWrapper(
@@ -59,7 +64,8 @@ data class MongoDateWrapper(
 )
 
 data class DisplayOptions(
-    val allowedFormats: List<String>?,
+    val primaryFormats: List<String>?,
+    val companionFormats: List<String>?,
     val dimensions: Dimensions?,
     val isResponsive: Boolean?,
     val responsiveType: String?,
@@ -75,13 +81,6 @@ data class StyleOptions(
     val fontColor: String?,
     val fontFamily: String?
 )
-
-data class ImpressionRequirements(
-    val impressionType: List<String>?,
-    val minViewDurationSeconds: Int?
-)
-
-
 data class AdErrorResponse(
     val Error: String,
     val Status: String
