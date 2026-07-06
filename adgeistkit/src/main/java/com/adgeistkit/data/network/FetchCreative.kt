@@ -40,7 +40,6 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
     fun fetchCreative(
         adUnitID: String,
         buyType: String,
-        isTestEnvironment: Boolean = true,
         callback: (AdData) -> Unit
     ) {
         scope.launch {
@@ -49,15 +48,12 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                 ?: networkUtils.getWifiIpAddress()
                 ?: "unknown"
 
-            val envFlag = if (isTestEnvironment) "1" else "0"
-
             val url = "$bidRequestBackendDomain/v2/dsp/ad"
            
 
             val requestBuilder = FetchCreativeRequest.FetchCreativeRequestBuilder(
                 adSpaceId = adUnitID,
-                companyId = adgeistAppID,
-                isTest = isTestEnvironment
+                companyId = adgeistAppID
             )
 
             targetingInfo?.let {

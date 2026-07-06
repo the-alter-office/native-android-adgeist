@@ -19,6 +19,6 @@ data/
   network/FetchCreative.kt            # Ad fetch (OkHttp POST /v2/dsp/ad)
   network/CreativeAnalytics.kt        # Tracking POST /v2/ssp/impression
 request/
-  AdRequest.kt                        # loadAd() request (test mode)
+  AdRequest.kt                        # loadAd() request
   FetchCreativeRequest.kt             # Ad fetch request payload builder
   AnalyticsRequest.kt                 # Impression/click payload builder

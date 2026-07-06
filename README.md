@@ -171,23 +171,8 @@ Once the `AdView` is configured with its properties (`adUnitId`, `adType`, etc.)
 
 ```kotlin
 val adRequest = AdRequest.Builder()
-    .setTestMode(false)
     .build()
 ```
-
-### Always Test with Test Ads
-
-When building and testing your apps, make sure you use test ads rather than live, production ads. Failure to do so can lead to suspension of your account.
-
-The easiest way to load test ads is to set `testMode` to `true` when building your ad request:
-
-```kotlin
-val adRequest = AdRequest.Builder()
-    .setTestMode(true)
-    .build()
-```
-
-**Important:** Make sure you set `testMode` to `false` before publishing your app.
 
 ### Load an Ad
 
@@ -236,7 +221,6 @@ class MainActivity : AppCompatActivity() {
 
         // Create ad request
         val adRequest = AdRequest.Builder()
-            .setTestMode(true)
             .build()
 
         // Load ad

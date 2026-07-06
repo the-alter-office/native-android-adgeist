@@ -38,7 +38,6 @@ open class BaseAdView : ViewGroup {
     var adUnitId: String = ""
     var adType: AdType = AdType.BANNER
     var adIsResponsive: Boolean = false
-    var isTestMode: Boolean = false
 
     /**
      * Metadata and media type for ad tracking
@@ -182,10 +181,9 @@ open class BaseAdView : ViewGroup {
             val adgeist = getInstance()
             val fetchCreative: FetchCreative = adgeist.getCreative()
 
-            isTestMode = adRequest.isTestMode
 
             fetchCreative.fetchCreative(
-                adUnitId, "FIXED", isTestMode
+                adUnitId, "FIXED"
             ) { result ->
                 mainHandler?.post {
                     if (isDestroyed) return@post

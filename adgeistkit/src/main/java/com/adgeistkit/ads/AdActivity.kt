@@ -121,7 +121,7 @@ class AdActivity(private val baseAdView: BaseAdView) {
                         val scrollDepth: Float = scrollDepth()
                         val timeToVisible = SystemClock.elapsedRealtime() - renderStartTime
                         val analyticsRequest: AnalyticsRequest =
-                            AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
+                            AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData)
                                 .trackViewableImpression(
                                     timeToVisible,
                                     scrollDepth,
@@ -260,7 +260,7 @@ class AdActivity(private val baseAdView: BaseAdView) {
     fun captureClick() {
         baseAdView.listener?.onAdClicked()
         val analyticsRequest: AnalyticsRequest =
-            AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData, baseAdView.isTestMode)
+            AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData)
                 .trackClick()
                 .build()
         postCreativeAnalytics.sendTrackingDataV2(analyticsRequest)
