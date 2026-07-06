@@ -11,7 +11,7 @@ core/
   TargetingOptions.kt                 # Builds targeting/device metrics map
   device/DeviceIdentifier.kt          # Advertising/device ID
   device/DeviceMeta.kt                # Device metadata + phone-state permission
-  device/NetworkUtils.kt              # IP address lookups
+
 data/
   models/CreativeDataModel.kt         # All ad response data models
   models/Event.kt                     # Event logging model

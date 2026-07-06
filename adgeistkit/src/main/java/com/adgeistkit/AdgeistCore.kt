@@ -8,7 +8,6 @@ import android.net.Uri
 import com.adgeistkit.core.TargetingOptions
 import com.adgeistkit.core.device.DeviceIdentifier
 import com.adgeistkit.core.device.DeviceMeta
-import com.adgeistkit.core.device.NetworkUtils
 import com.adgeistkit.data.models.Event
 import com.adgeistkit.data.models.UserDetails
 import com.adgeistkit.data.network.CreativeAnalytics
@@ -97,7 +96,6 @@ class AdgeistCore private constructor(
 
     val deviceMeta = DeviceMeta(context)
     val deviceIdentifier = DeviceIdentifier(context)
-    val networkUtils = NetworkUtils(context)
     var targetingInfo: Map<String, Any?>? = null
 
     private var userDetails: UserDetails? = null

@@ -34,7 +34,6 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
     private val adgeistAppID = adgeistCore.adgeistAppID
 
     private val deviceIdentifier = adgeistCore.deviceIdentifier
-    private val networkUtils = adgeistCore.networkUtils
     private val targetingInfo = adgeistCore.targetingInfo
 
     fun fetchCreative(
@@ -44,9 +43,6 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
     ) {
         scope.launch {
             val deviceId = deviceIdentifier.getDeviceIdentifier()
-            val userIP = networkUtils.getLocalIpAddress()
-                ?: networkUtils.getWifiIpAddress()
-                ?: "unknown"
 
             val url = "$bidRequestBackendDomain/v2/dsp/ad"
            
@@ -63,43 +59,31 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                 }
             }
 
-            if (buyType == "FIXED") {
-                val utcFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
-                utcFormat.timeZone = TimeZone.getTimeZone("UTC")
-                val currentTimestamp = utcFormat.format(Date())
+        
+            val utcFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+            utcFormat.timeZone = TimeZone.getTimeZone("UTC")
+            val currentTimestamp = utcFormat.format(Date())
                 
-                requestBuilder
-                    .setPlatform("ANDROID")
-                    .setDeviceId(deviceId ?: "")
-                    .setTimeZone(TimeZone.getDefault().id)
-                    .setRequestedAt(currentTimestamp)
-                    .setSdkVersion(adgeistCore.version)
-            } else {
-                requestBuilder.setAppDto("itwcrm", "com.itwcrm")
-            }
+            requestBuilder
+                .setPlatform("ANDROID")
+                .setDeviceId(deviceId ?: "")
+                .setTimeZone(TimeZone.getDefault().id)
+                .setRequestedAt(currentTimestamp)
+                .setSdkVersion(adgeistCore.version)
+            
 
             val fetchCreativeRequest = requestBuilder.build()
             val requestPayload = fetchCreativeRequest.toJson().toString()
             val requestBody = requestPayload.toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
 
-            val request = if (buyType == "FIXED") {
-                Request.Builder()
-                    .url(url)
-                    .post(requestBody)
-                    .header("Content-Type", "application/json")
-                    .header("Origin",packageID)
-                    .build()
-            } else {
-                Request.Builder()
-                    .url(url)
-                    .post(requestBody)
-                    .header("Content-Type", "application/json")
-                    .header("Origin", packageID)
-                    .header("x-user-id", deviceId ?: "")
-                    .header("x-platform", "mobile_app")
-                    .header("x-forwarded-for", userIP)
-                    .build()
-            }
+            
+            Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .header("Content-Type", "application/json")
+                .header("Origin",packageID)
+                .build()
+           
 
             val client = OkHttpClient()
 
