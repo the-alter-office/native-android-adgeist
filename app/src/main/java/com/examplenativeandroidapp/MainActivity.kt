@@ -15,10 +15,7 @@ import com.google.android.material.navigation.NavigationView
 
 /**
  * Shell activity: top header with hamburger menu + side navigation drawer.
- *
- * Screens are fragments swapped inside fragmentContainer. Switching from
- * "Home (Ads)" to any other screen destroys HomeFragment's view, detaching the
- * AdView — use this to verify the SDK cleans up the WebView and its listeners.
+ * Screens are fragments swapped inside fragmentContainer.
  */
 class MainActivity : AppCompatActivity() {
 
@@ -30,29 +27,40 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var toolbar: MaterialToolbar
+    private lateinit var navigationView: NavigationView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Initialize AdgeistCore with default packageId from build.gradle.kts
         AdgeistCore.initialize(applicationContext)
 
         drawerLayout = findViewById(R.id.drawerLayout)
         toolbar = findViewById(R.id.topToolbar)
-        val navigationView: NavigationView = findViewById(R.id.navigationView)
+        navigationView = findViewById(R.id.navigationView)
 
-        // On Android 15+ (targetSdk 35) the app draws edge-to-edge, so push the
-        // toolbar content below the status bar. Don't consume the insets — the
-        // NavigationView uses them to pad its own header.
+        applyStatusBarInsets()
+        setupNavigation()
+
+        if (savedInstanceState == null) {
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, HomeFragment())
+                .commit()
+            navigationView.setCheckedItem(R.id.nav_home)
+        }
+    }
+
+    /**
+     * The app draws edge-to-edge on Android 15+ (targetSdk 35), so the toolbar
+     * and drawer header absorb the status bar height as extra top padding.
+     */
+    private fun applyStatusBarInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(toolbar) { view, insets ->
             val statusBar = insets.getInsets(WindowInsetsCompat.Type.statusBars())
             view.updatePadding(top = statusBar.top)
             insets
         }
 
-        // Same rule for the drawer header: keep its own padding and add the
-        // status bar height on top of it.
         val navHeader = navigationView.getHeaderView(0)
         val navHeaderTopPadding = navHeader.paddingTop
         ViewCompat.setOnApplyWindowInsetsListener(navHeader) { view, insets ->
@@ -60,8 +68,9 @@ class MainActivity : AppCompatActivity() {
             view.updatePadding(top = navHeaderTopPadding + statusBar.top)
             insets
         }
+    }
 
-        // Hamburger icon opens the side nav as an overlay
+    private fun setupNavigation() {
         toolbar.setNavigationOnClickListener {
             drawerLayout.openDrawer(GravityCompat.START)
         }
@@ -76,8 +85,7 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        // Keep the toolbar title and drawer selection in sync as the user
-        // navigates back through their history.
+        // Keep toolbar title and drawer selection in sync while navigating back
         supportFragmentManager.addOnBackStackChangedListener {
             val title = currentScreenTitle()
             toolbar.title = title
@@ -90,8 +98,7 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        // Back button: close the drawer if open, otherwise let the fragment
-        // back stack pop (Screen Two/Three -> Home) before the app exits.
+        // Back closes the drawer if open, otherwise pops the fragment back stack
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
@@ -103,19 +110,11 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
-
-        if (savedInstanceState == null) {
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.fragmentContainer, HomeFragment())
-                .commit()
-            navigationView.setCheckedItem(R.id.nav_home)
-        }
     }
 
     /**
-     * Pushes the selected screen onto the back stack, so the back button
-     * retraces the user's navigation history. Reselecting the screen that is
-     * already showing is a no-op.
+     * Pushes the selected screen onto the back stack so back retraces the
+     * user's history. Reselecting the current screen is a no-op.
      */
     private fun navigateTo(createFragment: () -> Fragment, title: String) {
         if (currentScreenTitle() == title) return

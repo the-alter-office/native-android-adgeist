@@ -122,11 +122,6 @@ class HomeFragment : Fragment() {
             destroyAllAds()
             clearInputFields()
         }
-
-        // First visit fetches; returning adopts the SDK's live sessions
-        if (autoLoadEnabled) {
-            loadAdWithDefaults()
-        }
     }
 
     override fun onDestroyView() {

@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp"
-    android:gravity="center">
+    android:padding="16dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -14,73 +11,72 @@
         android:orientation="vertical"
         android:paddingTop="20dp">
 
-        <!-- Configuration Section -->
+        <!-- SDK configuration -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:gravity="center"
             android:text="SDK Configuration"
             android:textSize="18sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="12dp"
-            android:gravity="center" />
+            android:textStyle="bold" />
 
         <EditText
             android:id="@+id/packageIdInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:hint="Package ID"
-            android:inputType="text"
-            android:layout_marginTop="8dp" />
+            android:inputType="text" />
 
         <EditText
             android:id="@+id/adgeistAppIdInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:hint="Adgeist App ID"
-            android:inputType="text"
-            android:layout_marginTop="8dp" />
+            android:inputType="text" />
 
         <Button
             android:id="@+id/configureBtn"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Configure SDK"
             android:layout_marginTop="12dp"
-            android:backgroundTint="@color/teal_700" />
+            android:backgroundTint="@color/teal_700"
+            android:text="Configure SDK" />
 
-        <!-- Divider -->
         <View
             android:layout_width="match_parent"
             android:layout_height="2dp"
-            android:background="@android:color/darker_gray"
             android:layout_marginTop="24dp"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="24dp"
+            android:background="@android:color/darker_gray" />
 
-        <!-- Ad Loading Section -->
+        <!-- Ad loading -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:gravity="center"
             android:text="Load Advertisement"
             android:textSize="18sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="12dp"
-            android:gravity="center" />
+            android:textStyle="bold" />
 
         <!-- Auto Load (default ids) vs Manual Load (enter ids) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:layout_marginTop="4dp"
             android:gravity="start"
-            android:layout_marginTop="4dp">
+            android:orientation="horizontal">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Auto Load (default IDs)"
-                android:textSize="16sp"
                 android:layout_gravity="center_vertical"
-                android:layout_marginEnd="8dp" />
+                android:layout_marginEnd="8dp"
+                android:text="Auto Load (default IDs)"
+                android:textSize="16sp" />
 
             <androidx.appcompat.widget.SwitchCompat
                 android:id="@+id/autoLoadSwitch"
@@ -89,7 +85,7 @@
                 android:checked="true" />
         </LinearLayout>
 
-        <!-- Manual load inputs: visible only when Auto Load is off -->
+        <!-- Manual load inputs, visible only when Auto Load is off -->
         <LinearLayout
             android:id="@+id/manualLoadSection"
             android:layout_width="match_parent"
@@ -101,48 +97,48 @@
                 android:id="@+id/adspaceTypeInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
                 android:hint="Adspace Type (BANNER or COMPANION)"
-                android:inputType="text"
-                android:layout_marginTop="8dp" />
+                android:inputType="text" />
 
             <EditText
                 android:id="@+id/adspaceIdInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
                 android:hint="Adspace ID"
-                android:inputType="text"
-                android:layout_marginTop="8dp" />
+                android:inputType="text" />
 
             <EditText
                 android:id="@+id/widthInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
                 android:hint="Enter Width (dp)"
-                android:inputType="number"
-                android:layout_marginTop="8dp" />
+                android:inputType="number" />
 
             <EditText
                 android:id="@+id/heightInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
                 android:hint="Enter Height (dp)"
-                android:inputType="number"
-                android:layout_marginTop="8dp" />
+                android:inputType="number" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
+                android:layout_marginTop="16dp"
                 android:gravity="start"
-                android:layout_marginTop="16dp">
+                android:orientation="horizontal">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Responsive Ad"
-                    android:textSize="16sp"
                     android:layout_gravity="center_vertical"
-                    android:layout_marginEnd="8dp" />
+                    android:layout_marginEnd="8dp"
+                    android:text="Responsive Ad"
+                    android:textSize="16sp" />
 
                 <androidx.appcompat.widget.SwitchCompat
                     android:id="@+id/responsiveAdSwitch"
@@ -151,86 +147,88 @@
                     android:checked="false" />
             </LinearLayout>
 
+            <!-- Container dimensions, used only for responsive ads -->
             <LinearLayout
                 android:id="@+id/responsiveSizeSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
                 android:orientation="vertical"
-                android:visibility="gone"
-                android:layout_marginTop="8dp">
+                android:visibility="gone">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
                     android:text="Container Dimensions (for responsive ad)"
                     android:textSize="14sp"
-                    android:textStyle="italic"
-                    android:layout_marginBottom="8dp" />
+                    android:textStyle="italic" />
 
                 <EditText
                     android:id="@+id/containerWidthInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
                     android:hint="Container Width (dp)"
-                    android:inputType="number"
-                    android:layout_marginTop="4dp" />
+                    android:inputType="number" />
 
                 <EditText
                     android:id="@+id/containerHeightInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
                     android:hint="Container Height (dp)"
-                    android:inputType="number"
-                    android:layout_marginTop="4dp" />
+                    android:inputType="number" />
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Actions -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:layout_marginTop="16dp"
             android:gravity="center"
-            android:layout_marginTop="16dp">
+            android:orientation="horizontal">
+
             <Button
                 android:id="@+id/generateAdBtn"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:layout_marginEnd="8dp"
-                android:text="Get Ad"
+                android:layout_weight="1"
+                android:backgroundTint="@color/button_background_tint"
                 android:enabled="true"
-                android:backgroundTint="@color/button_background_tint" />
+                android:text="Get Ad" />
+
             <Button
                 android:id="@+id/cancelAdBtn"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
-                android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                android:text="Cancel"
-                android:enabled="true"
+                android:layout_weight="1"
                 android:backgroundTint="@color/button_background_tint"
-                android:visibility="invisible"
-                />
+                android:enabled="true"
+                android:text="Cancel"
+                android:visibility="invisible" />
         </LinearLayout>
 
-      <!-- Responsive Container: For responsive ads only -->
-      <FrameLayout
+        <!-- Legacy single responsive-ad slot (kept for compatibility) -->
+        <FrameLayout
             android:id="@+id/responsiveContainer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="40dp"
-            android:visibility="gone"
-        />
+            android:visibility="gone" />
 
-      <!-- Ad Container: For normal/fixed ads only -->
-      <LinearLayout
+        <!-- Loaded ads stack vertically here, one wrapper per ad -->
+        <LinearLayout
             android:id="@+id/adContainer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="40dp"
-            android:visibility="gone"
             android:gravity="center"
-            android:orientation="vertical" />
+            android:orientation="vertical"
+            android:visibility="gone" />
 
     </LinearLayout>
 </ScrollView>
