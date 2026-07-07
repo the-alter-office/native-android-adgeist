@@ -5,15 +5,41 @@ import android.util.Log
 import android.webkit.JavascriptInterface
 import org.json.JSONObject
 
-class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
+/**
+ * JS <-> native bridge registered on the ad WebView as the "Android" object.
+ * Survives AdView recreation together with its AdActivity tracker.
+ */
+class JsBridge(private var baseAdView: BaseAdView, var mContext: Context) {
+
+    companion object {
+        private const val TAG = "Javascript Bridge"
+    }
+
     private var adActivity: AdActivity? = null
 
     init {
-        initializeAdTracker()
+        adActivity = AdActivity(baseAdView)
     }
 
-    private fun initializeAdTracker() {
-        adActivity = AdActivity(baseAdView)
+    // ---------------------------------------------------------------------
+    // Host lifecycle plumbing (called by BaseAdView)
+    // ---------------------------------------------------------------------
+
+    /** Suspends tracking on window detach; the ad itself stays alive. */
+    fun onHostDetached() {
+        adActivity?.pause()
+    }
+
+    /** Re-registers tracking against the new window on re-attach. */
+    fun onHostAttached() {
+        adActivity?.resume()
+    }
+
+    /** Redirects this bridge and its tracker to the AdView that adopted the ad. */
+    fun rebind(newHost: BaseAdView) {
+        baseAdView = newHost
+        mContext = newHost.context
+        adActivity?.rebind(newHost)
     }
 
     fun recordClickListener() {
@@ -25,8 +51,12 @@ class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
         adActivity = null
     }
 
+    // ---------------------------------------------------------------------
+    // Calls from the ad page
+    // ---------------------------------------------------------------------
+
     @JavascriptInterface
-    fun postMessage(json: String) {        
+    fun postMessage(json: String) {
         try {
             val obj = JSONObject(json)
             val type = obj.optString("type")
@@ -41,11 +71,10 @@ class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
     }
 
     @JavascriptInterface
-    fun postVideoStatus(json: String) {        
+    fun postVideoStatus(json: String) {
         try {
             val obj = JSONObject(json)
             val type = obj.optString("type")
-            val msg = obj.optString("message")
 
             if ("PLAY" == type) {
                 adActivity?.onVideoPlay()
@@ -74,9 +103,5 @@ class JsBridge(private val baseAdView: BaseAdView, var mContext: Context) {
         baseAdView.post {
             baseAdView.webView?.visibility = android.view.View.VISIBLE
         }
-    }
-
-    companion object {
-        private const val TAG = "Javascript Bridge"
     }
 }

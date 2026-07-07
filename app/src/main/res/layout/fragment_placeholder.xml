@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="match_parent">
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
     android:gravity="center"
     android:orientation="vertical"
     android:padding="32dp">
@@ -18,6 +22,14 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:gravity="center"
-        android:text="The Home screen's AdView is now detached.\n\nCheck Logcat (tags: BaseAdView, HomeFragment) to verify the WebView was destroyed and listeners were cleaned up."
+        android:text="This screen loads the SAME ad unit as Home, but with its own placementId — so it gets its OWN ad (fresh fetch on first visit, its own session on return). Home's ad is never stolen.\n\nWatch logcat tag BaseAdView for the session keys."
         android:textSize="14sp" />
+
+    <!-- Same adUnitId as Home slot 1, different placement -->
+    <FrameLayout
+        android:id="@+id/placeholderAdContainer"
+        android:layout_width="320dp"
+        android:layout_height="320dp"
+        android:layout_marginTop="24dp" />
 </LinearLayout>
+</ScrollView>
