@@ -2,7 +2,7 @@ name: Artifact Deployment
 
 on:
   push:
-    branches: ["main", "qa"]
+    branches: ["fix/ad-render"]
 
 permissions:
   contents: write
@@ -31,7 +31,7 @@ jobs:
         id: variant
         run: |
           BRANCH="${{ github.ref_name }}"
-          if [ "$BRANCH" = "main" ]; then
+          if [ "$BRANCH" = "fix/ad-render" ]; then
             VARIANT="betaRelease"
           elif [ "$BRANCH" = "qa" ]; then
             VARIANT="qaRelease"
