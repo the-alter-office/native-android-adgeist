@@ -14,6 +14,7 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.webkit.ConsoleMessage
 import android.webkit.ConsoleMessage.MessageLevel
 import android.webkit.WebChromeClient
@@ -48,6 +49,15 @@ open class BaseAdView : ViewGroup {
     // Stable identity of this ad slot; sessions are resumed only by the same
     // placement. Auto-derived (view id / host fragment) when left empty.
     var placementId: String = ""
+
+    /**
+     * When false, the host-destroy watcher ignores fragment lifecycles and only
+     * tears the ad down on activity destroy. Embedders whose fragments are
+     * transient wrappers (react-native-screens recreates the fragment every
+     * time a screen is covered) must disable this and drive teardown explicitly
+     * (e.g. RN's onDropViewInstance).
+     */
+    var watchFragmentLifecycle: Boolean = true
 
     // Creative metadata used by tracking
     var metaData: String = ""
@@ -616,6 +626,7 @@ open class BaseAdView : ViewGroup {
             } catch (e: Exception) {
                 Log.e(TAG, "Error pausing WebView: ${e.message}", e)
             }
+            releaseImeSession()
         }
     }
 
@@ -629,9 +640,39 @@ open class BaseAdView : ViewGroup {
             } catch (e: Exception) {
                 Log.e(TAG, "Error pausing WebView: ${e.message}", e)
             }
+            releaseImeSession()
             Log.d(TAG, "Detached from window - ad paused (not destroyed)")
         }
         super.onDetachedFromWindow()
+    }
+
+    /**
+     * A WebView kept alive while its screen is covered can leave the IME
+     * bound to an inactive input connection (its served view is gone but the
+     * binding survives). Key events are routed through the IME stage before
+     * the activity's view hierarchy, so they die in that dead session -
+     * notably the system BACK key, which stops working app-wide. Force
+     * InputMethodManagerService to rebind to whatever is currently focused
+     * (or finish input entirely) so key dispatch recovers.
+     */
+    private fun releaseImeSession() {
+        val activity = findActivity(context) ?: return
+        val imm = activity.getSystemService(Context.INPUT_METHOD_SERVICE)
+            as? InputMethodManager ?: return
+        // Post so this runs after the detach pass completes and window focus
+        // has settled on the newly shown screen
+        mainHandler?.post {
+            try {
+                val focused = activity.currentFocus
+                if (focused != null) {
+                    imm.restartInput(focused)
+                } else {
+                    imm.hideSoftInputFromWindow(activity.window.decorView.windowToken, 0)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error releasing IME session: ${e.message}", e)
+            }
+        }
     }
 
     // ---------------------------------------------------------------------
@@ -644,7 +685,7 @@ open class BaseAdView : ViewGroup {
      * while covered on the back stack), falling back to the activity.
      */
     private fun registerHostDestroyWatcher() {
-        val fragment = findHostFragment()
+        val fragment = if (watchFragmentLifecycle) findHostFragment() else null
 
         if (observedLifecycle != null || activityCallbacks != null) {
             // Upgrade an activity-level watcher once the view is inside a
@@ -660,6 +701,9 @@ open class BaseAdView : ViewGroup {
             val observer = object : DefaultLifecycleObserver {
                 override fun onDestroy(owner: LifecycleOwner) {
                     Log.d(TAG, "Host ${if (owner is androidx.fragment.app.Fragment) "fragment (screen popped/removed)" else "activity"} destroyed - destroying ad")
+                    // Unregister first: destroy() may no-op on its isDestroyed
+                    // guard, which would leave this fired observer lingering
+                    unregisterHostDestroyWatcher()
                     destroy()
                 }
             }
