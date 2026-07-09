@@ -195,6 +195,21 @@ Now it's time to load an ad. This is done by calling `loadAd()` on the `AdView` 
 adView.loadAd(adRequest)
 ```
 
+#### Destroy the Ad
+
+When you're done with an `AdView`, call `destroy()` to permanently tear the ad down and release its resources. Call it from your activity's or fragment's `onDestroy()`:
+
+```kotlin
+override fun onDestroy() {
+    adView?.destroy()
+    super.onDestroy()
+}
+```
+
+Calling `destroy()` stops any in-progress ad load, releases the underlying WebView, and triggers the `onAdClosed()` callback on your `AdListener`. A destroyed `AdView` should not be reused — create a new instance to show another ad.
+
+The SDK also invokes `destroy()` automatically when the host screen is popped or the activity is destroyed, but calling it explicitly is recommended so cleanup happens deterministically.
+
 #### Complete Example
 
 Here's a complete example of loading a banner ad programmatically:
