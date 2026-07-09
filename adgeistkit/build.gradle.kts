@@ -84,3 +84,10 @@ mavenPublishing {
     val publishVariant = findProperty("publishVariant")?.toString() ?: "prodRelease"
     configure(AndroidSingleVariantLibrary(publishVariant))
 }
+
+// Skip signing when publishing to Maven Local (no GPG key needed for local development)
+tasks.withType<org.gradle.plugins.signing.Sign>().configureEach {
+    onlyIf {
+        !gradle.startParameter.taskNames.any { it.contains("publishToMavenLocal", ignoreCase = true) }
+    }
+}

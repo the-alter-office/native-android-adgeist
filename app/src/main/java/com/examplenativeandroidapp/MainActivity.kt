@@ -1,355 +1,134 @@
 package com.examplenativeandroidapp
 
-import android.content.DialogInterface
-import android.content.Intent
 import android.os.Bundle
-import android.util.Log
-import android.view.View
-import android.view.ViewGroup
-import android.widget.Button
-import android.widget.EditText
-import android.widget.LinearLayout
-import android.widget.FrameLayout
-import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.widget.SwitchCompat
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
+import androidx.core.view.GravityCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.fragment.app.Fragment
 import com.adgeistkit.AdgeistCore
-import com.adgeistkit.ads.AdListener
-import com.adgeistkit.ads.AdSize
-import com.adgeistkit.ads.AdType
-import com.adgeistkit.ads.AdView
-import com.adgeistkit.request.AdRequest
+import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.navigation.NavigationView
 
+/**
+ * Shell activity: top header with hamburger menu + side navigation drawer.
+ * Screens are fragments swapped inside fragmentContainer.
+ */
 class MainActivity : AppCompatActivity() {
-    private lateinit var adGeist: AdgeistCore
 
-    // Configuration Section
-    private lateinit var packageIdInput: EditText
-    private lateinit var adgeistAppIdInput: EditText
-    private lateinit var configureBtn: Button
-
-    // Ad Loading Section
-    private lateinit var adspaceIdInput: EditText
-    private lateinit var adspaceTypeInput: EditText
-    private lateinit var widthInput: EditText
-    private lateinit var heightInput: EditText
-    private lateinit var generateAdBtn: Button
-    private lateinit var cancelAdBtn: Button
-    private lateinit var adContainer: LinearLayout
-    private lateinit var responsiveContainer: FrameLayout
-    private lateinit var testModeSwitch: SwitchCompat
-    private lateinit var responsiveAdSwitch: SwitchCompat
-    private lateinit var responsiveSizeSection: LinearLayout
-    private lateinit var containerWidthInput: EditText
-    private lateinit var containerHeightInput: EditText
-
-    private var currentAdView: AdView? = null
-
-    private val defaultPackageId = "com.leaguex.crm.beta"
-    private val defaultAdgeistAppId = "69a6777707df2b1527e357f9"
-    private val defaultBidRequestBackendDomain = "https://beta.v2.bg-services.adgeist.ai"
-
-    private fun dpToPx(dp: Int): Int {
-        return (dp * resources.displayMetrics.density).toInt()
+    companion object {
+        private const val TITLE_HOME = "Home (Ads)"
+        private const val TITLE_SCREEN_TWO = "Screen Two"
+        private const val TITLE_SCREEN_THREE = "Screen Three"
     }
+
+    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var toolbar: MaterialToolbar
+    private lateinit var navigationView: NavigationView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Initialize AdgeistCore with default packageId from build.gradle.kts
-        adGeist = AdgeistCore.initialize(applicationContext)
+        AdgeistCore.initialize(applicationContext)
 
-        // Handle deeplink UTM parameters
-        handleDeeplinkUtm(intent)
+        drawerLayout = findViewById(R.id.drawerLayout)
+        toolbar = findViewById(R.id.topToolbar)
+        navigationView = findViewById(R.id.navigationView)
 
-        // Configuration Section
-        packageIdInput = findViewById(R.id.packageIdInput)
-        adgeistAppIdInput = findViewById(R.id.adgeistAppIdInput)
-        configureBtn = findViewById(R.id.configureBtn)
+        applyStatusBarInsets()
+        setupNavigation()
 
-        // Ad Loading Section
-        adspaceIdInput = findViewById(R.id.adspaceIdInput)
-        adspaceTypeInput = findViewById(R.id.adspaceTypeInput)
-        widthInput = findViewById(R.id.widthInput)
-        heightInput = findViewById(R.id.heightInput)
-        generateAdBtn = findViewById(R.id.generateAdBtn)
-        cancelAdBtn = findViewById(R.id.cancelAdBtn)
-        adContainer = findViewById(R.id.adContainer)
-        responsiveContainer = findViewById(R.id.responsiveContainer)
-        testModeSwitch = findViewById(R.id.testModeSwitch)
-        responsiveAdSwitch = findViewById(R.id.responsiveAdSwitch)
-        responsiveSizeSection = findViewById(R.id.responsiveSizeSection)
-        containerWidthInput = findViewById(R.id.containerWidthInput)
-        containerHeightInput = findViewById(R.id.containerHeightInput)
-
-        // Set default values in input fields
-        packageIdInput.setText(defaultPackageId)
-        adgeistAppIdInput.setText(defaultAdgeistAppId)
-
-        generateAdBtn.isEnabled = true
-        cancelAdBtn.isEnabled = false
-
-        // Responsive ad switch listener
-        responsiveAdSwitch.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                responsiveSizeSection.visibility = View.VISIBLE
-                widthInput.isEnabled = false
-                heightInput.isEnabled = false
-                // Set default container sizes
-                containerWidthInput.setText("300")
-                containerHeightInput.setText("250")
-            } else {
-                responsiveSizeSection.visibility = View.GONE
-                widthInput.isEnabled = true
-                heightInput.isEnabled = true
-            }
+        if (savedInstanceState == null) {
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, HomeFragment())
+                .commit()
+            navigationView.setCheckedItem(R.id.nav_home)
         }
-
-        // Configuration button listener
-        configureBtn.setOnClickListener {
-            configureSDK()
-        }
-
-        // Generate Ad button listener
-        generateAdBtn.setOnClickListener {
-            loadNewAd()
-        }
-
-        // Cancel button listener
-        cancelAdBtn.setOnClickListener {
-            destroyCurrentAd()
-            clearInputFields()
-        }
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        handleDeeplinkUtm(intent)
     }
 
     /**
-     * Handle deeplink UTM parameters from intent
+     * The app draws edge-to-edge on Android 15+ (targetSdk 35), so the toolbar
+     * and drawer header absorb the status bar height as extra top padding.
      */
-    private fun handleDeeplinkUtm(intent: Intent?) {
-        intent?.data?.let { uri ->
+    private fun applyStatusBarInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(toolbar) { view, insets ->
+            val statusBar = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+            view.updatePadding(top = statusBar.top)
+            insets
+        }
 
-            // Track UTM parameters from deeplink
-            adGeist.trackUtmFromDeeplink(uri)
-            
-            // // Retrieve and display the tracked parameters
-            // // For testing purposes, we can log them or show in an alert dialog
-            // val utmParams = adGeist.getUtmParameters()
-            // utmParams?.let {
-            //     Log.d("MainActivity", "UTM Parameters tracked:")
-            //     Log.d("MainActivity", "  Source: ${it.source}")
-            //     Log.d("MainActivity", "  Campaign: ${it.campaign}")
-            //     Log.d("MainActivity", "  Data: ${it.data}")
-            //     Log.d("MainActivity", "  Session ID: ${it.sessionId}")
-                
-            //     showAlertDialog(
-            //         "UTM Parameters Tracked",
-            //         "Source: ${it.source ?: "N/A"}\n" +
-            //         "Campaign: ${it.campaign ?: "N/A"}\n" +
-            //         "Data: ${it.data ?: "N/A"}\n" +
-            //         "Session ID: ${it.sessionId ?: "N/A"}"
-            //     )
-            // } ?: run {
-            //     Log.d("MainActivity", "No UTM parameters found")
-            // }
+        val navHeader = navigationView.getHeaderView(0)
+        val navHeaderTopPadding = navHeader.paddingTop
+        ViewCompat.setOnApplyWindowInsetsListener(navHeader) { view, insets ->
+            val statusBar = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+            view.updatePadding(top = navHeaderTopPadding + statusBar.top)
+            insets
         }
     }
 
-    private fun configureSDK() {
-        val packageId = packageIdInput.text.toString().trim()
-        val adgeistAppId = adgeistAppIdInput.text.toString().trim()
-
-        if (packageId.isEmpty() || adgeistAppId.isEmpty()) {
-            showAlertDialog("Invalid Configuration", "Please enter valid Package ID and Adgeist App ID")
-            return
+    private fun setupNavigation() {
+        toolbar.setNavigationOnClickListener {
+            drawerLayout.openDrawer(GravityCompat.START)
         }
 
-        // Reinitialize AdgeistCore with new configuration
-        AdgeistCore.destroy()
-        adGeist = AdgeistCore.initialize(applicationContext, defaultBidRequestBackendDomain, packageId, adgeistAppId)
-        
-        showAlertDialog("Success", "SDK configured successfully with:\nPackage ID: $packageId\nApp ID: $adgeistAppId")
-        Log.d("MainActivity", "SDK reinitialized with Package ID: $packageId, App ID: $adgeistAppId")
-    }
-
-    private fun loadNewAd() {
-        destroyCurrentAd()
-
-        val adspaceId = "69ca2675576a0a20dd6c6cfb"
-        val adSpaceType = AdType.BANNER
-        val width = 320
-        val height = 320
-        val containerWidth = 320
-        val containerHeight = 320
-
-        val isResponsive = true
-
-        // val containerWidth = containerWidthInput.text.toString().toIntOrNull()
-        // val containerHeight = containerHeightInput.text.toString().toIntOrNull()
-        // val adspaceId = adspaceIdInput.text.toString().trim()
-        // val adSpaceType = adspaceTypeInput.text.toString().trim()
-        // val width = widthInput.text.toString().toIntOrNull() ?: 0
-        // val height = heightInput.text.toString().toIntOrNull() ?: 0
-
-        val missingFields = mutableListOf<String>()
-
-        if (adspaceId.isEmpty()) missingFields.add("Adspace ID")
-        
-        if (!isResponsive) {
-            if (width <= 0) missingFields.add("Width")
-            if (height <= 0) missingFields.add("Height")
-        } else {
-            if (containerWidth <= 0) missingFields.add("Container Width")
-            if (containerHeight <= 0) missingFields.add("Container Height")
+        navigationView.setNavigationItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_home -> navigateTo({ HomeFragment() }, TITLE_HOME)
+                R.id.nav_screen_two -> navigateTo({ PlaceholderFragment.newInstance(TITLE_SCREEN_TWO) }, TITLE_SCREEN_TWO)
+                R.id.nav_screen_three -> navigateTo({ PlaceholderFragment.newInstance(TITLE_SCREEN_THREE) }, TITLE_SCREEN_THREE)
+            }
+            drawerLayout.closeDrawer(GravityCompat.START)
+            true
         }
 
-        if (missingFields.isNotEmpty()) {
-            val message = "Please enter valid values for: ${missingFields.joinToString(", ")}"
-            showAlertDialog("Invalid Fields", message)
-            return
+        // Keep toolbar title and drawer selection in sync while navigating back
+        supportFragmentManager.addOnBackStackChangedListener {
+            val title = currentScreenTitle()
+            toolbar.title = title
+            navigationView.setCheckedItem(
+                when (title) {
+                    TITLE_SCREEN_TWO -> R.id.nav_screen_two
+                    TITLE_SCREEN_THREE -> R.id.nav_screen_three
+                    else -> R.id.nav_home
+                }
+            )
         }
 
-        if (isResponsive) {
-            // RESPONSIVE AD: AdView directly in responsiveContainer with MATCH_PARENT
-            val pxContainerWidth = dpToPx(containerWidth)
-            val pxContainerHeight = dpToPx(containerHeight)
-            
-            // Set responsive container dimensions
-            responsiveContainer.layoutParams.apply {
-                this.width = pxContainerWidth
-                this.height = pxContainerHeight
-            }
-            responsiveContainer.visibility = View.VISIBLE
-            
-            // Create AdView that fills the responsive container
-            val adView = AdView(this)
-            
-            // Add directly to responsive container
-            responsiveContainer.removeAllViews()
-            responsiveContainer.addView(adView)
-            
-            adView.adUnitId = adspaceId
-            adView.adType = adSpaceType
-            adView.adIsResponsive = true
-
-            // For responsive ads, don't set AdSize - let it measure from parent
-            // The SDK will use measuredWidth and measuredHeight to set dimensions
-            
-            Log.d("MainActivity", "Loading RESPONSIVE ad in container: ${containerWidth}dp x ${containerHeight}dp")
-            
-            setupAdListener(adView)
-            loadAdRequest(adView)
-        } else {
-            val pxWidth = dpToPx(width)
-            val pxHeight = dpToPx(height)
-            adContainer.layoutParams.apply {
-                this.width = pxWidth
-                this.height = pxHeight
-            }
-            adContainer.visibility = View.VISIBLE
-            
-            // Create a new AdView instance
-            val adView = AdView(this).apply {
-                layoutParams = LinearLayout.LayoutParams(pxWidth, pxHeight)
-            }
-            
-            // Add to container
-            adContainer.removeAllViews()
-            adContainer.addView(adView)
-            
-            adView.adUnitId = adspaceId
-            adView.adType = adSpaceType
-
-            adView.setAdDimension(AdSize(width, height))
-            
-            Log.d("MainActivity", "Loading FIXED ad: ${width}dp x ${height}dp")
-            
-            setupAdListener(adView)
-            loadAdRequest(adView)
-        }
-    }
-    
-    private fun setupAdListener(adView: AdView) {
-        adView.setAdListener(object : AdListener() {
-            override fun onAdLoaded() {
-                Log.d("AdView", "Ad Loaded Successfully!")
-                adView.visibility = View.VISIBLE
-            }
-
-            override fun onAdFailedToLoad(error: String) {
-                Log.e("AdView", "Ad Failed to Load: $error")
-                showAlertDialog("Ad Load Failed", "Reason: $error")
-                destroyCurrentAd()
-                clearInputFields()
-            }
-
-            override fun onAdClicked() {
-                Log.d("AdView", "Ad Clicked")
-            }
-
-            override fun onAdOpened() {
-                Log.d("AdView", "Ad Opened")
-            }
-
-            override fun onAdClosed() {
-                Log.d("AdView", "Ad Closed")
+        // Back closes the drawer if open, otherwise pops the fragment back stack
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                    drawerLayout.closeDrawer(GravityCompat.START)
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                    isEnabled = true
+                }
             }
         })
-        
-        currentAdView = adView
-    }
-    
-    private fun loadAdRequest(adView: AdView) {
-        val adRequest = AdRequest.Builder()
-            .setTestMode(testModeSwitch.isChecked)
-            .build()
-       adView.loadAd(adRequest)
     }
 
-    private fun destroyCurrentAd() {
-        currentAdView?.let { adView ->
-            adView.destroy()
-            (adView.parent as? ViewGroup)?.removeView(adView)
-        }
-        currentAdView = null
+    /**
+     * Pushes the selected screen onto the back stack so back retraces the
+     * user's history. Reselecting the current screen is a no-op.
+     */
+    private fun navigateTo(createFragment: () -> Fragment, title: String) {
+        if (currentScreenTitle() == title) return
 
-        responsiveContainer.visibility = View.GONE
-        adContainer.visibility = View.GONE
-        generateAdBtn.isEnabled = true
-        cancelAdBtn.isEnabled = false
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragmentContainer, createFragment())
+            .addToBackStack(title)
+            .commit()
+        toolbar.title = title
     }
 
-    private fun clearInputFields(){
-        adspaceIdInput.text.clear()
-        adspaceTypeInput.text.clear()
-        widthInput.text.clear()
-        heightInput.text.clear()
-    }
-
-    override fun onDestroy() {
-        adspaceIdInput.text.clear()
-        adspaceTypeInput.text.clear()
-        widthInput.text.clear()
-        heightInput.text.clear()
-        super.onDestroy()
-    }
-
-    private fun showAlertDialog(title: String, message: String) {
-        val dialog = AlertDialog.Builder(this@MainActivity)
-            .setTitle(title)
-            .setMessage(message)
-            .setPositiveButton("OK", null)
-            .show()
-
-        dialog.getButton(DialogInterface.BUTTON_POSITIVE).setTextColor(
-            ContextCompat.getColor(this@MainActivity, R.color.teal_700)
-        )
+    private fun currentScreenTitle(): String {
+        val entryCount = supportFragmentManager.backStackEntryCount
+        if (entryCount == 0) return TITLE_HOME
+        return supportFragmentManager.getBackStackEntryAt(entryCount - 1).name ?: TITLE_HOME
     }
 }
