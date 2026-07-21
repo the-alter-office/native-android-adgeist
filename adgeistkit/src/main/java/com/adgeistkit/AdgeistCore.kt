@@ -109,8 +109,6 @@ class AdgeistCore private constructor(
 
         val targetingOptions = TargetingOptions(context)
         targetingInfo = targetingOptions.getTargetingInfo()
-        
-       
     }
 
     private fun getMetaValue(key: String): String? {

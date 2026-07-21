@@ -5,7 +5,6 @@ import org.json.JSONObject
 class AnalyticsRequest private constructor(analyticsRequest: AnalyticsRequestBuilder) {
     //Required
     private val metaData = analyticsRequest.metaData
-    private val isTestMode = analyticsRequest.isTestMode
 
     //Optional
     private val type: String?
@@ -23,7 +22,7 @@ class AnalyticsRequest private constructor(analyticsRequest: AnalyticsRequestBui
     }
 
     class AnalyticsRequestBuilder(//Required
-        internal val metaData: String, val isTestMode: Boolean
+        internal val metaData: String
     ) {
         //Optional
         var type: String? = null
@@ -61,7 +60,6 @@ class AnalyticsRequest private constructor(analyticsRequest: AnalyticsRequestBui
         val json = JSONObject()
         try {
             json.put("metaData", metaData)
-            json.put("isTest", isTestMode)
             json.put("type", type)
 
             when (type) {

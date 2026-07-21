@@ -5,7 +5,6 @@ import com.google.gson.annotations.SerializedName
 sealed interface AdResponseData
 
 data class FixedAdResponse(
-    val isTest: Boolean?,
     val expiresAt: String?,
     val metaData: String,
     val id: String,
