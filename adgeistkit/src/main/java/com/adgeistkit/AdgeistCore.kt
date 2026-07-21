@@ -31,6 +31,7 @@ class AdgeistCore private constructor(
         private val lock = Any()
 
         @JvmStatic
+        @JvmOverloads
         fun initialize(context: Context,
                        customBidRequestBackendDomain: String? = null,
                        customPackageOrBundleID : String? = null,

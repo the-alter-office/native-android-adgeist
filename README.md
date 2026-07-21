@@ -16,6 +16,21 @@ Make sure that your app's build file uses the following values:
 - Compile SDK version of 35 or higher
 - **Recommended:** Create an Adgeist publisher account and register your app
 
+### Register your app's package id as an allowed origin
+
+When registering your app in the Adgeist web interface, the **Package Id** field must contain the
+exact effective `applicationId` your build ships. The SDK sends this `applicationId` as the request
+origin, and the ad server rejects any origin not registered for your publisher app id — ads then
+fail with `onAdFailedToLoad` reporting an invalid adspace or origin.
+
+Include any `applicationIdSuffix` (e.g. a debug build with `applicationIdSuffix = ".debug"` must be
+registered as `com.example.app.debug`, not `com.example.app`) as well as any product-flavor
+override. Confirm the exact id to register with:
+
+```bash
+adb shell pm list packages | grep <your-app>
+```
+
 ## Configure your app
 
 ### STEP 1: Ensure Maven Central is configured
@@ -103,6 +118,25 @@ class MainActivity : AppCompatActivity() {
 }
 ```
 
+Or from Java:
+
+```java
+import com.adgeistkit.AdgeistCore;
+
+public class MainActivity extends AppCompatActivity {
+    private AdgeistCore adGeist;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        // Initialize the Adgeist Mobile Ads SDK
+        adGeist = AdgeistCore.initialize(getApplicationContext());
+    }
+}
+```
+
 You're now ready to implement ads in your app!
 
 ## Implement Ad Formats
@@ -113,17 +147,19 @@ Once the SDK is integrated and initialized, you can implement one or more of the
 
 Banner ads are rectangular ads that occupy a portion of an app's layout. They stay on screen while users are interacting with the app, either anchored at the top or bottom of the screen or inline with content as the user scrolls.
 
+> **Launch screen ads (Android 12+ splash screens):** On Android 12+ (targetSdk 31+), the system
+> SplashScreen shown at app startup (via `installSplashScreen()`) is rendered by the OS — an icon on
+> a background color — and cannot host views or ads. To use a launch-screen ad unit, your app must
+> present its own splash/landing screen (an Activity or Compose screen shown after the system
+> splash) and place the `AdView` there. If your app has no such screen, assign the ad unit to
+> another placement instead.
+
 #### Define the Ad View
 
 Banner and display ads are displayed in `AdView` objects, so the first step toward integrating ads is to include an `AdView` in your view hierarchy. Create an `AdView` and add it to your view hierarchy programmatically:
 
 ```kotlin
-val adView = AdView(this).apply {
-    layoutParams = LinearLayout.LayoutParams(
-        LinearLayout.LayoutParams.WRAP_CONTENT,
-        LinearLayout.LayoutParams.WRAP_CONTENT
-    )
-}
+val adView = AdView(this)
 ```
 
 #### Set the Ad Size
@@ -221,10 +257,6 @@ class MainActivity : AppCompatActivity() {
 
         // Create AdView
         val newAdView = AdView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
             adUnitId = "YOUR_AD_UNIT_ID"
             adType = AdType.BANNER
             setAdDimension(AdSize(320, 50))
@@ -255,10 +287,6 @@ For an ad that fills its parent container instead of a fixed size, skip `setAdDi
 
 ```kotlin
 val adView = AdView(this).apply {
-    layoutParams = FrameLayout.LayoutParams(
-        FrameLayout.LayoutParams.MATCH_PARENT,
-        FrameLayout.LayoutParams.MATCH_PARENT
-    )
     adUnitId = "YOUR_AD_UNIT_ID"
     adType = AdType.BANNER
     adIsResponsive = true
@@ -266,7 +294,6 @@ val adView = AdView(this).apply {
 
 val container = findViewById<FrameLayout>(R.id.adContainer)
 container.addView(adView)
-
 adView.loadAd(AdRequest.Builder().build())
 ```
 
