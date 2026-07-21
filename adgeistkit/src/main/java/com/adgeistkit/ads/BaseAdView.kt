@@ -478,11 +478,11 @@ open class BaseAdView : ViewGroup {
             null
         )
 
-        addView(
-            webView, LayoutParams(
-                LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT
-            )
-        )
+       addView(
+           webView, LayoutParams(
+               LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT
+           )
+       )
 
         // Companion ads stay hidden until the overflow check completes
         if (adType == AdType.COMPANION) {
@@ -537,36 +537,43 @@ open class BaseAdView : ViewGroup {
     // ---------------------------------------------------------------------
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val child = getChildAt(0)
+        val widthSize = MeasureSpec.getSize(widthMeasureSpec)
+        val heightSize = MeasureSpec.getSize(heightMeasureSpec)
+
         var width: Int
         var height: Int
 
-        if (child != null && child.visibility != GONE) {
-            measureChild(child, widthMeasureSpec, heightMeasureSpec)
-            width = child.measuredWidth
-            height = child.measuredHeight
+        // 1. Calculate desired dimensions based on ad settings
+        if (adIsResponsive) {
+            width = widthSize
+            height = heightSize
+        } else if (adSize != null) {
+            width = adSize!!.getWidthInPixels(context)
+            height = adSize!!.getHeightInPixels(context)
         } else {
-            if (adIsResponsive) {
-                Log.d(TAG, "Ad is responsive - using available space for measurement")
-                width = android.view.View.MeasureSpec.getSize(widthMeasureSpec)
-                height = android.view.View.MeasureSpec.getSize(heightMeasureSpec)
-            } else if (adSize != null) {
-                width = adSize!!.getWidthInPixels(context)
-                height = adSize!!.getHeightInPixels(context)
-            } else {
-                width = 0
-                height = 0
-            }
+            width = 0
+            height = 0
         }
 
+        // 2. Respect minimum sizes (from XML or background)
         width = max(width.toDouble(), suggestedMinimumWidth.toDouble()).toInt()
         height = max(height.toDouble(), suggestedMinimumHeight.toDouble()).toInt()
 
-        Log.d(TAG, "onMeasure - width: ${resolveSize(width, widthMeasureSpec)}, height: ${resolveSize(height, heightMeasureSpec)}")
-        setMeasuredDimension(
-            resolveSize(width, widthMeasureSpec),
-            resolveSize(height, heightMeasureSpec)
-        )
+        // 3. Resolve against parent constraints
+        val resolvedWidth = resolveSize(width, widthMeasureSpec)
+        val resolvedHeight = resolveSize(height, heightMeasureSpec)
+
+        // 4. Force the child (WebView) to fill this view's resolved size
+        val child = getChildAt(0)
+        if (child != null && child.visibility != GONE) {
+            val childWidthSpec = MeasureSpec.makeMeasureSpec(resolvedWidth, MeasureSpec.EXACTLY)
+            val childHeightSpec = MeasureSpec.makeMeasureSpec(resolvedHeight, MeasureSpec.EXACTLY)
+            child.measure(childWidthSpec, childHeightSpec)
+            Log.d(TAG, "Ad child measured $resolvedWidth $resolvedHeight")
+        }
+
+        Log.d(TAG, "onMeasure - resolvedWidth: $resolvedWidth, resolvedHeight: $resolvedHeight")
+        setMeasuredDimension(resolvedWidth, resolvedHeight)
     }
 
     /** Centers the WebView child within this container. */

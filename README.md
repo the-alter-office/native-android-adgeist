@@ -159,12 +159,7 @@ Banner ads are rectangular ads that occupy a portion of an app's layout. They st
 Banner and display ads are displayed in `AdView` objects, so the first step toward integrating ads is to include an `AdView` in your view hierarchy. Create an `AdView` and add it to your view hierarchy programmatically:
 
 ```kotlin
-val adView = AdView(this).apply {
-    layoutParams = LinearLayout.LayoutParams(
-        LinearLayout.LayoutParams.WRAP_CONTENT,
-        LinearLayout.LayoutParams.WRAP_CONTENT
-    )
-}
+val adView = AdView(this)
 ```
 
 #### Set the Ad Size
@@ -262,10 +257,6 @@ class MainActivity : AppCompatActivity() {
 
         // Create AdView
         val newAdView = AdView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
             adUnitId = "YOUR_AD_UNIT_ID"
             adType = AdType.BANNER
             setAdDimension(AdSize(320, 50))
@@ -296,10 +287,6 @@ For an ad that fills its parent container instead of a fixed size, skip `setAdDi
 
 ```kotlin
 val adView = AdView(this).apply {
-    layoutParams = FrameLayout.LayoutParams(
-        FrameLayout.LayoutParams.MATCH_PARENT,
-        FrameLayout.LayoutParams.MATCH_PARENT
-    )
     adUnitId = "YOUR_AD_UNIT_ID"
     adType = AdType.BANNER
     adIsResponsive = true
@@ -307,7 +294,6 @@ val adView = AdView(this).apply {
 
 val container = findViewById<FrameLayout>(R.id.adContainer)
 container.addView(adView)
-
 adView.loadAd(AdRequest.Builder().build())
 ```
 
