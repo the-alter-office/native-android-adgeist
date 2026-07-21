@@ -44,7 +44,6 @@ open class BaseAdView : ViewGroup {
     var adUnitId: String = ""
     var adType: AdType = AdType.BANNER
     var adIsResponsive: Boolean = false
-    var isTestMode: Boolean = false
 
     // Stable identity of this ad slot; sessions are resumed only by the same
     // placement. Auto-derived (view id / host fragment) when left empty.
@@ -239,7 +238,6 @@ open class BaseAdView : ViewGroup {
         isLoading = false
         metaData = session.metaData
         mediaType = session.mediaType
-        isTestMode = session.isTestMode
         webView = session.webView
         jsInterface = session.jsInterface
 
@@ -312,10 +310,8 @@ open class BaseAdView : ViewGroup {
             val adgeist = getInstance()
             val fetchCreative: FetchCreative = adgeist.getCreative()
 
-            isTestMode = adRequest.isTestMode
-
             fetchCreative.fetchCreative(
-                adUnitId, "FIXED", isTestMode
+                adUnitId, "FIXED"
             ) { result ->
                 mainHandler?.post {
                     // Clear the flag even when destroyed mid-fetch, so a
@@ -501,7 +497,6 @@ open class BaseAdView : ViewGroup {
                     jsInterface!!,
                     metaData,
                     mediaType,
-                    isTestMode,
                     findActivity(context),
                     this
                 )

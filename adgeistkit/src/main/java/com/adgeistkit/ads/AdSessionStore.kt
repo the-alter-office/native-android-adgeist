@@ -13,7 +13,6 @@ internal class AdSession(
     val jsInterface: JsBridge,
     val metaData: String,
     val mediaType: String?,
-    val isTestMode: Boolean,
     // Sessions never cross activities: the WebView holds this activity's context
     val hostActivity: Activity?,
     // The AdView currently presenting this session

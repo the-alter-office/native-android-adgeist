@@ -6,7 +6,6 @@ class FetchCreativeRequest private constructor(builder: FetchCreativeRequestBuil
     //Required
     private val adSpaceId = builder.adSpaceId
     private val companyId = builder.companyId
-    private val isTest = builder.isTest
 
     //Optional
     private val platform: String?
@@ -30,8 +29,7 @@ class FetchCreativeRequest private constructor(builder: FetchCreativeRequestBuil
     class FetchCreativeRequestBuilder(
         //Required
         internal val adSpaceId: String,
-        internal val companyId: String,
-        internal val isTest: Boolean
+        internal val companyId: String
     ) {
         //Optional
         var platform: String? = null
@@ -88,8 +86,6 @@ class FetchCreativeRequest private constructor(builder: FetchCreativeRequestBuil
     fun toJson(): JSONObject {
         val json = JSONObject()
         try {
-            json.put("isTest", isTest)
-
             device?.let {
                 json.put("device", JSONObject(it))
             }
@@ -112,5 +108,4 @@ class FetchCreativeRequest private constructor(builder: FetchCreativeRequestBuil
 
     fun getAdSpaceId(): String = adSpaceId
     fun getCompanyId(): String = companyId
-    fun isTestEnvironment(): Boolean = isTest
 }
