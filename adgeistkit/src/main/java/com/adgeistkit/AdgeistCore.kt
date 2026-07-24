@@ -13,8 +13,11 @@ import com.adgeistkit.data.models.Event
 import com.adgeistkit.data.models.UserDetails
 import com.adgeistkit.data.network.CreativeAnalytics
 import com.adgeistkit.data.network.FetchCreative
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 class AdgeistCore private constructor(
@@ -65,6 +68,7 @@ class AdgeistCore private constructor(
         @JvmStatic
         fun destroy() {
             synchronized(lock) {
+                instance?.ioScope?.cancel()
                 instance = null
             }
         }
@@ -95,6 +99,17 @@ class AdgeistCore private constructor(
 
     private val KEY_CONSENT = "adgeist_consent"
     private var consentGiven: Boolean = false
+
+    /**
+     * Single scope for all SDK background work, cancelled in [destroy]. SupervisorJob keeps one
+     * failed coroutine from cancelling the rest; the handler stops uncaught exceptions from
+     * propagating to the host app's uncaught-exception handler.
+     */
+    internal val ioScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, e ->
+            Log.e(TAG, "Uncaught exception in SDK coroutine", e)
+        }
+    )
 
     val deviceMeta = DeviceMeta(context)
     val deviceIdentifier = DeviceIdentifier(context)
@@ -148,7 +163,7 @@ class AdgeistCore private constructor(
     }
 
     fun logEvent(event: Event) {
-        CoroutineScope(Dispatchers.IO).launch {
+        ioScope.launch {
             val localUserDetails = userDetails
             val parameters = mutableMapOf<String, Any>()
             event.eventProperties?.forEach { (key, value) -> if (value != null) parameters[key] = value }

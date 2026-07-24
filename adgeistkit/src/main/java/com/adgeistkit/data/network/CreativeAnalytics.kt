@@ -3,8 +3,6 @@ package com.adgeistkit.data.network
 import android.util.Log
 import com.adgeistkit.AdgeistCore
 import com.adgeistkit.request.AnalyticsRequest
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
@@ -16,7 +14,7 @@ class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
         private const val TAG = "CreativeAnalytics"
     }
 
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = adgeistCore.ioScope
     private val client = NetworkModule.httpClient
 
     private val bidRequestBackendDomain = adgeistCore.bidRequestBackendDomain

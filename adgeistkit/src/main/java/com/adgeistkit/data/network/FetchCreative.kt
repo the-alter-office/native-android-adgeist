@@ -10,8 +10,6 @@ import com.adgeistkit.data.models.AdResponseData
 import com.adgeistkit.data.models.AdVisibilityError
 import okhttp3.*
 import com.google.gson.Gson
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.IOException
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -26,7 +24,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
         private const val TAG = "FetchCreative"
     }
 
-    private val scope = CoroutineScope(Dispatchers.Main)
+    private val scope = adgeistCore.ioScope
 
     private val bidRequestBackendDomain = adgeistCore.bidRequestBackendDomain
 
