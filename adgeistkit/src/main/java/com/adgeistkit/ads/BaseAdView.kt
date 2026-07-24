@@ -420,8 +420,10 @@ open class BaseAdView : ViewGroup {
         jsInterface = bridge
         listener?.onAdOpened()
 
-        // Inspectable via chrome://inspect/#devices
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+        // Inspectable via chrome://inspect/#devices - debug builds of the SDK
+        // only, so shipped apps never expose the WebView (and its JS bridge)
+        // to adb-level inspection
+        if (com.adgeistkit.BuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             WebView.setWebContentsDebuggingEnabled(true)
         }
 
@@ -522,6 +524,12 @@ open class BaseAdView : ViewGroup {
             .replace("\r", "\\r")
             .replace("\t", "\\t")
             .replace("`", "\\`")
+            // Neutralize sequences the HTML parser acts on even inside a JS
+            // string: a literal </script> in creative text would close the
+            // inline <script> early and inject attacker markup. \/ and \! are
+            // valid JS string escapes, so the parsed JSON is unchanged.
+            .replace(Regex("(?i)</script")) { "<\\/script" }
+            .replace(Regex("<!--")) { "<\\!--" }
 
         return try {
             val template = context.assets.open("ad_view.html").bufferedReader().use { it.readText() }
@@ -846,7 +854,15 @@ open class BaseAdView : ViewGroup {
 
     private fun openInBrowser(context: Context, url: String) {
         try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            val uri = Uri.parse(url)
+            // Creative-supplied URLs are untrusted: only hand http(s) to the
+            // system, never intent://, market://, or custom app schemes
+            val scheme = uri.scheme?.lowercase()
+            if (scheme != "http" && scheme != "https") {
+                Log.w(TAG, "Blocked non-http(s) ad click URL: $url")
+                return
+            }
+            val intent = Intent(Intent.ACTION_VIEW, uri)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)
         } catch (e: Exception) {
