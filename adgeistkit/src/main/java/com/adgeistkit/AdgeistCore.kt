@@ -39,7 +39,7 @@ class AdgeistCore private constructor(
                        customBidRequestBackendDomain: String? = null,
                        customPackageOrBundleID : String? = null,
                        customAdgeistAppID : String? = null,
-                       customVersioning: String? = null): AdgeistCore
+                       customVersioning: String? = null): AdgeistCore?
         {
             return instance ?: synchronized(this) {
                 instance ?: try {
@@ -59,8 +59,10 @@ class AdgeistCore private constructor(
                         }
                     }
                 } catch (e: Throwable) {
+                    // Never crash the host app from SDK init: log and return
+                    // null so the SDK simply stays uninitialized.
                     Log.e(TAG, "CRITICAL: AdgeistCore initialization failed", e)
-                    throw IllegalStateException("AdgeistCore initialization failed. See logs for details.", e)
+                    null
                 }
             }
         }
@@ -95,7 +97,7 @@ class AdgeistCore private constructor(
     val version = customVersioning ?: "ANDROID-${com.adgeistkit.BuildConfig.VERSION_NAME}"
 
     private val PREFS_NAME = "AdgeistPrefs"
-    private val prefs: SharedPreferences
+    private var prefs: SharedPreferences? = null
 
     private val KEY_CONSENT = "adgeist_consent"
     private var consentGiven: Boolean = false
@@ -119,11 +121,21 @@ class AdgeistCore private constructor(
     private var userDetails: UserDetails? = null
 
     init {
-        prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        consentGiven = prefs.getBoolean(KEY_CONSENT, false)
+        // Both blocks fail soft: a broken SharedPreferences or OEM device API
+        // must degrade the SDK (no persisted consent / no targeting info),
+        // never crash the host app's startup.
+        try {
+            prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            consentGiven = prefs?.getBoolean(KEY_CONSENT, false) ?: false
+        } catch (e: Throwable) {
+            Log.e(TAG, "Non-fatal: failed to read AdGeist preferences", e)
+        }
 
-        val targetingOptions = TargetingOptions(context)
-        targetingInfo = targetingOptions.getTargetingInfo()
+        try {
+            targetingInfo = TargetingOptions(context).getTargetingInfo()
+        } catch (e: Throwable) {
+            Log.e(TAG, "Non-fatal: failed to collect device targeting info", e)
+        }
     }
 
     private fun getMetaValue(key: String): String? {
@@ -147,7 +159,11 @@ class AdgeistCore private constructor(
 
     fun updateConsentStatus(consentGiven: Boolean) {
         this.consentGiven = consentGiven
-        prefs.edit().putBoolean(KEY_CONSENT, consentGiven).apply()
+        try {
+            prefs?.edit()?.putBoolean(KEY_CONSENT, consentGiven)?.apply()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to persist consent status", e)
+        }
     }
 
     fun getConsentStatus(): Boolean {

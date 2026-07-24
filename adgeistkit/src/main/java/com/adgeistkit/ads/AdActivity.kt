@@ -172,7 +172,7 @@ class AdActivity(private var baseAdView: BaseAdView) {
     private fun startVisibilityCheck() {
         if (visibilityCheckRunnable != null || hasViewEvent) return
 
-        visibilityCheckRunnable = object : Runnable {
+        val runnable = object : Runnable {
             override fun run() {
                 // Stop if this check was cancelled (stopVisibilityCheck nulls the field)
                 if (visibilityCheckRunnable !== this) return
@@ -204,15 +204,13 @@ class AdActivity(private var baseAdView: BaseAdView) {
             }
         }
 
-        val runnable = visibilityCheckRunnable
-        handler.post(runnable!!)
+        visibilityCheckRunnable = runnable
+        handler.post(runnable)
     }
 
     private fun stopVisibilityCheck() {
-        if (visibilityCheckRunnable != null) {
-            handler.removeCallbacks(visibilityCheckRunnable!!)
-            visibilityCheckRunnable = null
-        }
+        visibilityCheckRunnable?.let { handler.removeCallbacks(it) }
+        visibilityCheckRunnable = null
     }
 
     private fun updateViewTime() {

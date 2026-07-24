@@ -249,7 +249,7 @@ open class BaseAdView : ViewGroup {
             )
         )
 
-        jsInterface!!.rebind(this)
+        session.jsInterface.rebind(this)
         registerHostDestroyWatcher()
 
         try {
@@ -355,8 +355,14 @@ open class BaseAdView : ViewGroup {
                             propertiesForAdCard["width"] = pxToDp(measuredWidth)
                             propertiesForAdCard["height"] = pxToDp(measuredHeight)
                         } else {
-                            propertiesForAdCard["width"] = adSize!!.width
-                            propertiesForAdCard["height"] = adSize!!.height
+                            val size = adSize
+                            if (size == null) {
+                                Log.e(TAG, "adSize not set - call setAdDimension() or set adIsResponsive = true")
+                                listener?.onAdFailedToLoad("adSize not set. Call setAdDimension() or set adIsResponsive = true before loadAd()")
+                                return@post
+                            }
+                            propertiesForAdCard["width"] = size.width
+                            propertiesForAdCard["height"] = size.height
                         }
 
                         val primaryCreative = mutableMapOf<String, String?>()
@@ -401,15 +407,17 @@ open class BaseAdView : ViewGroup {
         registerHostDestroyWatcher()
         removeAllViews()
 
-        webView = WebView(context).apply {
+        val adWebView = WebView(context).apply {
             setBackgroundColor(Color.TRANSPARENT)
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.loadWithOverviewMode = true
             settings.useWideViewPort = true
         }
+        webView = adWebView
 
-        jsInterface = JsBridge(this, context)
+        val bridge = JsBridge(this, context)
+        jsInterface = bridge
         listener?.onAdOpened()
 
         // Inspectable via chrome://inspect/#devices
@@ -417,10 +425,10 @@ open class BaseAdView : ViewGroup {
             WebView.setWebContentsDebuggingEnabled(true)
         }
 
-        webView!!.webViewClient = object : WebViewClient() {
+        adWebView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
                 openInBrowser(context, url)
-                jsInterface!!.recordClickListener()
+                jsInterface?.recordClickListener()
                 return true
             }
 
@@ -430,7 +438,7 @@ open class BaseAdView : ViewGroup {
             ): Boolean {
                 val url = request.url.toString()
                 openInBrowser(context, url)
-                jsInterface!!.recordClickListener()
+                jsInterface?.recordClickListener()
                 return true
             }
 
@@ -445,7 +453,7 @@ open class BaseAdView : ViewGroup {
             }
         }
 
-        webView!!.webChromeClient = object : WebChromeClient() {
+        adWebView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
                 val logLevel = consoleMessage.messageLevel().name
                 val message = consoleMessage.message()
@@ -463,10 +471,10 @@ open class BaseAdView : ViewGroup {
         }
 
         // Exposed to the page as the 'Android' object
-        webView!!.addJavascriptInterface(jsInterface!!, "Android")
+        adWebView.addJavascriptInterface(bridge, "Android")
 
         val htmlContent = buildAdCardHtml(creativeJsonData)
-        webView!!.loadDataWithBaseURL(
+        adWebView.loadDataWithBaseURL(
             "https://adgeist.ai",
             htmlContent,
             "text/html",
@@ -475,14 +483,14 @@ open class BaseAdView : ViewGroup {
         )
 
        addView(
-           webView, LayoutParams(
+           adWebView, LayoutParams(
                LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT
            )
        )
 
         // Companion ads stay hidden until the overflow check completes
         if (adType == AdType.COMPANION) {
-            webView!!.visibility = View.INVISIBLE
+            adWebView.visibility = View.INVISIBLE
         }
 
         // Register the session so this ad survives view recreation; views
@@ -493,8 +501,8 @@ open class BaseAdView : ViewGroup {
             AdSessionStore.put(
                 key,
                 AdSession(
-                    webView!!,
-                    jsInterface!!,
+                    adWebView,
+                    bridge,
                     metaData,
                     mediaType,
                     findActivity(context),
@@ -539,12 +547,13 @@ open class BaseAdView : ViewGroup {
         var height: Int
 
         // 1. Calculate desired dimensions based on ad settings
+        val size = adSize
         if (adIsResponsive) {
             width = widthSize
             height = heightSize
-        } else if (adSize != null) {
-            width = adSize!!.getWidthInPixels(context)
-            height = adSize!!.getHeightInPixels(context)
+        } else if (size != null) {
+            width = size.getWidthInPixels(context)
+            height = size.getHeightInPixels(context)
         } else {
             width = 0
             height = 0
@@ -600,12 +609,10 @@ open class BaseAdView : ViewGroup {
 
         if (isDestroyed) return
 
-        if (webView != null) {
-            try {
-                webView!!.onResume()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error resuming WebView: ${e.message}", e)
-            }
+        try {
+            webView?.onResume()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error resuming WebView: ${e.message}", e)
         }
         jsInterface?.onHostAttached()
         Log.d(TAG, "Attached to window - ad resumed")
@@ -618,13 +625,13 @@ open class BaseAdView : ViewGroup {
 
         if (visibility == VISIBLE) {
             try {
-                webView!!.onResume()
+                webView?.onResume()
             } catch (e: Exception) {
                 Log.e(TAG, "Error resuming WebView: ${e.message}", e)
             }
         } else {
             try {
-                webView!!.onPause()
+                webView?.onPause()
             } catch (e: Exception) {
                 Log.e(TAG, "Error pausing WebView: ${e.message}", e)
             }
