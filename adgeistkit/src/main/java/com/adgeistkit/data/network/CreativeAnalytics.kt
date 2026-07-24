@@ -17,7 +17,7 @@ class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
     }
 
     private val scope = CoroutineScope(Dispatchers.IO)
-    private val client = OkHttpClient()
+    private val client = NetworkModule.httpClient
 
     private val bidRequestBackendDomain = adgeistCore.bidRequestBackendDomain
 

@@ -101,9 +101,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                     .build()
             }
 
-            val client = OkHttpClient()
-
-            client.newCall(request).enqueue(object : Callback {
+            NetworkModule.httpClient.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
                     Log.d(TAG, "Request Failed: ${bidRequestBackendDomain} - ${e.message}")
                     callback(createErrorProp(e.message ?: "Failed to connect to server"))
