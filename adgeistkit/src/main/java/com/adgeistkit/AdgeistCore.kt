@@ -59,8 +59,6 @@ class AdgeistCore private constructor(
                         }
                     }
                 } catch (e: Throwable) {
-                    // Never crash the host app from SDK init: log and return
-                    // null so the SDK simply stays uninitialized.
                     Log.e(TAG, "CRITICAL: AdgeistCore initialization failed", e)
                     null
                 }
@@ -121,9 +119,6 @@ class AdgeistCore private constructor(
     private var userDetails: UserDetails? = null
 
     init {
-        // Both blocks fail soft: a broken SharedPreferences or OEM device API
-        // must degrade the SDK (no persisted consent / no targeting info),
-        // never crash the host app's startup.
         try {
             prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             consentGiven = prefs?.getBoolean(KEY_CONSENT, false) ?: false

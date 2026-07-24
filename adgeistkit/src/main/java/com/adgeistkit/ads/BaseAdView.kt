@@ -524,10 +524,6 @@ open class BaseAdView : ViewGroup {
             .replace("\r", "\\r")
             .replace("\t", "\\t")
             .replace("`", "\\`")
-            // Neutralize sequences the HTML parser acts on even inside a JS
-            // string: a literal </script> in creative text would close the
-            // inline <script> early and inject attacker markup. \/ and \! are
-            // valid JS string escapes, so the parsed JSON is unchanged.
             .replace(Regex("(?i)</script")) { "<\\/script" }
             .replace(Regex("<!--")) { "<\\!--" }
 
