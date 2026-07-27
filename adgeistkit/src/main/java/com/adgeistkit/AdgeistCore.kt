@@ -13,8 +13,11 @@ import com.adgeistkit.data.models.Event
 import com.adgeistkit.data.models.UserDetails
 import com.adgeistkit.data.network.CreativeAnalytics
 import com.adgeistkit.data.network.FetchCreative
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 class AdgeistCore private constructor(
@@ -36,7 +39,7 @@ class AdgeistCore private constructor(
                        customBidRequestBackendDomain: String? = null,
                        customPackageOrBundleID : String? = null,
                        customAdgeistAppID : String? = null,
-                       customVersioning: String? = null): AdgeistCore
+                       customVersioning: String? = null): AdgeistCore?
         {
             return instance ?: synchronized(this) {
                 instance ?: try {
@@ -57,7 +60,7 @@ class AdgeistCore private constructor(
                     }
                 } catch (e: Throwable) {
                     Log.e(TAG, "CRITICAL: AdgeistCore initialization failed", e)
-                    throw IllegalStateException("AdgeistCore initialization failed. See logs for details.", e)
+                    null
                 }
             }
         }
@@ -65,6 +68,7 @@ class AdgeistCore private constructor(
         @JvmStatic
         fun destroy() {
             synchronized(lock) {
+                instance?.ioScope?.cancel()
                 instance = null
             }
         }
@@ -91,10 +95,21 @@ class AdgeistCore private constructor(
     val version = customVersioning ?: "ANDROID-${com.adgeistkit.BuildConfig.VERSION_NAME}"
 
     private val PREFS_NAME = "AdgeistPrefs"
-    private val prefs: SharedPreferences
+    private var prefs: SharedPreferences? = null
 
     private val KEY_CONSENT = "adgeist_consent"
     private var consentGiven: Boolean = false
+
+    /**
+     * Single scope for all SDK background work, cancelled in [destroy]. SupervisorJob keeps one
+     * failed coroutine from cancelling the rest; the handler stops uncaught exceptions from
+     * propagating to the host app's uncaught-exception handler.
+     */
+    internal val ioScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, e ->
+            Log.e(TAG, "Uncaught exception in SDK coroutine", e)
+        }
+    )
 
     val deviceMeta = DeviceMeta(context)
     val deviceIdentifier = DeviceIdentifier(context)
@@ -104,11 +119,18 @@ class AdgeistCore private constructor(
     private var userDetails: UserDetails? = null
 
     init {
-        prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        consentGiven = prefs.getBoolean(KEY_CONSENT, false)
+        try {
+            prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            consentGiven = prefs?.getBoolean(KEY_CONSENT, false) ?: false
+        } catch (e: Throwable) {
+            Log.e(TAG, "Non-fatal: failed to read AdGeist preferences", e)
+        }
 
-        val targetingOptions = TargetingOptions(context)
-        targetingInfo = targetingOptions.getTargetingInfo()
+        try {
+            targetingInfo = TargetingOptions(context).getTargetingInfo()
+        } catch (e: Throwable) {
+            Log.e(TAG, "Non-fatal: failed to collect device targeting info", e)
+        }
     }
 
     private fun getMetaValue(key: String): String? {
@@ -132,7 +154,11 @@ class AdgeistCore private constructor(
 
     fun updateConsentStatus(consentGiven: Boolean) {
         this.consentGiven = consentGiven
-        prefs.edit().putBoolean(KEY_CONSENT, consentGiven).apply()
+        try {
+            prefs?.edit()?.putBoolean(KEY_CONSENT, consentGiven)?.apply()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to persist consent status", e)
+        }
     }
 
     fun getConsentStatus(): Boolean {
@@ -148,7 +174,7 @@ class AdgeistCore private constructor(
     }
 
     fun logEvent(event: Event) {
-        CoroutineScope(Dispatchers.IO).launch {
+        ioScope.launch {
             val localUserDetails = userDetails
             val parameters = mutableMapOf<String, Any>()
             event.eventProperties?.forEach { (key, value) -> if (value != null) parameters[key] = value }
