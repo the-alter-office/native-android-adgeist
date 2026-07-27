@@ -5,6 +5,7 @@ import android.app.Application
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import android.content.MutableContextWrapper
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -37,6 +38,24 @@ open class BaseAdView : ViewGroup {
 
     companion object {
         private const val TAG = "BaseAdView"
+
+        private fun openInBrowser(context: Context, url: String) {
+            try {
+                val uri = Uri.parse(url)
+                // Creative-supplied URLs are untrusted: only hand http(s) to the
+                // system, never intent://, market://, or custom app schemes
+                val scheme = uri.scheme?.lowercase()
+                if (scheme != "http" && scheme != "https") {
+                    Log.w(TAG, "Blocked non-http(s) ad click URL: $url")
+                    return
+                }
+                val intent = Intent(Intent.ACTION_VIEW, uri)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to open external URL: $url", e)
+            }
+        }
     }
 
     // Ad configuration
@@ -155,13 +174,20 @@ open class BaseAdView : ViewGroup {
         val key = sessionKey()
         val session = key?.let { AdSessionStore.get(it) }
         if (key != null && session != null) {
+            val currentActivity = findActivity(context)
             val sameActivity =
-                session.hostActivity != null && session.hostActivity === findActivity(context)
+                session.hostActivity != null && session.hostActivity === currentActivity
+            // Parked for a config change: the same screen class recreating is
+            // the same logical screen, so the surviving ad is adopted rather
+            // than re-fetched (and re-counted)
+            val recreatedSameScreen = session.isParked &&
+                session.hostActivityClass != null &&
+                session.hostActivityClass == currentActivity?.javaClass
             // Steal guard: never rip the ad out of another visible slot
             val hostStillVisible =
                 session.hostView !== this && session.hostView?.isAttachedToWindow == true
 
-            if (sameActivity && !hostStillVisible) {
+            if ((sameActivity || recreatedSameScreen) && !hostStillVisible) {
                 if (session.hostView === this && webView != null) {
                     Log.d(TAG, "loadAd ignored - this view is already presenting the live ad")
                     return
@@ -170,11 +196,12 @@ open class BaseAdView : ViewGroup {
                 return
             }
 
-            if (!sameActivity) {
+            if (!sameActivity && !recreatedSameScreen) {
                 // A session's WebView cannot be shown in another activity
                 Log.d(TAG, "Discarding ad session from a different activity")
                 AdSessionStore.remove(key)
-                session.hostView?.destroy()
+                // A parked session has no host view left to run the teardown
+                session.hostView?.destroy() ?: AdSessionStore.destroyDetachedWebView(session)
             } else {
                 Log.d(TAG, "Session '$key' is visible in another slot - fetching a new ad instead")
             }
@@ -229,6 +256,11 @@ open class BaseAdView : ViewGroup {
     private fun adoptSession(key: String, session: AdSession) {
         Log.d(TAG, "Adopting live ad session '$key' - same ad, no re-fetch")
 
+        AdSessionStore.cancelEviction(session)
+        // Rebind the WebView to the adopting view's (possibly recreated) activity
+        session.contextWrapper.baseContext = context
+        session.hostActivity = findActivity(context)
+
         // Make the previous host inert so it can't destroy the shared WebView
         session.hostView?.takeIf { it !== this }?.releaseSession()
         session.hostView = this
@@ -259,6 +291,41 @@ open class BaseAdView : ViewGroup {
         }
 
         listener?.onAdLoaded()
+    }
+
+    /**
+     * Detaches the session from this dying view and parks it for adoption by
+     * the recreated screen, instead of destroying it. Tracking is paused with
+     * its impression state intact, so the ad neither re-fetches nor re-counts
+     * a view after a config change.
+     */
+    private fun parkForRecreation() {
+        val key = activeSessionKey
+        val session = key?.let { AdSessionStore.get(it) }
+        if (key == null || session == null || session.webView !== webView) {
+            destroy()
+            return
+        }
+
+        unregisterHostDestroyWatcher()
+        mainHandler?.removeCallbacksAndMessages(null)
+        jsInterface?.onHostDetached()
+        try {
+            webView?.onPause()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error pausing parked WebView: ${e.message}", e)
+        }
+        removeAllViews()
+
+        AdSessionStore.park(key, session)
+
+        // Make this view inert without touching the shared WebView.
+        // No onAdClosed(): the ad is surviving, not closing.
+        webView = null
+        jsInterface = null
+        activeSessionKey = null
+        isDestroyed = true
+        isLoading = false
     }
 
     /**
@@ -407,7 +474,10 @@ open class BaseAdView : ViewGroup {
         registerHostDestroyWatcher()
         removeAllViews()
 
-        val adWebView = WebView(context).apply {
+        // Swappable context so the WebView can be rebound to a recreated
+        // activity instead of being torn down on config changes
+        val webViewContext = MutableContextWrapper(context)
+        val adWebView = WebView(webViewContext).apply {
             setBackgroundColor(Color.TRANSPARENT)
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
@@ -427,50 +497,8 @@ open class BaseAdView : ViewGroup {
             WebView.setWebContentsDebuggingEnabled(true)
         }
 
-        adWebView.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-                openInBrowser(context, url)
-                jsInterface?.recordClickListener()
-                return true
-            }
-
-            override fun shouldOverrideUrlLoading(
-                view: WebView,
-                request: WebResourceRequest
-            ): Boolean {
-                val url = request.url.toString()
-                openInBrowser(context, url)
-                jsInterface?.recordClickListener()
-                return true
-            }
-
-            override fun onPageFinished(view: WebView, url: String) {
-                super.onPageFinished(view, url)
-                Log.i(TAG, "✅ WebView page finished loading: $url")
-            }
-
-            override fun onLoadResource(view: WebView, url: String) {
-                super.onLoadResource(view, url)
-                Log.d(TAG, "📦 Loading resource: $url")
-            }
-        }
-
-        adWebView.webChromeClient = object : WebChromeClient() {
-            override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
-                val logLevel = consoleMessage.messageLevel().name
-                val message = consoleMessage.message()
-                val source = consoleMessage.sourceId()
-                val line = consoleMessage.lineNumber()
-
-                val fullLog = String.format("[%s] %s (%s:%d)", logLevel, message, source, line)
-                when (consoleMessage.messageLevel()) {
-                    MessageLevel.ERROR -> Log.e(TAG, "JS Error: $fullLog")
-                    MessageLevel.WARNING -> Log.w(TAG, "JS Warning: $fullLog")
-                    else -> Log.d(TAG, "🔵 JS Log: $fullLog")
-                }
-                return true
-            }
-        }
+        adWebView.webViewClient = AdWebViewClient(bridge)
+        adWebView.webChromeClient = AdWebChromeClient()
 
         // Exposed to the page as the 'Android' object
         adWebView.addJavascriptInterface(bridge, "Android")
@@ -500,14 +528,17 @@ open class BaseAdView : ViewGroup {
         val key = sessionKey()
         if (key != null) {
             activeSessionKey = key
+            val hostActivity = findActivity(context)
             AdSessionStore.put(
                 key,
                 AdSession(
                     adWebView,
+                    webViewContext,
                     bridge,
                     metaData,
                     mediaType,
-                    findActivity(context),
+                    hostActivity,
+                    hostActivity?.javaClass,
                     this
                 )
             )
@@ -713,11 +744,16 @@ open class BaseAdView : ViewGroup {
         if (hostOwner != null) {
             val observer = object : DefaultLifecycleObserver {
                 override fun onDestroy(owner: LifecycleOwner) {
-                    Log.d(TAG, "Host ${if (owner is androidx.fragment.app.Fragment) "fragment (screen popped/removed)" else "activity"} destroyed - destroying ad")
                     // Unregister first: destroy() may no-op on its isDestroyed
                     // guard, which would leave this fired observer lingering
                     unregisterHostDestroyWatcher()
-                    destroy()
+                    if (findActivity(context)?.isChangingConfigurations == true) {
+                        Log.d(TAG, "Host destroyed for config change - parking ad session")
+                        parkForRecreation()
+                    } else {
+                        Log.d(TAG, "Host ${if (owner is androidx.fragment.app.Fragment) "fragment (screen popped/removed)" else "activity"} destroyed - destroying ad")
+                        destroy()
+                    }
                 }
             }
             hostOwner.lifecycle.addObserver(observer)
@@ -732,8 +768,13 @@ open class BaseAdView : ViewGroup {
             val callbacks = object : Application.ActivityLifecycleCallbacks {
                 override fun onActivityDestroyed(destroyed: Activity) {
                     if (destroyed === hostActivity) {
-                        Log.d(TAG, "Host activity destroyed - destroying ad")
-                        destroy()
+                        if (destroyed.isChangingConfigurations) {
+                            Log.d(TAG, "Host activity destroyed for config change - parking ad session")
+                            parkForRecreation()
+                        } else {
+                            Log.d(TAG, "Host activity destroyed - destroying ad")
+                            destroy()
+                        }
                     }
                 }
 
@@ -848,21 +889,53 @@ open class BaseAdView : ViewGroup {
         return null
     }
 
-    private fun openInBrowser(context: Context, url: String) {
-        try {
-            val uri = Uri.parse(url)
-            // Creative-supplied URLs are untrusted: only hand http(s) to the
-            // system, never intent://, market://, or custom app schemes
-            val scheme = uri.scheme?.lowercase()
-            if (scheme != "http" && scheme != "https") {
-                Log.w(TAG, "Blocked non-http(s) ad click URL: $url")
-                return
+    /**
+     * Holds only the bridge, never the creating AdView: the session's WebView
+     * outlives its first host, and clicks must keep flowing after adoption.
+     * URLs are opened via the WebView's own (swappable) context.
+     */
+    private class AdWebViewClient(private val bridge: JsBridge) : WebViewClient() {
+        override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+            openInBrowser(view.context, url)
+            bridge.recordClickListener()
+            return true
+        }
+
+        override fun shouldOverrideUrlLoading(
+            view: WebView,
+            request: WebResourceRequest
+        ): Boolean {
+            val url = request.url.toString()
+            openInBrowser(view.context, url)
+            bridge.recordClickListener()
+            return true
+        }
+
+        override fun onPageFinished(view: WebView, url: String) {
+            super.onPageFinished(view, url)
+            Log.i(TAG, "✅ WebView page finished loading: $url")
+        }
+
+        override fun onLoadResource(view: WebView, url: String) {
+            super.onLoadResource(view, url)
+            Log.d(TAG, "📦 Loading resource: $url")
+        }
+    }
+
+    private class AdWebChromeClient : WebChromeClient() {
+        override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
+            val logLevel = consoleMessage.messageLevel().name
+            val message = consoleMessage.message()
+            val source = consoleMessage.sourceId()
+            val line = consoleMessage.lineNumber()
+
+            val fullLog = String.format("[%s] %s (%s:%d)", logLevel, message, source, line)
+            when (consoleMessage.messageLevel()) {
+                MessageLevel.ERROR -> Log.e(TAG, "JS Error: $fullLog")
+                MessageLevel.WARNING -> Log.w(TAG, "JS Warning: $fullLog")
+                else -> Log.d(TAG, "🔵 JS Log: $fullLog")
             }
-            val intent = Intent(Intent.ACTION_VIEW, uri)
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(intent)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to open external URL: $url", e)
+            return true
         }
     }
 
