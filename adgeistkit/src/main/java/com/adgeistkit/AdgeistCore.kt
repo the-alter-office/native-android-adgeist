@@ -186,10 +186,6 @@ class AdgeistCore private constructor(
         }
     }
 
-    fun requestPhoneStatePermission(activity: android.app.Activity) {
-        DeviceMeta.requestPhoneStatePermission(activity)
-    }
-
     fun hasPhoneStatePermission(): Boolean {
         return DeviceMeta.hasPhoneStatePermission(context)
     }

@@ -1,7 +1,6 @@
 package com.adgeistkit.core.device
 
 import android.Manifest
-import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -11,7 +10,6 @@ import android.telephony.TelephonyManager
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.accessibility.AccessibilityManager
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import android.opengl.GLES20
 import android.annotation.SuppressLint
@@ -20,8 +18,8 @@ import android.nfc.NfcAdapter
 
 class DeviceMeta(private val context: Context) {
     companion object {
-        private const val REQUEST_PHONE_STATE_PERMISSION = 1001
-
+        // READ_PHONE_STATE is not declared by this SDK; telephony details are
+        // collected only when the host app has declared and been granted it.
         fun hasPhoneStatePermission(context: Context): Boolean {
             return ContextCompat.checkSelfPermission(
                 context,
@@ -29,14 +27,15 @@ class DeviceMeta(private val context: Context) {
             ) == PackageManager.PERMISSION_GRANTED
         }
 
-        fun requestPhoneStatePermission(activity: Activity) {
-            if (!hasPhoneStatePermission(activity)) {
-                ActivityCompat.requestPermissions(
-                    activity,
-                    arrayOf(Manifest.permission.READ_PHONE_STATE),
-                    REQUEST_PHONE_STATE_PERMISSION
-                )
-            }
+        // getDataNetworkType accepts READ_BASIC_PHONE_STATE (normal permission,
+        // declared by this SDK) on API 33+, or READ_PHONE_STATE from the host app.
+        fun canReadNetworkType(context: Context): Boolean {
+            if (hasPhoneStatePermission(context)) return true
+            return Build.VERSION.SDK_INT >= 33 &&
+                    ContextCompat.checkSelfPermission(
+                        context,
+                        "android.permission.READ_BASIC_PHONE_STATE"
+                    ) == PackageManager.PERMISSION_GRANTED
         }
     }
 
@@ -79,10 +78,10 @@ class DeviceMeta(private val context: Context) {
         return Pair(displayMetrics.widthPixels, displayMetrics.heightPixels)
     }
 
+    @SuppressLint("MissingPermission")
     fun getNetworkType(): String? {
         return try {
-            val permission = context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE)
-            if (permission == PackageManager.PERMISSION_GRANTED) {
+            if (canReadNetworkType(context)) {
                 val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     when (telephonyManager.dataNetworkType) {
@@ -119,14 +118,8 @@ class DeviceMeta(private val context: Context) {
 
     fun getNetworkProvider(): String? {
         return try {
-            if (context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE)
-                == PackageManager.PERMISSION_GRANTED
-            ) {
-                val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-                telephonyManager.networkOperatorName.takeIf { it.isNotEmpty() }
-            } else {
-                null
-            }
+            val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+            telephonyManager.networkOperatorName.takeIf { it.isNotEmpty() }
         } catch (e: Exception) {
             null
         }
