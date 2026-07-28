@@ -25,6 +25,7 @@ class AdActivity(private var baseAdView: BaseAdView) {
         private const val TAG = "Ad Activity"
         private const val VISIBILITY_THRESHOLD = 0.5
         private const val MIN_VIEW_TIME = 1000L
+        private const val CLICK_DEBOUNCE_MS = 1000L
     }
 
     private val postCreativeAnalytics = getInstance().postCreativeAnalytics()
@@ -39,6 +40,7 @@ class AdActivity(private var baseAdView: BaseAdView) {
     private var hasViewEvent = false
     private var hasImpression = false
     private var renderTime: Long = 0
+    private var lastClickTime = 0L
 
     // Video playback state
     private var playbackStartTime: Long = 0
@@ -250,6 +252,13 @@ class AdActivity(private var baseAdView: BaseAdView) {
     }
 
     fun captureClick() {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastClickTime < CLICK_DEBOUNCE_MS) {
+            Log.d(TAG, "Click ignored - debounced (${now - lastClickTime}ms since last)")
+            return
+        }
+        lastClickTime = now
+
         baseAdView.listener?.onAdClicked()
         val analyticsRequest: AnalyticsRequest =
             AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData)
