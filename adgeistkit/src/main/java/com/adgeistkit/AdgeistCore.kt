@@ -30,6 +30,9 @@ class AdgeistCore private constructor(
     companion object {
         private const val TAG = "AdgeistCore"
         private const val BidRequestBackendDomain = com.adgeistkit.BuildConfig.BASE_API_URL
+
+        internal const val PREFS_NAME = "AdgeistPrefs"
+
         @Volatile private var instance: AdgeistCore? = null
         private val lock = Any()
 
@@ -94,7 +97,6 @@ class AdgeistCore private constructor(
     val adgeistAppID = customAdgeistAppID ?: getMetaValue("com.adgeistkit.ads.ADGEIST_APP_ID") ?: ""
     val version = customVersioning ?: "ANDROID-${com.adgeistkit.BuildConfig.VERSION_NAME}"
 
-    private val PREFS_NAME = "AdgeistPrefs"
     private var prefs: SharedPreferences? = null
 
     private val KEY_CONSENT = "adgeist_consent"
@@ -131,6 +133,8 @@ class AdgeistCore private constructor(
         } catch (e: Throwable) {
             Log.e(TAG, "Non-fatal: failed to collect device targeting info", e)
         }
+
+        ioScope.launch { deviceIdentifier.getDeviceIdentifier() }
     }
 
     private fun getMetaValue(key: String): String? {
