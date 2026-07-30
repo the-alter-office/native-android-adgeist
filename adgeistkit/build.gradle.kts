@@ -82,7 +82,19 @@ dependencies {
 
 mavenPublishing {
     val publishVariant = findProperty("publishVariant")?.toString() ?: "prodRelease"
-    configure(AndroidSingleVariantLibrary(publishVariant))
+    // Real sources are proprietary; Maven Central still requires a -sources.jar, so a stub is attached below.
+    configure(AndroidSingleVariantLibrary(publishVariant, sourcesJar = false, publishJavadocJar = true))
+}
+
+val stubSourcesJar by tasks.registering(Jar::class) {
+    archiveClassifier.set("sources")
+    from(layout.projectDirectory.file("src/stub-sources/NOTICE.txt"))
+}
+
+publishing {
+    publications.withType<MavenPublication>().configureEach {
+        artifact(stubSourcesJar)
+    }
 }
 
 // Skip signing when publishing to Maven Local (no GPG key needed for local development)
