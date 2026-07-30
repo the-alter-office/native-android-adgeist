@@ -1,87 +1,110 @@
-ADGEIST SDK LICENSE AGREEMENT
+                         ADGEIST SDK LICENSE AGREEMENT
+             Copyright 2026 The Alter Office. All rights reserved.
+          https://cdn.adgeist.ai/licenses/NATIVE-ANDROID-LICENSE.txt
 
-Copyright 2026 The Alter Office. All rights reserved.
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 
-This AdGeist SDK License Agreement (the "Agreement") governs the use of the
-AdGeist Android SDK, distributed as the Maven artifact ai.adgeist:adgeistkit,
-ai.adgeist.adgeistadvertisersdk including its binaries, documentation, and 
-any accompanying materials (collectively, the "SDK"). By downloading, 
-installing, or using the SDK, you ("Licensee") agree to be bound by this 
-Agreement. If you do not agree, do not use the SDK.
+   This AdGeist SDK License Agreement (the "Agreement") governs the use of
+   the AdGeist Android SDK, distributed as the Maven artifact
+   ai.adgeist:adgeistkit, ai.adgeist.adgeistadvertisersdk including its
+   binaries, documentation, and any accompanying materials (collectively,
+   the "SDK"). By downloading, installing, or using the SDK, you
+   ("Licensee") agree to be bound by this Agreement. If you do not agree,
+   do not use the SDK.
 
-1. LICENSE GRANT
-   Subject to Licensee's compliance with this Agreement, The Alter Office
-   ("Licensor") grants Licensee a limited, non-exclusive, non-transferable,
-   non-sublicensable, revocable license to:
-   (a) integrate the SDK, in unmodified binary form only, into Licensee's own
-       software applications ("Applications"); and
-   (b) distribute the SDK solely as embedded within such Applications, for the
-       sole purpose of connecting Licensee's advertising inventory to the
-       AdGeist marketplace and related AdGeist services (the "Service").
+   1. LICENSE GRANT.
 
-2. RESTRICTIONS
-   Except as expressly permitted in Section 1, Licensee shall not, and shall
-   not permit any third party to:
-   (a) modify, adapt, translate, or create derivative works of the SDK;
-   (b) decompile, disassemble, reverse engineer, or otherwise attempt to
-       derive the source code of the SDK, except to the extent such
-       restriction is prohibited by applicable law;
-   (c) distribute, sell, rent, lease, lend, sublicense, or otherwise transfer
-       the SDK on a standalone basis or as part of any product other than an
-       Application;
-   (d) remove, alter, or obscure any copyright, trademark, or other
-       proprietary notices contained in the SDK;
-   (e) use the SDK for any purpose other than accessing and using the
-       Service, including to build a competing product or service.
+      Subject to Licensee's compliance with this Agreement, The Alter
+      Office ("Licensor") grants Licensee a limited, non-exclusive,
+      non-transferable, non-sublicensable, revocable license to:
 
-3. OWNERSHIP
-   The SDK is licensed, not sold. Licensor and its licensors retain all
-   right, title, and interest in and to the SDK, including all intellectual
-   property rights therein. No rights are granted to Licensee other than as
-   expressly set forth in this Agreement.
+      (a) integrate the SDK, in unmodified binary form only, into
+          Licensee's own software applications ("Applications"); and
 
-4. THIRD-PARTY COMPONENTS
-   The SDK may include or depend on third-party open-source components, which
-   are governed by their own license terms. Nothing in this Agreement limits
-   Licensee's rights under, or grants rights that supersede, the terms of any
-   such third-party licenses.
+      (b) distribute the SDK solely as embedded within such Applications,
+          for the sole purpose of connecting Licensee's advertising
+          inventory to the AdGeist marketplace and related AdGeist
+          services (the "Service").
 
-5. UPDATES
-   Licensor may provide updates, upgrades, or new versions of the SDK, which
-   are governed by this Agreement unless accompanied by different terms.
-   Licensor has no obligation to provide support, maintenance, or updates.
+   2. RESTRICTIONS.
 
-6. TERMINATION
-   This Agreement is effective until terminated. It terminates automatically
-   if Licensee breaches any of its terms. Licensor may terminate this
-   Agreement at any time upon notice. Upon termination, Licensee shall cease
-   all use of the SDK and remove it from Applications in subsequent releases.
-   Sections 2, 3, 7, 8, and 9 survive termination.
+      Except as expressly permitted in Section 1, Licensee shall not, and
+      shall not permit any third party to:
 
-7. DISCLAIMER OF WARRANTY
-   THE SDK IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY
-   KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF
-   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND
-   NON-INFRINGEMENT. LICENSOR DOES NOT WARRANT THAT THE SDK WILL BE
-   ERROR-FREE OR OPERATE WITHOUT INTERRUPTION.
+      (a) modify, adapt, translate, or create derivative works of the SDK;
 
-8. LIMITATION OF LIABILITY
-   TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL
-   LICENSOR BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL,
-   OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, DATA, OR GOODWILL, ARISING
-   OUT OF OR IN CONNECTION WITH THIS AGREEMENT OR THE USE OF THE SDK, EVEN IF
-   ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. LICENSOR'S AGGREGATE LIABILITY
-   UNDER THIS AGREEMENT SHALL NOT EXCEED ONE HUNDRED U.S. DOLLARS (USD 100).
+      (b) decompile, disassemble, reverse engineer, or otherwise attempt
+          to derive the source code of the SDK, except to the extent such
+          restriction is prohibited by applicable law;
 
-9. GENERAL
-   This Agreement constitutes the entire agreement between the parties
-   regarding the SDK and supersedes all prior agreements on that subject. If
-   any provision is held unenforceable, the remaining provisions remain in
-   full force. Failure to enforce any provision is not a waiver. Licensee may
-   not assign this Agreement without Licensor's prior written consent.
+      (c) distribute, sell, rent, lease, lend, sublicense, or otherwise
+          transfer the SDK on a standalone basis or as part of any product
+          other than an Application;
 
-For source access, licensing inquiries, or support, contact:
-beast@thealteroffice.com
+      (d) remove, alter, or obscure any copyright, trademark, or other
+          proprietary notices contained in the SDK;
 
-Canonical copy of this license:
-https://cdn.adgeist.ai/licenses/NATIVE-ANDROID-LICENSE.txt
+      (e) use the SDK for any purpose other than accessing and using the
+          Service, including to build a competing product or service.
+
+   3. OWNERSHIP.
+
+      The SDK is licensed, not sold. Licensor and its licensors retain
+      all right, title, and interest in and to the SDK, including all
+      intellectual property rights therein. No rights are granted to
+      Licensee other than as expressly set forth in this Agreement.
+
+   4. THIRD-PARTY COMPONENTS.
+
+      The SDK may include or depend on third-party open-source
+      components, which are governed by their own license terms. Nothing
+      in this Agreement limits Licensee's rights under, or grants rights
+      that supersede, the terms of any such third-party licenses.
+
+   5. UPDATES.
+
+      Licensor may provide updates, upgrades, or new versions of the SDK,
+      which are governed by this Agreement unless accompanied by
+      different terms. Licensor has no obligation to provide support,
+      maintenance, or updates.
+
+   6. TERMINATION.
+
+      This Agreement is effective until terminated. It terminates
+      automatically if Licensee breaches any of its terms. Licensor may
+      terminate this Agreement at any time upon notice. Upon termination,
+      Licensee shall cease all use of the SDK and remove it from
+      Applications in subsequent releases. Sections 2, 3, 7, 8, and 9
+      survive termination.
+
+   7. DISCLAIMER OF WARRANTY.
+
+      THE SDK IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF
+      ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+      WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE,
+      TITLE, AND NON-INFRINGEMENT. LICENSOR DOES NOT WARRANT THAT THE SDK
+      WILL BE ERROR-FREE OR OPERATE WITHOUT INTERRUPTION.
+
+   8. LIMITATION OF LIABILITY.
+
+      TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT
+      SHALL LICENSOR BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
+      CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, DATA,
+      OR GOODWILL, ARISING OUT OF OR IN CONNECTION WITH THIS AGREEMENT OR
+      THE USE OF THE SDK, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+      DAMAGES. LICENSOR'S AGGREGATE LIABILITY UNDER THIS AGREEMENT SHALL
+      NOT EXCEED ONE HUNDRED U.S. DOLLARS (USD 100).
+
+   9. GENERAL.
+
+      This Agreement constitutes the entire agreement between the parties
+      regarding the SDK and supersedes all prior agreements on that
+      subject. If any provision is held unenforceable, the remaining
+      provisions remain in full force. Failure to enforce any provision
+      is not a waiver. Licensee may not assign this Agreement without
+      Licensor's prior written consent.
+
+   END OF TERMS AND CONDITIONS
+
+   For source access, licensing inquiries, or support, contact:
+   beast@thealteroffice.com

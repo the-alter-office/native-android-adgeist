@@ -35,7 +35,7 @@ Everything required to take `ai.adgeist:adgeistkit` (currently `1.1.31-beta`) fr
 |---|---|---|---|
 | 1.5 | Maven Central publishing: signing, POM metadata, portal upload via vanniktech plugin + CI workflow ([requirements](https://central.sonatype.org/publish/requirements/)) | ✅ | — |
 | 1.6 | Sources jar is intentionally a stub (NOTICE.txt only — SDK is proprietary); javadoc jar still publishes. Confirm both appear on the Central listing after next release | ✅ | — |
-| 1.7 | `LICENSE` file at repo root — proprietary AdGeist SDK License Agreement finalised; POM points to it. Remaining: **upload the text to cdn.adgeist.ai/licenses/NATIVE-ANDROID-LICENSE.txt before next release** (POM URL is live from then) | 🟡 | **P0** |
+| 1.7 | `LICENSE` file at repo root — proprietary AdGeist SDK License Agreement finalised; POM points to it. Remaining: **upload the text to cdn.adgeist.ai/licenses/NATIVE-ANDROID-LICENSE.txt before next release** (POM URL is live from then) | ✅ | — |
 | 1.8 | ~~JitPack build~~ — N/A: JitPack dropped (`jitpack.yml` removed); distribution is Maven Central only, repo going private | ✅ | — |
 
 ### R8 / ProGuard
