@@ -2,6 +2,7 @@ package com.examplenativeandroidapp
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.adgeistkit.data.models.AdErrorResponse
 import com.adgeistkit.data.models.FixedAdResponse
 import com.google.gson.Gson
 import org.junit.Assert.assertEquals
@@ -60,5 +61,46 @@ class AdModelR8Test {
         assertNotNull("displayOptions must be bound", response.displayOptions)
         assertEquals(300, response.displayOptions?.dimensions?.width)
         assertEquals(250, response.displayOptions?.dimensions?.height)
+    }
+
+    @Test
+    fun fixedAdResponse_bindsFullNestedGraphUnderR8() {
+        val response = Gson().fromJson(loadSampleJson(), FixedAdResponse::class.java)
+
+        assertNotNull("campaignValidity must be bound", response.campaignValidity)
+        assertEquals("2026-07-01T00:00:00Z", response.campaignValidity?.startTime)
+        assertEquals("2026-12-31T23:59:59Z", response.campaignValidity?.endTime)
+
+        val style = response.displayOptions?.styleOptions
+        assertNotNull("styleOptions must be bound", style)
+        assertEquals("#000000", style?.fontColor)
+        assertEquals("Roboto", style?.fontFamily)
+        assertEquals(true, response.displayOptions?.isResponsive)
+        assertEquals("fluid", response.displayOptions?.responsiveType)
+        assertEquals(listOf("banner", "display"), response.displayOptions?.allowedFormats)
+
+        val impressions = response.impressionRequirements
+        assertNotNull("impressionRequirements must be bound", impressions)
+        assertEquals(listOf("viewable"), impressions?.impressionType)
+        assertEquals(1, impressions?.minViewDurationSeconds)
+
+        val companions = response.creativesV1.first().companions
+        assertNotNull("companions must be bound", companions)
+        assertEquals("https://cdn.example.com/acme/companion.png", companions?.first()?.fileUrl)
+        assertEquals("companion.png", companions?.first()?.fileName)
+    }
+
+    @Test
+    fun adErrorResponse_deserializesUnderR8() {
+        // AdErrorResponse (FetchCreative.kt) uses capitalized field names that
+        // must match the backend's "Error"/"Status" keys exactly — the fields
+        // most likely to break if keep rules stop protecting names.
+        val json = """{"Error":"No fill for this ad space","Status":"NO_FILL"}"""
+
+        val response = Gson().fromJson(json, AdErrorResponse::class.java)
+
+        assertNotNull("AdErrorResponse itself must deserialize", response)
+        assertEquals("No fill for this ad space", response.Error)
+        assertEquals("NO_FILL", response.Status)
     }
 }
