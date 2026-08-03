@@ -1,19 +1,9 @@
-# ============================================================================
-# AdGeist SDK (ai.adgeist:adgeistkit) — consumer ProGuard/R8 rules.
-# Bundled into the AAR via consumerProguardFiles; applied to the CONSUMER's
-# R8 pass (full mode on AGP 8+). The SDK ships unminified, so these rules are
-# what protect SDK classes when the host app (e.g. PixelPlayer) runs R8.
-#
-# Targeted keeps only — everything else in the SDK may be freely shrunk,
-# renamed, and optimized by the consumer's build. Public API classes need no
-# rules: consumer code references them directly, so R8 traces them.
-# Regression coverage: AdModelR8Test / JsBridgeR8Test in the sample app run
-# against the minified release variant on every connected test run.
-# ============================================================================
+# Consumer ProGuard/R8 rules — runs on the app's R8 pass, not ours.
+# Targeted keeps only; each rule below states why it's needed.
 
 # Gson binds JSON keys via @SerializedName (every deserialized model field is
 # annotated — see data/models/CreativeDataModel.kt), so fields may be renamed
-# by the consumer's R8 but must not be stripped. This is the standard Gson
+# by the app's R8 but must not be stripped. This is the standard Gson
 # rule. The model classes themselves are referenced directly from SDK code,
 # so R8 keeps them via normal tracing.
 -keepclassmembers,allowobfuscation class com.adgeistkit.** {
@@ -37,8 +27,8 @@
     @android.webkit.JavascriptInterface <methods>;
 }
 
-# Inflated from consumer layout XML by fully-qualified class name. aapt2
-# normally emits this keep automatically from the consumer's layouts; kept
+# Inflated from the app's layout XML by fully-qualified class name. aapt2
+# normally emits this keep automatically from the app's layouts; kept
 # here as defense-in-depth for hosts that construct layouts dynamically.
 -keep class com.adgeistkit.ads.AdView { <init>(...); }
 
