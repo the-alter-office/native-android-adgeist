@@ -68,14 +68,10 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    // Declared directly rather than riding along on androidx.appcompat's much larger transitive
-    // graph: BaseAdView needs DefaultLifecycleObserver/Lifecycle/LifecycleOwner and
-    // FragmentManager.findFragment().
+
     implementation("androidx.lifecycle:lifecycle-common:2.8.7")
     implementation("androidx.fragment:fragment:1.8.9")
-    // Do NOT bump to 18.1.0-18.2.x: those use java.time.Duration internally, which throws
-    // NoClassDefFoundError (an Error, uncaught by DeviceIdentifier's catch clauses) on API <= 25 —
-    // within this SDK's minSdk 23 range. 18.0.1 predates the bug; 18.3.0+ fixes it.
+    
     implementation("com.google.android.gms:play-services-ads-identifier:18.0.1")
 
     testImplementation(libs.junit)
