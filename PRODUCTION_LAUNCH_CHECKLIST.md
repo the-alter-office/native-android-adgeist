@@ -54,9 +54,9 @@ Everything required to take `ai.adgeist:adgeistkit` (currently `1.1.31-beta`) fr
 ### Compatibility & dependencies
 | # | Item | Status | Priority |
 |---|---|---|---|
-| 1.14 | Lower `jvmTarget`/`compileOptions` from 17 to 11 (or 8) — per code review, JVM-17 metadata forces every consumer to raise their toolchain; the repo's own sample app targets 11 | ❌ | **P0** |
-| 1.15 | Publish a compatibility matrix: minSdk / compileSdk / AGP / Kotlin / Gradle versions supported ([AGP release policy](https://developer.android.com/build/releases/agp-9-0-0-release-notes)) | ❌ | P1 |
-| 1.16 | Treat minSdk bumps as breaking changes reserved for major versions (AdMob precedent: v23→API 21, v24→API 23) | ❌ | P1 |
+| 1.14 | Lower `jvmTarget`/`compileOptions` from 17 to 11 (or 8) — per code review, JVM-17 metadata forces every consumer to raise their toolchain; the repo's own sample app targets 11 | ✅ | **P0** |
+| 1.15 | Publish a compatibility matrix: minSdk / compileSdk / AGP / Kotlin / Gradle versions supported ([AGP release policy](https://developer.android.com/build/releases/agp-9-0-0-release-notes)). **Done**: minimum-version table published in README Prerequisites (minSdk 23, compileSdk 35, AGP 8.6, Gradle 8.7, Kotlin 1.8, JDK 17 to build); AGP/Gradle minimums derived from the AAR's `minCompileSdk=35` metadata and Google's AGP release matrix. Deferred follow-up: empirically verify the AGP 8.6 / Kotlin 1.8 floor with a pinned throwaway consumer project | ✅ | P1 |
+| 1.16 | Treat minSdk bumps as breaking changes reserved for major versions (AdMob precedent: v23→API 21, v24→API 23). **Done**: policy codified in `CONTRIBUTING.md` ("Versioning policy" section) — minSdk increases are hard, non-optional breaks for lower-minSdk consumers and are reserved for major-version bumps only | ✅ | P1 |
 | 1.17 | Audit transitive deps (OkHttp 4.12, Gson 2.10.1, coroutines 1.7.3, play-services-ads-identifier 18.0.1) — every one becomes the host app's conflict problem; keep minimal, pinned, widely compatible. Note kotlin-bom pins Kotlin **1.8.0** (2022-era) while jvmTarget is 17 — reconcile | 🟡 | P1 |
 
 ### Versioning & release lifecycle

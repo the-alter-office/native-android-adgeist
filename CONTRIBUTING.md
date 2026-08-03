@@ -8,6 +8,14 @@ Test build of `adgeistkit` using:
 ./gradlew :adgeistkit:assemble
 ```
 
+## Versioning policy
+
+Raising `minSdk` (`adgeistkit/build.gradle.kts`) breaks the build for any consumer app whose own
+`minSdk` is lower than the new value — this is a hard, non-optional break, not a soft deprecation.
+Treat any `minSdk` increase as a **breaking change reserved for a major version bump** (`X.0.0`),
+never a minor or patch release. Call it out explicitly in the changelog/release notes for that
+major version.
+
 ## Publish the SDK locally and test in a client app
 
 1. Publish the SDK to your local Maven repository (`~/.m2/repository`) with a bumped version:

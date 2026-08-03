@@ -10,11 +10,26 @@ Integrating the Adgeist Mobile Ads SDK into an app is the first step toward disp
 
 ## Prerequisites
 
-Make sure that your app's build file uses the following values:
+Make sure your project meets the following minimum versions:
 
-- Minimum SDK version of 23 or higher
-- Compile SDK version of 35 or higher
-- **Recommended:** Create an Adgeist publisher account and register your app
+| Requirement | Minimum |
+|---|---|
+| Android minSdk | 23 (Android 6.0) |
+| compileSdk | 35 |
+| Android Gradle Plugin | 8.6 |
+| Gradle | 8.7 |
+| Kotlin | 1.8 |
+| JDK (to run the build) | 17 |
+
+> **Note:** Your app does **not** need to change its own `jvmTarget`/`compileOptions` — any level
+> (including Java 8) works. The SDK ships Java 11 bytecode that D8 dexes independently of your
+> app's classes. The JDK 17 row is required by AGP 8.6+ (not by this SDK): AGP 8.x needs JDK 17 to
+> run the build, and compileSdk 35 already forces consumers onto AGP 8.6+, which in turn requires
+> Gradle 8.7+ — see the
+> [AGP compatibility matrix](https://developer.android.com/build/releases/gradle-plugin#android_gradle_plugin_and_android_studio_compatibility).
+> It does not mean your app needs Java 17 language features or bytecode anywhere.
+
+**Recommended:** Create an Adgeist publisher account and register your app
 
 ### Register your app's package id as an allowed origin
 
