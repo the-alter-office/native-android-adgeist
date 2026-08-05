@@ -4,13 +4,12 @@ import android.util.Log
 import android.view.View
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.findViewTreeViewModelStoreOwner
-import com.adgeistkit.ads.host.findHostFragment
 import com.adgeistkit.ads.host.findActivity
 
 /**
- * Resolves and holds the two identifiers every ad slot needs: [screenToken] for the
- * screen *instance* (keys the session store) and [screenLabel] for the screen
- * *class or route* (keys the placement guard and reporting).
+ * Resolves and holds [screenToken]: the identity of the screen *instance* this ad
+ * slot belongs to, which keys the session store so a session is only ever resumed
+ * by the screen instance that created it.
  *
  * See AD_LIFECYCLE.md, "How the SDK knows which screen it is on", and [AdSlotToken].
  */
@@ -18,19 +17,12 @@ internal class AdSlotIdentity(private val view: View) {
 
     companion object {
         private const val TAG = "AdSlotIdentity"
-
-        /** Label used when neither a fragment nor an activity can be found. */
-        const val LABEL_UNKNOWN = "unknown"
-
         private const val SLOT_UNNAMED = "unnamed AdView"
     }
 
     // ---- Resolved identity ----
 
     var screenToken: String? = null
-        private set
-
-    var screenLabel: String? = null
         private set
 
     private var resolved = false
@@ -40,11 +32,10 @@ internal class AdSlotIdentity(private val view: View) {
     /**
      * Resolves identity once, needing a ViewModelStoreOwner in the view tree.
      *
-     * @param placementId host-supplied label override; empty to auto-derive.
      * @param watchFragmentLifecycle false scopes identity to the Activity.
      * @return false when not resolvable yet, so the caller retries after attach.
      */
-    fun resolve(placementId: String, watchFragmentLifecycle: Boolean): Boolean {
+    fun resolve(watchFragmentLifecycle: Boolean): Boolean {
         if (resolved) return true
 
         val owner = findSlotOwner(watchFragmentLifecycle) ?: return false
@@ -57,16 +48,14 @@ internal class AdSlotIdentity(private val view: View) {
             Log.w(TAG, "Could not resolve a screen token; falling back to view id", e)
             null
         }
-        screenLabel = resolveScreenLabel(placementId, watchFragmentLifecycle)
         resolved = true
-        Log.d(TAG, "Slot identity resolved - label=$screenLabel token=$screenToken")
+        Log.d(TAG, "Slot identity resolved - token=$screenToken")
         return true
     }
 
     /** Accepts identity from a host the SDK cannot infer it from (Compose, RN). */
-    fun set(token: String, label: String) {
+    fun set(token: String) {
         screenToken = token
-        screenLabel = label
         resolved = true
     }
 
@@ -80,19 +69,9 @@ internal class AdSlotIdentity(private val view: View) {
             ?: view.context.findActivity() as? ViewModelStoreOwner
     }
 
-    private fun resolveScreenLabel(placementId: String, watchFragmentLifecycle: Boolean): String {
-        if (placementId.isNotEmpty()) return "custom:$placementId"
-
-        if (watchFragmentLifecycle) {
-            view.findHostFragment()?.let { return "frag:" + it.javaClass.name }
-        }
-        view.context.findActivity()?.let { return "act:" + it.javaClass.name }
-        return LABEL_UNKNOWN
-    }
-
     // ---- Derived names ----
 
-    /** Readable name for this slot, used in duplicate errors and reporting. */
+    /** Readable name for this slot, used in duplicate-slot error messages. */
     fun slotLabel(): String = resourceEntryName()?.let { "R.id.$it" } ?: SLOT_UNNAMED
 
     /** @return null when the slot has no identity at all, so gets no retention. */

@@ -12,14 +12,6 @@ import com.adgeistkit.ads.AdListener
 import com.adgeistkit.ads.AdView
 import com.adgeistkit.request.AdRequest
 
-/**
- * Secondary screen that deliberately reuses one of Home's ad units, to
- * demonstrate the one-screen-per-ad-unit guard.
- *
- * Home claims the unit first, so loading it here fails via onAdFailedToLoad
- * without a network request. A correctly integrated screen gets its own ad unit;
- * swap [SHARED_AD_UNIT_ID] for a unit of your own to see it render normally.
- */
 class PlaceholderFragment : Fragment() {
 
     companion object {

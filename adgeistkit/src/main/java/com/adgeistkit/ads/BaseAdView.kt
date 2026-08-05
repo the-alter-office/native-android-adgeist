@@ -21,7 +21,6 @@ import com.adgeistkit.ads.host.findActivity
 import com.adgeistkit.ads.host.pxToDp
 import com.adgeistkit.ads.host.releaseImeSession
 import com.adgeistkit.ads.identity.AdSlotIdentity
-import com.adgeistkit.ads.placement.PlacementAudit
 import com.adgeistkit.ads.render.AdCardHtml
 import com.adgeistkit.ads.render.AdCreativePayload
 import com.adgeistkit.ads.render.AdWebViewFactory
@@ -43,14 +42,6 @@ open class BaseAdView : ViewGroup {
     var adIsResponsive: Boolean = false
 
     /**
-     * Optional override for this slot's reporting label, used by the
-     * one-screen-per-ad-unit guard and sent with every impression. Auto-derived from
-     * the host fragment or activity when empty. It does not affect which session the
-     * slot resumes, and cannot place one ad unit on two screens.
-     */
-    var placementId: String = ""
-
-    /**
      * False scopes identity and teardown to the Activity instead of the fragment,
      * for embedders whose fragments are transient wrappers (react-native-screens
      * recreates one every time a screen is covered).
@@ -70,7 +61,6 @@ open class BaseAdView : ViewGroup {
 
     private val identity = AdSlotIdentity(this)
     internal val screenToken: String? get() = identity.screenToken
-    internal val screenLabel: String? get() = identity.screenLabel
 
     private val hostWatcher = HostDestroyWatcher(this) { parkForRecreation() }
 
@@ -119,11 +109,6 @@ open class BaseAdView : ViewGroup {
                 if (xmlAdUnitId != null && !xmlAdUnitId.isEmpty()) {
                     adUnitId = xmlAdUnitId
                 }
-
-                val xmlPlacementId = typedArray.getString(R.styleable.AdView_placementId)
-                if (xmlPlacementId != null && !xmlPlacementId.isEmpty()) {
-                    placementId = xmlPlacementId
-                }
             } finally {
                 typedArray.recycle()
             }
@@ -145,8 +130,7 @@ open class BaseAdView : ViewGroup {
      * survives, otherwise fetches a fresh creative.
      *
      * Fails via [AdListener.onAdFailedToLoad] - without making a network request -
-     * when this ad unit is already integrated on another screen, or when another
-     * slot on this screen is already using it.
+     * when another slot on this screen is already using this ad unit.
      */
     @RequiresPermission("android.permission.INTERNET")
     fun loadAd(adRequest: AdRequest) {
@@ -174,18 +158,10 @@ open class BaseAdView : ViewGroup {
     }
 
     private fun performLoad(adRequest: AdRequest) {
-        val label = screenLabel ?: AdSlotIdentity.LABEL_UNKNOWN
-
-        // Rule A: an ad unit belongs to exactly one screen. Checked before any
-        // network call, so a misplaced slot costs zero ad requests.
-        PlacementAudit.claim(adUnitId, label)?.let { failure ->
-            listener?.onAdFailedToLoad(failure)
-            return
-        }
-
         val key = sessionKey()
 
-        // Rule B: at most one slot per screen may use a given ad unit
+        // At most one slot per screen may use a given ad unit. Checked before any
+        // network call, so a misplaced slot costs zero ad requests.
         if (key != null) {
             AdSessionStore.claimSlot(key, this)?.let { holder ->
                 val failure = "Ad unit '$adUnitId' is already placed in this screen " +
@@ -237,9 +213,6 @@ open class BaseAdView : ViewGroup {
     /**
      * Permanently removes this ad: its session, its WebView, and this view. Call
      * [loadAd] again for a fresh one.
-     *
-     * The one-screen-per-ad-unit claim is deliberately not released, so this cannot
-     * be used to place the same ad unit on a second screen.
      */
     fun destroyAd() {
         destroyInternal()
@@ -410,7 +383,7 @@ open class BaseAdView : ViewGroup {
 
     // ---- Slot identity ----
 
-    private fun resolveIdentity(): Boolean = identity.resolve(placementId, watchFragmentLifecycle)
+    private fun resolveIdentity(): Boolean = identity.resolve(watchFragmentLifecycle)
 
     /**
      * Supplies identity for hosts the SDK cannot infer it from: Compose
@@ -419,10 +392,9 @@ open class BaseAdView : ViewGroup {
      *
      * Pass a token that stays the same while the screen lives and is unique to
      * that instance of it - a Compose wrapper should use an
-     * [androidx.lifecycle.ViewModel] scoped to the current `NavBackStackEntry` -
-     * and a label naming the screen class or route.
+     * [androidx.lifecycle.ViewModel] scoped to the current `NavBackStackEntry`.
      */
-    fun setScreenIdentity(token: String, label: String) = identity.set(token, label)
+    fun setScreenIdentity(token: String) = identity.set(token)
 
     internal fun slotLabel(): String = identity.slotLabel()
 

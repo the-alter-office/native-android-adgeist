@@ -44,7 +44,7 @@ internal class AdSession(
 /**
  * Registry of live ad sessions keyed by "adUnitId|screenToken", so a session is
  * only resumed by the screen instance that created it. Also holds the in-screen
- * slot claims behind Rule B. Main thread only.
+ * slot claims that cap one AdView per ad unit per screen. Main thread only.
  *
  * See AD_LIFECYCLE.md, "The resulting state machine".
  */
@@ -99,7 +99,7 @@ internal object AdSessionStore {
         session.lastAdoptedAtMs = SystemClock.elapsedRealtime()
     }
 
-    // ---- Slot claims (Rule B: one AdView per ad unit per screen) ----
+    // ---- Slot claims (one AdView per ad unit per screen) ----
 
     /**
      * Claims the slot for [view] unless another AdView is on screen holding it.

@@ -22,10 +22,10 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:gravity="center"
-            android:text="This screen loads the SAME ad unit as Home, but with its own placementId — so it gets its OWN ad (fresh fetch on first visit, its own session on return). Home's ad is never stolen.\n\nWatch logcat tag BaseAdView for the session keys."
+            android:text="This screen loads the SAME ad unit as Home. Each screen is its own session, so it gets its OWN ad (fresh fetch on first visit, its own session on return) — Home's ad is never stolen or shared. No guard prevents reusing an ad unit like this; see AD_LIFECYCLE.md.\n\nWatch logcat tag BaseAdView for the session keys."
             android:textSize="14sp" />
 
-        <!-- Same adUnitId as Home slot 1, different placement -->
+        <!-- Same adUnitId as Home slot 2, a different screen -->
         <FrameLayout
             android:id="@+id/placeholderAdContainer"
             android:layout_width="320dp"

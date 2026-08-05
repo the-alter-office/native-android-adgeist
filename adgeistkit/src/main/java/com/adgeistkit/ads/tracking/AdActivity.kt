@@ -198,11 +198,6 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
                                     currentVisibilityRatio,
                                     timeInView
                                 )
-                                .withPlacement(
-                                    baseAdView.screenLabel,
-                                    baseAdView.screenToken,
-                                    baseAdView.slotLabel()
-                                )
                                 .build()
                         postCreativeAnalytics.sendTrackingDataV2(analyticsRequest)
 
@@ -268,11 +263,6 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
         val analyticsRequest: AnalyticsRequest =
             AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData)
                 .trackClick()
-                .withPlacement(
-                    baseAdView.screenLabel,
-                    baseAdView.screenToken,
-                    baseAdView.slotLabel()
-                )
                 .build()
         postCreativeAnalytics.sendTrackingDataV2(analyticsRequest)
     }
