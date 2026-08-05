@@ -4,26 +4,29 @@ import android.content.Context
 import android.util.Log
 import android.webkit.JavascriptInterface
 import org.json.JSONObject
+import com.adgeistkit.ads.tracking.AdActivity
 
 /**
- * JS <-> native bridge registered on the ad WebView as the "Android" object.
- * Survives AdView recreation together with its AdActivity tracker.
+ * JS <-> native bridge registered on the ad WebView as the "Android" object, and
+ * owner of the ad's tracker. Survives AdView recreation along with it.
+ *
+ * The `@JavascriptInterface` method names below are a wire contract with the
+ * creative JS, kept by name in consumer-rules.pro and asserted by JsBridgeR8Test.
+ * Renaming one silently breaks ads in minified host builds.
  */
-class JsBridge(private var baseAdView: BaseAdView, var mContext: Context) {
+class JsBridge(
+    private var baseAdView: BaseAdView,
+    // Unused, retained so the published constructor signature does not change
+    @Suppress("UNUSED_PARAMETER") context: Context,
+) {
 
     companion object {
         private const val TAG = "Javascript Bridge"
     }
 
-    private var adActivity: AdActivity? = null
+    private var adActivity: AdActivity? = AdActivity(baseAdView)
 
-    init {
-        adActivity = AdActivity(baseAdView)
-    }
-
-    // ---------------------------------------------------------------------
-    // Host lifecycle plumbing (called by BaseAdView)
-    // ---------------------------------------------------------------------
+    // ---- Host lifecycle (called by BaseAdView) ----
 
     /** Suspends tracking on window detach; the ad itself stays alive. */
     fun onHostDetached() {
@@ -38,7 +41,6 @@ class JsBridge(private var baseAdView: BaseAdView, var mContext: Context) {
     /** Redirects this bridge and its tracker to the AdView that adopted the ad. */
     fun rebind(newHost: BaseAdView) {
         baseAdView = newHost
-        mContext = newHost.context
         adActivity?.rebind(newHost)
     }
 
@@ -51,9 +53,7 @@ class JsBridge(private var baseAdView: BaseAdView, var mContext: Context) {
         adActivity = null
     }
 
-    // ---------------------------------------------------------------------
-    // Calls from the ad page
-    // ---------------------------------------------------------------------
+    // ---- Calls from the ad page ----
 
     @JavascriptInterface
     fun postMessage(json: String) {
@@ -74,14 +74,10 @@ class JsBridge(private var baseAdView: BaseAdView, var mContext: Context) {
     fun postVideoStatus(json: String) {
         try {
             val obj = JSONObject(json)
-            val type = obj.optString("type")
-
-            if ("PLAY" == type) {
-                adActivity?.onVideoPlay()
-            } else if ("PAUSE" == type) {
-                adActivity?.onVideoPause()
-            } else if ("ENDED" == type) {
-                adActivity?.onVideoEnd()
+            when (obj.optString("type")) {
+                "PLAY" -> adActivity?.onVideoPlay()
+                "PAUSE" -> adActivity?.onVideoPause()
+                "ENDED" -> adActivity?.onVideoEnd()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Invalid JSON in postVideoStatus: $json", e)
@@ -90,11 +86,14 @@ class JsBridge(private var baseAdView: BaseAdView, var mContext: Context) {
 
     @JavascriptInterface
     fun reportOverflow(contentWidth: Int, contentHeight: Int, viewWidth: Int, viewHeight: Int) {
-        Log.e(TAG, "Ad overflow detected! Content: ${contentWidth}x${contentHeight} > View: ${viewWidth}x${viewHeight}")
+        Log.e(TAG, "Ad overflow: content ${contentWidth}x${contentHeight} > view ${viewWidth}x${viewHeight}")
         baseAdView.post {
-            baseAdView.listener?.onAdFailedToLoad("For companion ads, you should have minimum 320x320 dimensions. But available space is ${viewWidth}x${viewHeight}. So we are collapsing the ad, we won't track impressions, clicks etc for this ad.")
-            baseAdView.destroy()
-            baseAdView.removeFromParent()
+            baseAdView.listener?.onAdFailedToLoad(
+                "For companion ads, you should have minimum 320x320 dimensions. But available " +
+                    "space is ${viewWidth}x${viewHeight}. So we are collapsing the ad, we won't " +
+                    "track impressions, clicks etc for this ad."
+            )
+            baseAdView.destroyAd()
         }
     }
 

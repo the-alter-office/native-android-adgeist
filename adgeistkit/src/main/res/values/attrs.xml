@@ -3,8 +3,10 @@
     <!-- AdView custom attributes -->
     <declare-styleable name="AdView">
         <attr name="adUnitId" format="string" />
-        <!-- Optional stable slot identity; auto-derived when omitted. Sessions
-             are resumed only by the same placement. -->
+        <!-- Optional override for this slot's reporting label, auto-derived from
+             the host fragment or activity when omitted. It does not affect which
+             ad session the slot resumes, and cannot be used to place one ad unit
+             on more than one screen. -->
         <attr name="placementId" format="string" />
     </declare-styleable>
 </resources>

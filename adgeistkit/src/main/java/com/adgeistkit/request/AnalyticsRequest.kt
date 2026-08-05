@@ -12,6 +12,9 @@ class AnalyticsRequest private constructor(analyticsRequest: AnalyticsRequestBui
     private val scrollDepth: Float
     private val viewTime: Long
     private val timeToVisible: Long
+    private val screenLabel: String?
+    private val screenToken: String?
+    private val slotLabel: String?
 
     init {
         this.type = analyticsRequest.type
@@ -19,6 +22,9 @@ class AnalyticsRequest private constructor(analyticsRequest: AnalyticsRequestBui
         this.scrollDepth = analyticsRequest.scrollDepth
         this.viewTime = analyticsRequest.viewTime
         this.timeToVisible = analyticsRequest.timeToVisible
+        this.screenLabel = analyticsRequest.screenLabel
+        this.screenToken = analyticsRequest.screenToken
+        this.slotLabel = analyticsRequest.slotLabel
     }
 
     class AnalyticsRequestBuilder(//Required
@@ -30,7 +36,27 @@ class AnalyticsRequest private constructor(analyticsRequest: AnalyticsRequestBui
         var scrollDepth: Float = 0f
         var viewTime: Long = 0
         var timeToVisible: Long = 0
-         
+
+        // Where the ad was placed. Sent with every event so duplicate-placement
+        // detection can be done server-side, where it cannot be bypassed and
+        // where a unit's declared placement is actually known.
+        var screenLabel: String? = null
+        var screenToken: String? = null
+        var slotLabel: String? = null
+
+        /** Identifies the screen and slot this ad rendered in. */
+        fun withPlacement(
+            screenLabel: String?,
+            screenToken: String?,
+            slotLabel: String?
+        ): AnalyticsRequestBuilder {
+            this.screenLabel = screenLabel
+            this.screenToken = screenToken
+            this.slotLabel = slotLabel
+            return this
+        }
+
+
         fun trackViewableImpression(
             timeToVisible: Long,
             scrollDepth: Float,
@@ -61,6 +87,10 @@ class AnalyticsRequest private constructor(analyticsRequest: AnalyticsRequestBui
         try {
             json.put("metaData", metaData)
             json.put("type", type)
+
+            screenLabel?.let { json.put("screenLabel", it) }
+            screenToken?.let { json.put("screenToken", it) }
+            slotLabel?.let { json.put("slotLabel", it) }
 
             when (type) {
                 "VIEW" -> {

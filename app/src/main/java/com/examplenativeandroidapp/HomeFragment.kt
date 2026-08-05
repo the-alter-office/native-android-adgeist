@@ -333,7 +333,7 @@ class HomeFragment : Fragment() {
 
     /** Destroys one ad and removes its wrapper from the stack. */
     private fun removeAd(adView: AdView) {
-        adView.destroy()
+        adView.destroyAd()
         val wrapper = adView.parent as? ViewGroup
         (wrapper?.parent as? ViewGroup)?.removeView(wrapper)
         activeAdViews.remove(adView)

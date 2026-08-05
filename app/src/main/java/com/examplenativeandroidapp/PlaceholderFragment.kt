@@ -13,8 +13,12 @@ import com.adgeistkit.ads.AdView
 import com.adgeistkit.request.AdRequest
 
 /**
- * Secondary screen loading the SAME ad unit as Home under its own placementId
- * (the screen title), so each screen gets and resumes its own independent ad.
+ * Secondary screen that deliberately reuses one of Home's ad units, to
+ * demonstrate the one-screen-per-ad-unit guard.
+ *
+ * Home claims the unit first, so loading it here fails via onAdFailedToLoad
+ * without a network request. A correctly integrated screen gets its own ad unit;
+ * swap [SHARED_AD_UNIT_ID] for a unit of your own to see it render normally.
  */
 class PlaceholderFragment : Fragment() {
 
@@ -22,8 +26,8 @@ class PlaceholderFragment : Fragment() {
         private const val TAG = "PlaceholderFragment"
         private const val ARG_TITLE = "title"
 
-        // Same ad unit as Home slot 1
-        private const val SHARED_AD_UNIT_ID = "69ca2675576a0a20dd6c6cfb"
+        // Intentionally the same ad unit as Home slot 2 - see the class comment
+        private const val SHARED_AD_UNIT_ID = "6a4b7c9a50946c5aa2fda929"
 
         fun newInstance(title: String): PlaceholderFragment {
             return PlaceholderFragment().apply {
@@ -51,7 +55,6 @@ class PlaceholderFragment : Fragment() {
         val adView = AdView(requireContext()).apply {
             adUnitId = SHARED_AD_UNIT_ID
             adIsResponsive = true
-            placementId = title   // distinct placement per screen
         }
         adContainer.addView(
             adView,

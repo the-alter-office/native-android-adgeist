@@ -70,6 +70,11 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
     implementation("androidx.lifecycle:lifecycle-common:2.8.7")
+    // lifecycle-runtime: ViewTree lifecycle owner lookup (ad park signal)
+    // lifecycle-viewmodel: AdSlotToken, whose retained ViewModelStore gives each
+    // screen instance a stable identity and an exact "screen is gone" callback
+    implementation("androidx.lifecycle:lifecycle-runtime:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel:2.8.7")
     implementation("androidx.fragment:fragment:1.8.9")
     
     implementation("com.google.android.gms:play-services-ads-identifier:18.0.1")
