@@ -234,8 +234,10 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
                 webView?.onPause()
                 onVideoPause()
             }
-        } else if (isVisible) {
-            if ("video" == mediaType && !hasEnded) {
+            isVisible = false
+        } else {
+            checkVisibility()
+            if (isVisible && "video" == mediaType && !hasEnded) {
                 webView?.onResume()
                 onVideoPlay()
             }

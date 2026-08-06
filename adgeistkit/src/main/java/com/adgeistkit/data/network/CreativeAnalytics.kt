@@ -41,7 +41,8 @@ class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
 
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    Log.d(TAG, "Failed to send tracking data: ${e.message}")
+                    Log.d(TAG, "Failed to send tracking data: ${e.message} - queued for retry")
+                    AnalyticsRetryQueue.enqueue(adgeistCore.context, client, request)
                 }
 
                 override fun onResponse(call: Call, response: Response) {

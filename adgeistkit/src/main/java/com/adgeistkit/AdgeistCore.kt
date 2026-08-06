@@ -21,7 +21,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 class AdgeistCore private constructor(
-    private val context: Context,
+    internal val context: Context,
     val bidRequestBackendDomain: String,
     private val customPackageOrBundleID: String? = null,
     private val customAdgeistAppID: String? = null,
