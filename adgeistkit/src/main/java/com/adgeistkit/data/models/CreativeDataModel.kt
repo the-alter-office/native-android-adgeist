@@ -5,85 +5,83 @@ import com.google.gson.annotations.SerializedName
 sealed interface AdResponseData
 
 data class FixedAdResponse(
-    val expiresAt: String?,
-    val metaData: String,
-    val id: String,
-    val generatedAt: String?,
-    val signature: String?,
-    val campaignId: String?,
-    val advertiser: Advertiser?,
-    val type: String?,
-    val loadType: String?,
-    val campaignValidity: CampaignValidity?,
-    val creativesV1: List<CreativeV1>,
-    val displayOptions: DisplayOptions?,
-    val frontendCacheDurationSeconds: Int?,
-    val impressionRequirements: ImpressionRequirements?
+    @SerializedName("expiresAt") val expiresAt: String?,
+    @SerializedName("metaData") val metaData: String,
+    @SerializedName("id") val id: String,
+    @SerializedName("generatedAt") val generatedAt: String?,
+    @SerializedName("signature") val signature: String?,
+    @SerializedName("campaignId") val campaignId: String?,
+    @SerializedName("advertiser") val advertiser: Advertiser?,
+    @SerializedName("type") val type: String?,
+    @SerializedName("loadType") val loadType: String?,
+    @SerializedName("campaignValidity") val campaignValidity: CampaignValidity?,
+    @SerializedName("creativesV1") val creativesV1: List<CreativeV1>,
+    @SerializedName("displayOptions") val displayOptions: DisplayOptions?,
+    @SerializedName("frontendCacheDurationSeconds") val frontendCacheDurationSeconds: Int?,
+    @SerializedName("impressionRequirements") val impressionRequirements: ImpressionRequirements?
 ) : AdResponseData
 
 data class Advertiser(
-    val id: String?,
-    val name: String?,
-    val logoUrl: String?
+    @SerializedName("id") val id: String?,
+    @SerializedName("name") val name: String?,
+    @SerializedName("logoUrl") val logoUrl: String?
 )
 
 data class CampaignValidity(
-    val startTime: String?,
-    val endTime: String?
+    @SerializedName("startTime") val startTime: String?,
+    @SerializedName("endTime") val endTime: String?
 )
 
-// New CreativeV1 structure
 data class CreativeV1(
-    val title: String?,
-    val description: String?,
-    val ctaUrl: String?,
-    val primary: MediaItem?,
-    val companions: List<MediaItem>?
+    @SerializedName("title") val title: String?,
+    @SerializedName("description") val description: String?,
+    @SerializedName("ctaUrl") val ctaUrl: String?,
+    @SerializedName("primary") val primary: MediaItem?,
+    @SerializedName("companions") val companions: List<MediaItem>?
 )
 
 data class MediaItem(
-    val type: String?,
-    val fileName: String?,
-    val fileSize: Int?,
-    val fileUrl: String?,
-    val thumbnailUrl: String?
+    @SerializedName("type") val type: String?,
+    @SerializedName("fileName") val fileName: String?,
+    @SerializedName("fileSize") val fileSize: Int?,
+    @SerializedName("fileUrl") val fileUrl: String?,
+    @SerializedName("thumbnailUrl") val thumbnailUrl: String?
 )
 
 data class MongoIdWrapper(
-    val `$oid`: String?
+    @SerializedName("\$oid") val `$oid`: String?
 )
 
 data class MongoDateWrapper(
-    val `$date`: Long?
+    @SerializedName("\$date") val `$date`: Long?
 )
 
 data class DisplayOptions(
-    val allowedFormats: List<String>?,
-    val dimensions: Dimensions?,
-    val isResponsive: Boolean?,
-    val responsiveType: String?,
-    val styleOptions: StyleOptions?
+    @SerializedName("allowedFormats") val allowedFormats: List<String>?,
+    @SerializedName("dimensions") val dimensions: Dimensions?,
+    @SerializedName("isResponsive") val isResponsive: Boolean?,
+    @SerializedName("responsiveType") val responsiveType: String?,
+    @SerializedName("styleOptions") val styleOptions: StyleOptions?
 )
 
 data class Dimensions(
-    val height: Int?,
-    val width: Int?
+    @SerializedName("height") val height: Int?,
+    @SerializedName("width") val width: Int?
 )
 
 data class StyleOptions(
-    val fontColor: String?,
-    val fontFamily: String?
+    @SerializedName("fontColor") val fontColor: String?,
+    @SerializedName("fontFamily") val fontFamily: String?
 )
 
 data class ImpressionRequirements(
-    val impressionType: List<String>?,
-    val minViewDurationSeconds: Int?
+    @SerializedName("impressionType") val impressionType: List<String>?,
+    @SerializedName("minViewDurationSeconds") val minViewDurationSeconds: Int?
 )
 
-
 data class AdErrorResponse(
-    val Error: String,
-    val Status: String
+    @SerializedName("Error") val Error: String,
+    @SerializedName("Status") val Status: String
 )
 
 data class AdVisibilityError(
@@ -97,7 +95,7 @@ data class AdData(
 ) {
     val isSuccess: Boolean
         get() = error == null && data != null
-    
+
     val errorMessage: String
         get() = error?.errorMessage ?: "Unknown error occurred"
 }

@@ -14,6 +14,11 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        // Only consulted in AAR-consumer test mode (see app/build.gradle.kts);
+        // scoped to our group so mavenLocal can't shadow anything else.
+        if (providers.gradleProperty("useAarDependency").isPresent) {
+            mavenLocal { content { includeGroup("ai.adgeist") } }
+        }
         google()
         mavenCentral()
     }

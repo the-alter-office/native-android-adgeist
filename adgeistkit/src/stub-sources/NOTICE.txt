@@ -1,0 +1,8 @@
+AdGeist Android SDK (ai.adgeist:adgeistkit)
+
+Source code is not distributed with this artifact. The AdGeist SDK is
+proprietary software; this sources JAR is published only to satisfy
+Maven Central requirements.
+
+License: https://cdn.adgeist.ai/licenses/NATIVE-ANDROID-LICENSE.txt
+For source access or licensing inquiries, contact: beast@thealteroffice.com

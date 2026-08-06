@@ -3,6 +3,13 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
+// Consume the locally published AAR (what real publishers get, incl. its
+// bundled consumer-rules.pro) instead of the in-repo module:
+//   ./gradlew :adgeistkit:publishToMavenLocal
+//   ./gradlew :app:connectedProdReleaseAndroidTest -PuseAarDependency
+// The published artifact is the prodRelease variant, so test the prod flavor.
+val useAarDependency = providers.gradleProperty("useAarDependency").isPresent
+
 android {
     namespace = "com.examplenativeandroidapp"
     compileSdk = 35
@@ -79,7 +86,11 @@ dependencies {
     // implementation(libs.androidx.ui.tooling.preview)
     // implementation(libs.androidx.material3)
     testImplementation(libs.junit)
-    implementation(project(":adgeistkit"))
+    if (useAarDependency) {
+        implementation("${property("GROUP")}:${property("POM_ARTIFACT_ID")}:${property("VERSION_NAME")}")
+    } else {
+        implementation(project(":adgeistkit"))
+    }
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     // Gson is an `implementation` dep of :adgeistkit (not exposed transitively),
