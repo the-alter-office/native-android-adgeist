@@ -11,6 +11,7 @@ import com.adgeistkit.core.device.DeviceMeta
 import com.adgeistkit.core.device.NetworkUtils
 import com.adgeistkit.data.models.Event
 import com.adgeistkit.data.models.UserDetails
+import com.adgeistkit.data.network.AnalyticsRetryQueue
 import com.adgeistkit.data.network.CreativeAnalytics
 import com.adgeistkit.data.network.FetchCreative
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -71,7 +72,10 @@ class AdgeistCore private constructor(
         @JvmStatic
         fun destroy() {
             synchronized(lock) {
-                instance?.ioScope?.cancel()
+                instance?.let {
+                    it.ioScope.cancel()
+                    AnalyticsRetryQueue.shutdown(it.context)
+                }
                 instance = null
             }
         }

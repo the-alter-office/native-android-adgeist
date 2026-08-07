@@ -5,6 +5,8 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import java.io.IOException
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -16,24 +18,27 @@ import okhttp3.Request
 import okhttp3.Response
 
 /**
- * Retries analytics posts that failed for lack of connectivity, once connectivity
- * returns.
+ * Retries analytics posts that failed to send, on a periodic timer plus a fast
+ * path when connectivity visibly returns.
  */
 internal object AnalyticsRetryQueue {
 
     private const val TAG = "AnalyticsRetryQueue"
 
-    // Bounds memory if the device stays offline for a long time; oldest events
-    // are dropped first since they are the least relevant by the time this fires.
+    // Oldest events are dropped first once the backend is down long enough to fill this.
     private const val MAX_QUEUED = 200
+
+    private const val RETRY_INTERVAL_MS = 30_000L
 
     private val pending = ConcurrentLinkedQueue<Request>()
 
-    // Resends in flight from the current flush - the listener must not be torn
-    // down while one of these could still fail and need to re-queue itself.
+    // Resends in flight; the network listener stays registered while this is nonzero.
     private val inFlight = AtomicInteger(0)
 
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
+
+    private val handler = Handler(Looper.getMainLooper())
+    private var retryScheduled = false
 
     @Synchronized
     fun enqueue(context: Context, client: OkHttpClient, request: Request) {
@@ -43,6 +48,21 @@ internal object AnalyticsRetryQueue {
         }
         pending.add(request)
         startListening(context, client)
+        scheduleRetry(context, client)
+    }
+
+    /** Fallback for failures that aren't connectivity drops, so they aren't stuck forever. */
+    @Synchronized
+    private fun scheduleRetry(context: Context, client: OkHttpClient) {
+        if (retryScheduled) return
+        retryScheduled = true
+        handler.postDelayed({
+            retryScheduled = false
+            flush(context, client)
+            if (pending.isNotEmpty()) {
+                scheduleRetry(context, client)
+            }
+        }, RETRY_INTERVAL_MS)
     }
 
     @Synchronized
@@ -84,6 +104,21 @@ internal object AnalyticsRetryQueue {
         context.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE)
             as? ConnectivityManager
 
+    /** Called from [com.adgeistkit.AdgeistCore.destroy] - nothing else can stop this singleton. */
+    @Synchronized
+    fun shutdown(context: Context) {
+        handler.removeCallbacksAndMessages(null)
+        retryScheduled = false
+        pending.clear()
+        networkCallback?.let {
+            try {
+                connectivityManager(context)?.unregisterNetworkCallback(it)
+            } catch (e: Exception) { /* already unregistered */
+            }
+        }
+        networkCallback = null
+    }
+
     private fun flush(context: Context, client: OkHttpClient) {
         var request = pending.poll()
         while (request != null) {
@@ -101,6 +136,7 @@ internal object AnalyticsRetryQueue {
                 pending.add(request)
                 inFlight.decrementAndGet()
                 maybeStopListening(context)
+                scheduleRetry(context, client)
             }
 
             override fun onResponse(call: Call, response: Response) {
