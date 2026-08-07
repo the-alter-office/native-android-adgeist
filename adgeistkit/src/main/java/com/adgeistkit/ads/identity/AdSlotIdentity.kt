@@ -65,8 +65,11 @@ internal class AdSlotIdentity(private val view: View) {
         if (!watchFragmentLifecycle) {
             return view.context.findActivity() as? ViewModelStoreOwner
         }
-        return view.findViewTreeViewModelStoreOwner()
-            ?: view.context.findActivity() as? ViewModelStoreOwner
+        view.findViewTreeViewModelStoreOwner()?.let { return it }
+
+        if (!view.isAttachedToWindow) return null
+
+        return view.context.findActivity() as? ViewModelStoreOwner
     }
 
     // ---- Derived names ----
