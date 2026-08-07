@@ -39,8 +39,6 @@ internal object AdWebViewFactory {
             settings.useWideViewPort = true
         }
 
-        // Debug builds of the SDK only, so shipped apps never expose the WebView
-        // (and its JS bridge) to adb-level inspection
         if (com.adgeistkit.BuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             WebView.setWebContentsDebuggingEnabled(true)
         }

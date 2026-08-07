@@ -20,21 +20,14 @@ import com.adgeistkit.ads.AdSessionConfig
  */
 internal class AdSession(
     val webView: WebView,
-    // Swappable context: rebound to the new activity on adoption
     val contextWrapper: MutableContextWrapper,
     val jsInterface: JsBridge,
     val metaData: String,
     val mediaType: String?,
-    // Nulled while parked so a destroyed activity is never pinned
     var hostActivity: Activity?,
-    // Owning screen instance; null only for hosts with no ViewModelStoreOwner,
-    // which fall back to timeout eviction instead of an exact destroy signal
     val screenToken: String?,
-    // When the creative rendered; drives the TTL check
     val renderedAtMs: Long,
-    // Last adoption; drives LRU eviction
     var lastAdoptedAtMs: Long,
-    // The AdView currently presenting this session
     var hostView: BaseAdView?
 ) {
     var evictionRunnable: Runnable? = null
@@ -45,8 +38,6 @@ internal class AdSession(
  * Registry of live ad sessions keyed by "adUnitId|screenToken", so a session is
  * only resumed by the screen instance that created it. Also holds the in-screen
  * slot claims that cap one AdView per ad unit per screen. Main thread only.
- *
- * See AD_LIFECYCLE.md, "The resulting state machine".
  */
 internal object AdSessionStore {
 

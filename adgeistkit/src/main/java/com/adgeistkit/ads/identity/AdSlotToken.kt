@@ -12,8 +12,6 @@ import com.adgeistkit.ads.session.AdSessionStore
  * the only object Android hands back to a recreated screen, so the only reliable
  * place to keep it. [screenToken] survives recreation and differs per instance;
  * [onCleared] fires exactly once, when the screen is finished for good.
- *
- * See AD_LIFECYCLE.md, "How the SDK knows which screen it is on".
  */
 internal class AdSlotToken : ViewModel() {
 

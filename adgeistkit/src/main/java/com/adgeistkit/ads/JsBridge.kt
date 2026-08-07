@@ -16,7 +16,6 @@ import com.adgeistkit.ads.tracking.AdActivity
  */
 class JsBridge(
     private var baseAdView: BaseAdView,
-    // Unused, retained so the published constructor signature does not change
     @Suppress("UNUSED_PARAMETER") context: Context,
 ) {
 

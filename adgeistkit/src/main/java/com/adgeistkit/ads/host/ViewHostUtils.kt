@@ -1,6 +1,3 @@
-// Host-lookup helpers shared by BaseAdView and its collaborators. Extensions, so
-// each collaborator can reach the host without keeping its own copy.
-
 package com.adgeistkit.ads.host
 
 import android.app.Activity

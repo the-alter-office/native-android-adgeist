@@ -17,14 +17,6 @@ internal object AdCardHtml {
     private const val JS_PLACEHOLDER = "{{ADCARD_JS}}"
     private const val CREATIVE_PLACEHOLDER = "{{CREATIVE_DATA}}"
 
-    /**
-     * Makes server-supplied [json] safe inside a JS string literal in the page.
-     *
-     * Order matters: the backslash is escaped first, because escaping the quote
-     * before it would turn `\"` into `\\"` and reopen the literal. `</script` and
-     * `<!--` are handled separately - they break out of the element rather than the
-     * string, so no amount of quote escaping stops them.
-     */
     fun escapeForJsString(json: String): String = json
         .replace("\\", "\\\\")
         .replace("\"", "\\\"")

@@ -6,15 +6,13 @@ import com.adgeistkit.ads.AdType
 import com.adgeistkit.ads.AdSize
 
 /**
- * Maps an ad-server response onto the JSON payload the ad page expects. Free of
- * Android types (sizes arrive in dp), so it unit-tests on the JVM.
+ * Maps an ad-server response onto the JSON payload the ad page expects.
  */
 internal object AdCreativePayload {
 
     sealed interface Result {
         data class Success(val creativeJson: String, val metaData: String) : Result
 
-        /** [message] goes straight to `AdListener.onAdFailedToLoad`. */
         data class Failure(val message: String) : Result
     }
 
@@ -52,7 +50,6 @@ internal object AdCreativePayload {
         val creative = response.creativesV1[0]
         val options = response.displayOptions
 
-        // The primary creative always leads; companions follow in server order
         val media = mutableListOf<Map<String, String?>>()
         media.add(
             mapOf(

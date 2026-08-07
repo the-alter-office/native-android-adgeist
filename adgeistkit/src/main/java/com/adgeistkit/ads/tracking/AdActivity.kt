@@ -20,9 +20,6 @@ import com.adgeistkit.ads.BaseAdView
  * Tracks viewability, impressions, clicks and video playback for one ad. Survives
  * AdView recreation via pause/resume/rebind, keeping its impression state so an
  * adopted ad is never counted twice.
- *
- * Note: the video branches are gated on [mediaType], which nothing currently sets,
- * so video tracking is inert until that is wired up.
  */
 internal class AdActivity(private var baseAdView: BaseAdView) {
 

@@ -1,8 +1,7 @@
 package com.adgeistkit.ads
 
 /**
- * Host-tunable limits for ad session reuse. Main thread only; changes apply from
- * the next ad onwards. See AD_LIFECYCLE.md, "Ad reuse has a TTL".
+ * Host-tunable limits for ad session reuse. Main thread only;
  */
 object AdSessionConfig {
 

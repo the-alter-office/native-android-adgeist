@@ -10,8 +10,6 @@ import com.adgeistkit.ads.host.findActivity
  * Resolves and holds [screenToken]: the identity of the screen *instance* this ad
  * slot belongs to, which keys the session store so a session is only ever resumed
  * by the screen instance that created it.
- *
- * See AD_LIFECYCLE.md, "How the SDK knows which screen it is on", and [AdSlotToken].
  */
 internal class AdSlotIdentity(private val view: View) {
 
@@ -42,9 +40,6 @@ internal class AdSlotIdentity(private val view: View) {
         screenToken = try {
             AdSlotToken.of(owner).screenToken
         } catch (e: Exception) {
-            // A detached or already-destroyed fragment can refuse its
-            // ViewModelStore; fall back to the legacy key rather than crashing
-            // the host app.
             Log.w(TAG, "Could not resolve a screen token; falling back to view id", e)
             null
         }
@@ -92,7 +87,7 @@ internal class AdSlotIdentity(private val view: View) {
         return try {
             view.resources.getResourceEntryName(view.id)
         } catch (e: Exception) {
-            null // generated/unnamed id
+            null
         }
     }
 }
