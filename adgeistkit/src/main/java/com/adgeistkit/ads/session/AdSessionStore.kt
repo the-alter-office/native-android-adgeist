@@ -90,8 +90,6 @@ internal object AdSessionStore {
 
     /**
      * Claims the slot for [view] unless another AdView is on screen holding it.
-     *
-     * @return the conflicting live holder, or null when the claim is granted.
      */
     fun claimSlot(sessionKey: String, view: BaseAdView): BaseAdView? {
         val current = slotClaims[sessionKey]?.get()
