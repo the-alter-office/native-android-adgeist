@@ -56,8 +56,6 @@ internal object AdSessionStore {
 
     private val handler = Handler(Looper.getMainLooper())
 
-    // ---- Sessions ----
-
     fun put(sessionKey: String, session: AdSession) {
         sessions[sessionKey]?.takeIf { it.webView !== session.webView && it.isParked }?.let {
             Log.d(TAG, "Replacing parked ad session '$sessionKey'")
@@ -90,8 +88,6 @@ internal object AdSessionStore {
         session.lastAdoptedAtMs = SystemClock.elapsedRealtime()
     }
 
-    // ---- Slot claims (one AdView per ad unit per screen) ----
-
     /**
      * Claims the slot for [view] unless another AdView is on screen holding it.
      *
@@ -120,8 +116,6 @@ internal object AdSessionStore {
         val held = slotClaims.filterValues { it.get() === view }.keys
         held.forEach { slotClaims.remove(it) }
     }
-
-    // ---- Parking and eviction ----
 
     /**
      * Detaches a session from its dying host and keeps it registered for adoption.

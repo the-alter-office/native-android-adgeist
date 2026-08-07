@@ -12,12 +12,6 @@ import androidx.lifecycle.findViewTreeLifecycleOwner
 
 /**
  * Fires [onHostDestroyed] when the ad's host view is destroyed, for any reason.
- *
- * Prefers the view-tree owner (a fragment's viewLifecycleOwner), whose onDestroy
- * covers rotation, being covered with addToBackStack, and a pop alike. The caller
- * parks in all three and lets `AdSlotToken.onCleared` say which was final, so
- * nothing here inspects `isChangingConfigurations`. Falls back to the Activity
- * lifecycle, then to `Application.ActivityLifecycleCallbacks`.
  */
 internal class HostDestroyWatcher(
     private val view: View,
@@ -35,8 +29,6 @@ internal class HostDestroyWatcher(
 
     /** True while watching the view-tree owner rather than the whole Activity. */
     private var watchingViewOwner = false
-
-    // ---- Registration ----
 
     fun register(watchFragmentLifecycle: Boolean) {
         val viewOwner = if (watchFragmentLifecycle) view.findViewTreeLifecycleOwner() else null
@@ -90,8 +82,6 @@ internal class HostDestroyWatcher(
         activityCallbacks = callbacks
         observedApplication = hostActivity.application
     }
-
-    // ---- Teardown ----
 
     fun unregister() {
         lifecycleObserver?.let { observedLifecycle?.removeObserver(it) }

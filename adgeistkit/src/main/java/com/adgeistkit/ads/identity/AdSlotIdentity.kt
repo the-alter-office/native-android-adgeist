@@ -18,20 +18,13 @@ internal class AdSlotIdentity(private val view: View) {
         private const val SLOT_UNNAMED = "unnamed AdView"
     }
 
-    // ---- Resolved identity ----
-
     var screenToken: String? = null
         private set
 
     private var resolved = false
 
-    // ---- Resolution ----
-
     /**
      * Resolves identity once, needing a ViewModelStoreOwner in the view tree.
-     *
-     * @param watchFragmentLifecycle false scopes identity to the Activity.
-     * @return false when not resolvable yet, so the caller retries after attach.
      */
     fun resolve(watchFragmentLifecycle: Boolean): Boolean {
         if (resolved) return true
@@ -67,12 +60,9 @@ internal class AdSlotIdentity(private val view: View) {
         return view.context.findActivity() as? ViewModelStoreOwner
     }
 
-    // ---- Derived names ----
-
     /** Readable name for this slot, used in duplicate-slot error messages. */
     fun slotLabel(): String = resourceEntryName()?.let { "R.id.$it" } ?: SLOT_UNNAMED
 
-    /** @return null when the slot has no identity at all, so gets no retention. */
     fun sessionKey(adUnitId: String): String? {
         screenToken?.let { return "$adUnitId|$it" }
 

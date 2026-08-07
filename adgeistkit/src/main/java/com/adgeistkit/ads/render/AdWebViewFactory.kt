@@ -24,8 +24,6 @@ internal object AdWebViewFactory {
 
     private const val TAG = "AdWebView"
 
-    // ---- Construction ----
-
     /** [contextWrapper] is swappable so the WebView can be rebound to a recreated Activity. */
     class Created(val webView: WebView, val contextWrapper: MutableContextWrapper)
 
@@ -57,8 +55,6 @@ internal object AdWebViewFactory {
         ViewGroup.LayoutParams.MATCH_PARENT,
         ViewGroup.LayoutParams.MATCH_PARENT
     )
-
-    // ---- Clients and click-out ----
 
     private fun openInBrowser(context: Context, url: String) {
         try {
