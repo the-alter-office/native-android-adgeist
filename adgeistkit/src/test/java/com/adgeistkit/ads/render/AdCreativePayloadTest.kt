@@ -234,7 +234,6 @@ class AdCreativePayloadTest {
         val payload = successJson(build(response = response(displayOptions = null)))
 
         assertEquals(false, payload["isResponsive"])
-        assertEquals("Square", payload["responsiveType"])
     }
 
     @Test
@@ -243,14 +242,12 @@ class AdCreativePayloadTest {
             allowedFormats = null,
             dimensions = null,
             isResponsive = true,
-            responsiveType = "Landscape",
             styleOptions = null,
         )
 
         val payload = successJson(build(response = response(displayOptions = options)))
 
         assertEquals(true, payload["isResponsive"])
-        assertEquals("Landscape", payload["responsiveType"])
     }
 
     @Test

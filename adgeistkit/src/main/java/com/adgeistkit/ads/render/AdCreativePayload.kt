@@ -17,7 +17,6 @@ internal object AdCreativePayload {
     }
 
     private const val DEFAULT_ADVERTISER_NAME = "-"
-    private const val DEFAULT_RESPONSIVE_TYPE = "Square"
 
     fun build(
         response: FixedAdResponse,
@@ -73,7 +72,6 @@ internal object AdCreativePayload {
             "adElementId" to "adgeist_ads_iframe_$adUnitId",
             "name" to (response.advertiser?.name ?: DEFAULT_ADVERTISER_NAME),
             "isResponsive" to (options?.isResponsive ?: false),
-            "responsiveType" to (options?.responsiveType ?: DEFAULT_RESPONSIVE_TYPE),
             "title" to creative.title,
             "description" to creative.description,
             "ctaUrl" to creative.ctaUrl,

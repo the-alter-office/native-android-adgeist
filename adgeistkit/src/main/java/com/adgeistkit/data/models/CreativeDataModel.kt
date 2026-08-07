@@ -60,7 +60,6 @@ data class DisplayOptions(
     @SerializedName("allowedFormats") val allowedFormats: List<String>?,
     @SerializedName("dimensions") val dimensions: Dimensions?,
     @SerializedName("isResponsive") val isResponsive: Boolean?,
-    @SerializedName("responsiveType") val responsiveType: String?,
     @SerializedName("styleOptions") val styleOptions: StyleOptions?
 )
 
