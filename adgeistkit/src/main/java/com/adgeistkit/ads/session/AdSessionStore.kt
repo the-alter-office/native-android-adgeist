@@ -95,10 +95,6 @@ internal object AdSessionStore {
     /**
      * Claims the slot for [view] unless another AdView is on screen holding it.
      *
-     * Tracks the current holder rather than comparing view identity, because
-     * rotation supplies a *different* AdView for the same slot; releasing on the
-     * way out is what lets the recreated view claim it without a false conflict.
-     *
      * @return the conflicting live holder, or null when the claim is granted.
      */
     fun claimSlot(sessionKey: String, view: BaseAdView): BaseAdView? {
@@ -118,9 +114,7 @@ internal object AdSessionStore {
     }
 
     /**
-     * Releases every claim [view] holds, under any key. Keyed release alone is not
-     * enough: a recycled AdView rebound to a different ad unit computes a different
-     * key at teardown, leaving the original claim held by a dead view.
+     * Releases every claim [view] holds, under any key.
      */
     fun releaseSlotsHeldBy(view: BaseAdView) {
         val held = slotClaims.filterValues { it.get() === view }.keys
