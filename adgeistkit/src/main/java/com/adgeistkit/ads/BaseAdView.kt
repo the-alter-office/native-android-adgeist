@@ -10,16 +10,19 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.annotation.RequiresPermission
+import com.adgeistkit.AdgeistCore.Companion.getInstance
 import com.adgeistkit.R
 import com.adgeistkit.request.AdRequest
 import com.adgeistkit.data.models.FixedAdResponse
 import kotlin.math.max
+import com.adgeistkit.ads.cache.CreativeCache
 import com.adgeistkit.ads.host.pxToDp
 import com.adgeistkit.ads.host.releaseImeSession
 import com.adgeistkit.ads.render.AdCardHtml
 import com.adgeistkit.ads.render.AdCreativePayload
 import com.adgeistkit.ads.render.AdWebViewFactory
 import com.adgeistkit.ads.render.AdWebViewTeardown
+import com.adgeistkit.data.network.FetchCreative
 
 open class BaseAdView : ViewGroup {
 
@@ -204,45 +207,78 @@ open class BaseAdView : ViewGroup {
     // ---- Loading and rendering ----
 
     private fun startAdLoad(adRequest: AdRequest) {
-        val staticJson = """
-            {"metaData":"+eGhnjFQ4TEwaYEhMYDC5yoYc6BAaeZxHGvwq6XoJtze8zlaM/7rW6EJLJ2Fb6+aBkOv72qcmv8c1R+2eCOyTmsl5zwiLJ1ARoJxxlTqbuh2EeyrMm97CYVD+m9q8QyUiUmiSYkQbK8SnUaHj9OhLO0ZiGQKphM9UpWfT3G8T1bGiuKlBNT3DEqvjNOraRvQEaIwZVi8oTD73xPhuYNj7pgfuTKZ+HUkeRtJjSE9Jzsv115H07zZHN5YO7d8DCTw383C4yxm9KigZacuk1HZWapQpgQ193lt7Pr/TRSVvVLbj4BviB9yVR62/JwF9a9S9rulW/nJQ/1YRk1cX9QGYcsPvjibM3jHR3hydbT/Xx/eUkFBGnTm1aApK/dnACgUKnR98eD/lTOxnUx9wZk+NrFGQFFrD8pjHxsGuxsyoxlqoGYucogKy+g9ki/vc1viZPDlEzJ7e78dd6crui5U4UeA6X9t62kB9Sau55O6uH85PzuDi9tdGEdB88b2IPFum1kMPzBypPFJDyy9BnU3a8HPVL67PVvfgniSP3A2H16Y12T1T5po/N4CCYATP+VZeAIC7rEcfxmR/yBKnkmTq+JoiN+VeZGP+Ic6KIZkckjZhfxspvEFu3r+xGEh+MZhE5W6GaPOGD0sYlKn8P16G1YGRbun6BuRSV3lxOCbTZ+0VrKSjK6ZYa6lbjELQ0dZrB0dHlPlHggWjuUHt9BLbYAuxbsL9diD9iNBsz2DRgk=","id":"019ff5bc-c255-71b6-a21d-a82fef0f0a6e","generatedAt":"2026-08-12T11:30:16.277113676Z","campaignId":"6a5dc711353b8b285774e1a0","campaignGroupId":"6a1571a6afececba9de74bdb","adspaceId":"6a4b7c9a50946c5aa2fda929","publisherCompanyId":"69a6777707df2b1527e357f9","advertiser":{"id":"69a6787b07df2b1527e35a21","name":"Classmate","logoUrl":"https://adgeist-backend-private.s3.ap-south-1.amazonaws.com/companylogos/2026/03/1772517344442-87r0ezhft-classmate.png"},"type":"FIXED","adSpaceType":"banner","loadType":"QUICK","campaignValidity":{"startTime":"2026-07-19T18:30:00Z","endTime":"2026-08-15T18:29:59Z"},"creativesV1":[{"companions":[],"createdAt":{"${"$"}date":1784530723577},"ctaShortCode":"x91obxaUz0","ctaUrl":"https://classmate.com?utm_campaign=6a5dc711353b8b285774e1a0\u0026utm_data=%2BeGhnjFQ4TEwaYEhMYDC5%2FIh0qqHa%2BBjj6ZxA5ajPCMwrPzImHR6sCr%2FRiz8KXEn90PdduqIFW0iYnHf0vYqjSY7DliHrwwqkQtCQFCud08Ds2Bo9%2BGvkAYpanUytiZHq49%2BhdGUJECFiw5eAvdrjPY5URfibKc5pcK%2Fnnz%2F5EBtD3TX2NVflmPovlP75u4xFblAJiHSqSEuUgLG1L%2FPwnO612GhfLsGxk5Vlp%2B5rdu43iIvr61dcQTjsQO4jgmd5JkjXKzXXGw%2BPuVPxQBDnCxpoSngJzW6Mw%2BhmgtVBgmtfC6rfbS4TyiFR5gVdjyEAB6QmHeDf%2FmJ75i1HC5lH2mDihTxakzDpDDbNqKlhKMubM3A2wfiejeVpBcpTjdAkfDq76hltpAsG9bUXamjIZdXzt7Nec2nO%2BViYDFz4X0sIY%2Bzxttu%2FMBucaKL9QAV\u0026utm_source=com.leaguex.crm.beta","primary":{"fileName":"book.jpg","fileSize":498297,"fileUrl":"https://adgeist-backend-private.s3.ap-south-1.amazonaws.com/creatives/2026/07/1783332287691-aylfcb66k-book.jpg","thumbnailUrl":"https://adgeist-backend-private.s3.ap-south-1.amazonaws.com/creatives/2026/07/1783332287692-gqus0394q-thumbnail-book.jpeg","type":"image"},"updatedAt":{"${"$"}date":1784530723577}}],"displayOptions":{"companionFormats":[],"dimensions":{"height":360,"width":360},"isResponsive":false,"primaryFormats":["jpg","jpeg","png","gif","mp4"],"responsiveType":null,"styleOptions":{"fontColor":"#63aa75","fontFamily":"Arial"}},"frontendCacheDurationSeconds":300,"expiresAt":"2026-08-15T11:30:16.277105078Z","maxBid":0}
-        """.trimIndent()
+        val adgeist = getInstance()
+        val fetchCreative: FetchCreative = adgeist.getCreative()
 
-        mainHandler?.post {
-            isLoading = false
-            if (isDestroyed) return@post
+        fetchCreative.fetchCreative(
+            adUnitId, "FIXED"
+        ) { result ->
+            mainHandler?.post {
+                isLoading = false
+                if (isDestroyed) return@post
 
-            try {
-                // Parse the static JSON
-                val campaignDetails = com.google.gson.Gson().fromJson(staticJson, FixedAdResponse::class.java)
-                Log.d(TAG, "measured: ${pxToDp(measuredWidth)}x${pxToDp(measuredHeight)}dp")
-
-                val payload = AdCreativePayload.build(
-                    response = campaignDetails,
-                    adUnitId = adUnitId,
-                    adType = adType,
-                    adIsResponsive = adIsResponsive,
-                    adSize = adSize,
-                    measuredWidthDp = pxToDp(measuredWidth),
-                    measuredHeightDp = pxToDp(measuredHeight),
-                )
-
-                when (payload) {
-                    is AdCreativePayload.Result.Failure -> {
-                        Log.e(TAG, "Creative payload rejected: ${payload.message}")
-                        listener?.onAdFailedToLoad(payload.message)
-                    }
-
-                    is AdCreativePayload.Result.Success -> {
-                        metaData = payload.metaData
-                        renderAdWithAdCard(payload.creativeJson)
-                    }
+                if (!result.isSuccess) {
+                    Log.e(TAG, "API error: ${result.errorMessage}, statusCode: ${result.statusCode}")
+                    listener?.onAdFailedToLoad(result.errorMessage)
+                    return@post
                 }
-            } catch (err: Exception) {
-                Log.e(TAG, "Parsing error: ${err.message}", err)
-                listener?.onAdFailedToLoad(err.message ?: "Error")
+
+                try {
+                    // Parse the static JSON
+                    val campaignDetails = result.data as FixedAdResponse
+
+                    // Downloads start here, in parallel with WebView creation and HTML
+                    // assembly, so the media is often already on disk when the page asks
+                    // for it. Never blocks this thread.
+                    prefetchCreativeMedia(campaignDetails)
+
+                    val payload = AdCreativePayload.build(
+                        response = campaignDetails,
+                        adUnitId = adUnitId,
+                        adType = adType,
+                        adIsResponsive = adIsResponsive,
+                        adSize = adSize,
+                        measuredWidthDp = pxToDp(measuredWidth),
+                        measuredHeightDp = pxToDp(measuredHeight),
+                    )
+
+                    when (payload) {
+                        is AdCreativePayload.Result.Failure -> {
+                            Log.e(TAG, "Creative payload rejected: ${payload.message}")
+                            listener?.onAdFailedToLoad(payload.message)
+                        }
+
+                        is AdCreativePayload.Result.Success -> {
+                            metaData = payload.metaData
+                            renderAdWithAdCard(payload.creativeJson)
+                        }
+                    }
+                } catch (err: Exception) {
+                    Log.e(TAG, "Parsing error: ${err.message}", err)
+                    listener?.onAdFailedToLoad(err.message ?: "Error")
+                }
             }
         }
+    }
+
+    /**
+     * Hands every media URL in the response to [CreativeCache], which downloads them
+     * to the app's cache directory. The page keeps requesting the original URLs; the
+     * WebView's request interceptor answers them from disk.
+     */
+    private fun prefetchCreativeMedia(response: FixedAdResponse) {
+        val urls = mutableListOf<String?>()
+        response.creativesV1.forEach { creative ->
+            creative.primary?.let { media ->
+                urls.add(media.fileUrl)
+                urls.add(media.thumbnailUrl)
+            }
+            creative.companions?.forEach { companion ->
+                urls.add(companion.fileUrl)
+                urls.add(companion.thumbnailUrl)
+            }
+        }
+        CreativeCache.prefetch(context, urls)
     }
 
     /** Creates the WebView, wires the JS bridge, and renders the creative. */

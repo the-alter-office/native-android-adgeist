@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
+import com.adgeistkit.ads.cache.CreativeCache
 import com.adgeistkit.core.TargetingOptions
 import com.adgeistkit.core.device.DeviceIdentifier
 import com.adgeistkit.core.device.DeviceMeta
@@ -192,6 +193,15 @@ class AdgeistCore private constructor(
             }
             val fullEvent = event.copy(eventProperties = parameters)
         }
+    }
+
+    /**
+     * Deletes every creative image and video cached on disk. They are re-downloaded
+     * on the next ad load, so this only costs bandwidth - use it for storage or
+     * privacy resets.
+     */
+    fun clearCreativeCache() {
+        ioScope.launch { CreativeCache.clear(context) }
     }
 
     fun hasPhoneStatePermission(): Boolean {

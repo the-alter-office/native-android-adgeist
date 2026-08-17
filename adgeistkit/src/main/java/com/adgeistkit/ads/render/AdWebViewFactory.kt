@@ -12,9 +12,11 @@ import android.webkit.ConsoleMessage
 import android.webkit.ConsoleMessage.MessageLevel
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.adgeistkit.ads.JsBridge
+import com.adgeistkit.ads.cache.CreativeResourceInterceptor
 
 /**
  * Builds the WebView an ad renders into, together with its clients and the
@@ -93,6 +95,23 @@ internal object AdWebViewFactory {
             openInBrowser(view.context, request.url.toString())
             bridge.recordClickListener()
             return true
+        }
+
+        /**
+         * Serves creative media from the device cache. Called on a WebView resource
+         * thread, never the main thread, so blocking on the cache here is safe.
+         * Returning null hands the request back to the WebView.
+         */
+        override fun shouldInterceptRequest(
+            view: WebView,
+            request: WebResourceRequest
+        ): WebResourceResponse? {
+            // The WebView outlives its first host, so only the application context is safe
+            val cached = CreativeResourceInterceptor.intercept(
+                view.context.applicationContext,
+                request
+            )
+            return cached ?: super.shouldInterceptRequest(view, request)
         }
 
         override fun onPageFinished(view: WebView, url: String) {
