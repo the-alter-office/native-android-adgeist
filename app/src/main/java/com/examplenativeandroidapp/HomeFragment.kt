@@ -13,26 +13,24 @@ import android.widget.LinearLayout
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import com.adgeistkit.AdgeistCore
 import com.adgeistkit.ads.AdListener
 import com.adgeistkit.ads.AdSize
 import com.adgeistkit.ads.AdType
 import com.adgeistkit.ads.AdView
 import com.adgeistkit.request.AdRequest
+import com.examplenativeandroidapp.ui.viewmodel.HomeViewModel
+import kotlinx.coroutines.launch
 
-/**
- * Home screen hosting the ad rendering UI. Ads are never destroyed on
- * navigation: the SDK keeps each ad's session alive, and the next loadAd()
- * for the same placement adopts it, so the same ads re-appear instantly.
- */
 class HomeFragment : Fragment() {
 
     companion object {
         private const val TAG = "HomeFragment"
-
-        // Remembered across fragment recreations so the load mode survives navigation
-        private var autoLoadEnabled = true
     }
 
     // Configuration section
@@ -62,6 +60,10 @@ class HomeFragment : Fragment() {
     private val defaultPackageId = "com.leaguex.crm.beta"
     private val defaultAdgeistAppId = "69a6777707df2b1527e357f9"
     private val defaultBidRequestBackendDomain = "https://beta.v2.bg-services.adgeist.ai"
+
+
+    private val viewModel: HomeViewModel by activityViewModels()
+    private var handledRequestId = -1
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -99,28 +101,48 @@ class HomeFragment : Fragment() {
             configureSDK()
         }
 
-        // Auto Load: default ids, loads immediately. Manual Load: inputs shown.
-        autoLoadSwitch.isChecked = autoLoadEnabled
-        applyLoadMode(autoLoadEnabled)
+        val autoLoad = viewModel.isAutoLoadEnabled.value
+        autoLoadSwitch.isChecked = autoLoad
+
+        applyLoadMode(autoLoad)
+
         autoLoadSwitch.setOnCheckedChangeListener { _, isChecked ->
-            autoLoadEnabled = isChecked
+            viewModel.setAutoLoadEnabled(isChecked)
             applyLoadMode(isChecked)
             if (isChecked) {
-                loadAdWithDefaults()
+                viewModel.generateAd()
             }
         }
 
         generateAdBtn.setOnClickListener {
-            if (autoLoadEnabled) {
-                loadAdWithDefaults()
-            } else {
-                loadAdFromInputs()
-            }
+            viewModel.generateAd()
         }
 
         cancelAdBtn.setOnClickListener {
-            destroyAllAds()
-            clearInputFields()
+            viewModel.cancelAd()
+        }
+
+        observeViewModel()
+    }
+
+    private fun observeViewModel() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.adRequestId.collect { requestId ->
+                    if (requestId == handledRequestId) return@collect
+                    handledRequestId = requestId
+
+                    if (requestId == 0) {
+                        destroyAllAds()
+                        return@collect
+                    }
+                    if (viewModel.isAutoLoadEnabled.value) {
+                        loadAdWithDefaults()
+                    } else {
+                        loadAdFromInputs()
+                    }
+                }
+            }
         }
     }
 

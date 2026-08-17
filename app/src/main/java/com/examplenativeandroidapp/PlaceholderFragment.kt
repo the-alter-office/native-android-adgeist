@@ -18,7 +18,6 @@ class PlaceholderFragment : Fragment() {
         private const val TAG = "PlaceholderFragment"
         private const val ARG_TITLE = "title"
 
-        // Intentionally the same ad unit as Home slot 2 - see the class comment
         private const val SHARED_AD_UNIT_ID = "6a4b7c9a50946c5aa2fda929"
 
         fun newInstance(title: String): PlaceholderFragment {

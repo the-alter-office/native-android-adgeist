@@ -34,7 +34,7 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
 
     private val postCreativeAnalytics = getInstance().postCreativeAnalytics()
     private val renderStartTime = SystemClock.elapsedRealtime()
-    private val mediaType = baseAdView.mediaType
+    private val mediaType = "VIDEO"
     private val handler = Handler(Looper.getMainLooper())
 
     // ---- Viewability state ----

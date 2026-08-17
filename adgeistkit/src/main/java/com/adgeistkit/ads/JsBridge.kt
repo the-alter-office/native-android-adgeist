@@ -61,8 +61,8 @@ class JsBridge(
             val type = obj.optString("type")
             val msg = obj.optString("message")
 
-            if ("RENDER_STATUS" == type && "Success" == msg) {
-                adActivity?.captureImpression()
+            if ("BENCHMARK" == type && "JS_READY" == msg) {
+                baseAdView.reportJsReady()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Invalid JSON: $json")

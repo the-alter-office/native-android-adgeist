@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import java.util.UUID
-import com.adgeistkit.ads.session.AdSessionStore
 
 /**
  * Identity of one screen *instance*, retained in that screen's ViewModelStore -
@@ -21,7 +20,6 @@ internal class AdSlotToken : ViewModel() {
     // changes, so capturing one would pin a destroyed Activity.
     override fun onCleared() {
         Log.d(TAG, "Screen '$screenToken' finished - destroying its ad sessions")
-        AdSessionStore.destroyAllForScreen(screenToken)
     }
 
     companion object {

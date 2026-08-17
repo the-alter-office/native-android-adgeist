@@ -1,25 +1,16 @@
 package com.adgeistkit.ads.render
 
 import android.os.Handler
-import android.util.Log
 import android.view.ViewGroup
 import android.webkit.WebView
 
-/**
- * The single staged shutdown for an ad WebView, shared by the host AdView's
- * teardown and by discarding a parked session.
- *
- * A WebView cannot just be dropped: in-flight loads, JS timers and the injected
- * bridge keep running, and calling `destroy()` underneath them crashes in native
- * code. Hence this order - cut the bridge, stop the page, detach, blank it - and the
- * grace period before the native destroy.
- */
+
 internal object AdWebViewTeardown {
 
     private const val TAG = "AdWebViewTeardown"
     private const val DESTROY_GRACE_MS = 600L
 
-    fun destroy(webView: WebView, handler: Handler) {
+    fun destroy(webView: WebView, handler: Handler, onComplete: (() -> Unit)? = null) {
         try {
             try {
                 webView.removeJavascriptInterface("Android")
@@ -29,7 +20,6 @@ internal object AdWebViewTeardown {
             webView.stopLoading()
             webView.onPause()
             webView.clearHistory()
-            webView.clearCache(true)
             (webView.parent as? ViewGroup)?.removeView(webView)
 
             try {
@@ -41,11 +31,13 @@ internal object AdWebViewTeardown {
                 try {
                     webView.destroy()
                 } catch (e: Exception) {
-                    Log.e(TAG, "WebView final destroy failed", e)
+                    //
+                } finally {
+                    onComplete?.invoke()
                 }
             }, DESTROY_GRACE_MS)
         } catch (e: Exception) {
-            Log.e(TAG, "WebView cleanup error", e)
+            onComplete?.invoke()
         }
     }
 }
