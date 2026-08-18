@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
-import com.adgeistkit.ads.cache.CreativeCache
+import com.adgeistkit.ads.cache.CreativeMediaCache
 import com.adgeistkit.core.TargetingOptions
 import com.adgeistkit.core.device.DeviceIdentifier
 import com.adgeistkit.core.device.DeviceMeta
@@ -150,6 +150,7 @@ class AdgeistCore private constructor(
                 .getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
 
             val bundle = ai.metaData
+            
             return bundle?.getString(key)
         } catch (e: Exception) {
             return null
@@ -163,6 +164,7 @@ class AdgeistCore private constructor(
 
     fun updateConsentStatus(consentGiven: Boolean) {
         this.consentGiven = consentGiven
+
         try {
             prefs?.edit()?.putBoolean(KEY_CONSENT, consentGiven)?.apply()
         } catch (e: Exception) {
@@ -186,22 +188,19 @@ class AdgeistCore private constructor(
         ioScope.launch {
             val localUserDetails = userDetails
             val parameters = mutableMapOf<String, Any>()
+
             event.eventProperties?.forEach { (key, value) -> if (value != null) parameters[key] = value }
             
             if (localUserDetails != null) {
                 parameters["userDetails"] = localUserDetails
             }
+
             val fullEvent = event.copy(eventProperties = parameters)
         }
     }
 
-    /**
-     * Deletes every creative image and video cached on disk. They are re-downloaded
-     * on the next ad load, so this only costs bandwidth - use it for storage or
-     * privacy resets.
-     */
-    fun clearCreativeCache() {
-        ioScope.launch { CreativeCache.clear(context) }
+    fun clearCreativeMediaCache() {
+        ioScope.launch { CreativeMediaCache.clear(context) }
     }
 
     fun hasPhoneStatePermission(): Boolean {

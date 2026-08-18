@@ -7,39 +7,44 @@ import android.os.Handler
 import android.util.Log
 import android.view.View
 import android.view.inputmethod.InputMethodManager
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentManager
-import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.findViewTreeViewModelStoreOwner
+import com.adgeistkit.ads.viewmodel.AdViewModel
 
 private const val TAG = "ViewHostUtils"
 
-/** The Fragment this view sits in, or null when it is not inside one. */
-internal fun View.findHostFragment(): Fragment? {
-    return try {
-        FragmentManager.findFragment(this)
-    } catch (e: Exception) {
-        null
-    }
-}
-
-/** Walks the Context chain for the hosting Activity. */
 internal fun Context.findActivity(): Activity? {
     var current: Context? = this
+
     while (current is ContextWrapper) {
         if (current is Activity) return current
         current = current.baseContext
     }
+    
     return null
 }
 
-/** Walks the Context chain for a LifecycleOwner, for hosts that are not Activities. */
-internal fun Context.findLifecycleOwner(): LifecycleOwner? {
-    var current: Context? = this
-    while (current is ContextWrapper) {
-        if (current is LifecycleOwner) return current
-        current = current.baseContext
+internal fun View.findAdViewModel(watchFragmentLifecycle: Boolean): AdViewModel? {
+    val owner = findScreenOwner(watchFragmentLifecycle) ?: return null
+
+    return try {
+        AdViewModel.of(owner)
+    } catch (e: Exception) {
+        Log.w(TAG, "Could not reach the screen's ViewModel; this ad will not be retained", e)
+        null
     }
-    return null
+}
+
+private fun View.findScreenOwner(watchFragmentLifecycle: Boolean): ViewModelStoreOwner? {
+    if (!watchFragmentLifecycle) {
+        return context.findActivity() as? ViewModelStoreOwner
+    }
+
+    findViewTreeViewModelStoreOwner()?.let { return it }
+
+    if (!isAttachedToWindow) return null
+
+    return context.findActivity() as? ViewModelStoreOwner
 }
 
 internal fun View.pxToDp(px: Int): Int = (px / resources.displayMetrics.density).toInt()
@@ -55,9 +60,10 @@ internal fun View.pxToDp(px: Int): Int = (px / resources.displayMetrics.density)
  */
 internal fun View.releaseImeSession(handler: Handler?) {
     val activity = context.findActivity() ?: return
+
     val imm = activity.getSystemService(Context.INPUT_METHOD_SERVICE)
         as? InputMethodManager ?: return
-    // Posted so it runs after the detach pass, once window focus has settled
+
     handler?.post {
         try {
             val focused = activity.currentFocus

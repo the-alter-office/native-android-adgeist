@@ -31,9 +31,9 @@ import java.util.concurrent.TimeUnit
  * Downloads are de-duplicated per URL: a prefetch already in flight and the
  * WebView's own request for the same file share one download.
  */
-internal object CreativeCache {
+internal object CreativeMediaCache {
 
-    private const val TAG = "CreativeCache"
+    private const val TAG = "CreativeMediaCache"
 
     private const val DIR_NAME = "adgeist_creatives"
 

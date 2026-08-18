@@ -80,10 +80,10 @@ class CreativeResourceInterceptorTest {
 
     @Test
     fun `extension comes from the url path, not its query string`() {
-        assertEquals("jpg", CreativeCache.extensionOf("https://cdn.test/a/book.jpg"))
-        assertEquals("mp4", CreativeCache.extensionOf("https://cdn.test/a/clip.MP4?sig=xyz&v=2"))
-        assertEquals("jpeg", CreativeCache.extensionOf("https://cdn.test/a/thumb-book.jpeg#frag"))
-        assertEquals("", CreativeCache.extensionOf("https://cdn.test/a/no-extension"))
-        assertEquals("", CreativeCache.extensionOf("https://cdn.test/a.very-long-suffix"))
+        assertEquals("jpg", CreativeMediaCache.extensionOf("https://cdn.test/a/book.jpg"))
+        assertEquals("mp4", CreativeMediaCache.extensionOf("https://cdn.test/a/clip.MP4?sig=xyz&v=2"))
+        assertEquals("jpeg", CreativeMediaCache.extensionOf("https://cdn.test/a/thumb-book.jpeg#frag"))
+        assertEquals("", CreativeMediaCache.extensionOf("https://cdn.test/a/no-extension"))
+        assertEquals("", CreativeMediaCache.extensionOf("https://cdn.test/a.very-long-suffix"))
     }
 }

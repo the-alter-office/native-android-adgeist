@@ -17,11 +17,15 @@ import com.adgeistkit.request.AnalyticsRequest
 import com.adgeistkit.ads.BaseAdView
 
 /**
- * Tracks viewability, impressions, clicks and video playback for one ad. Survives
- * AdView recreation via pause/resume/rebind, keeping its impression state so an
- * adopted ad is never counted twice.
+ * Tracks viewability, impressions, clicks and video playback for one ad.
+ *
+ * A new instance is built every time the ad is rendered, including after a rotation
+ * or a return to the screen. What must not restart lives in [tracking], which the
+ * screen's cache owns and hands to every instance - so a rebuilt ad is never counted
+ * twice.
  */
 internal class AdActivity(private var baseAdView: BaseAdView) {
+    private val tracking: AdTrackingState = baseAdView.tracking
 
     companion object {
         private const val TAG = "Ad Activity"
@@ -42,9 +46,7 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
     private var currentVisibilityRatio = 0f
     private var isVisible = false
     private var viewStartTime: Long = 0
-    private var hasViewEvent = false
     private var hasImpression = false
-    private var lastClickTime = 0L
 
     // ---- Video playback state ----
 
@@ -172,17 +174,17 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
     }
 
     private fun startVisibilityCheck() {
-        if (visibilityCheckRunnable != null || hasViewEvent) return
+        if (visibilityCheckRunnable != null || tracking.impressionSent) return
 
         val runnable = object : Runnable {
             override fun run() {
                 // Stop if this check was cancelled (stopVisibilityCheck nulls the field)
                 if (visibilityCheckRunnable !== this) return
 
-                if (isVisible && viewStartTime > 0 && !hasViewEvent) {
+                if (isVisible && viewStartTime > 0 && !tracking.impressionSent) {
                     val timeInView = SystemClock.elapsedRealtime() - viewStartTime
                     if (timeInView >= MIN_VIEW_TIME) {
-                        hasViewEvent = true
+                        tracking.impressionSent = true
                         baseAdView.listener?.onAdImpression()
 
                         val scrollDepth: Float = scrollDepth()
@@ -252,11 +254,11 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
 
     fun captureClick() {
         val now = SystemClock.elapsedRealtime()
-        if (now - lastClickTime < CLICK_DEBOUNCE_MS) {
-            Log.d(TAG, "Click ignored - debounced (${now - lastClickTime}ms since last)")
+        val sinceLastClick = now - tracking.lastClickTime
+        if (sinceLastClick < CLICK_DEBOUNCE_MS) {
             return
         }
-        lastClickTime = now
+        tracking.lastClickTime = now
 
         baseAdView.listener?.onAdClicked()
         val analyticsRequest: AnalyticsRequest =

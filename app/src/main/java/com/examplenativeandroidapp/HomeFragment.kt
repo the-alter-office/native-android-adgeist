@@ -150,6 +150,7 @@ class HomeFragment : Fragment() {
         // No destroy: sessions stay alive in the SDK and are adopted on return
         Log.d(TAG, "onDestroyView - ad sessions stay alive inside the SDK")
         activeAdViews.clear()
+        handledRequestId = -1
         super.onDestroyView()
     }
 
@@ -208,7 +209,7 @@ class HomeFragment : Fragment() {
     private fun loadAdWithDefaults() {
         clearAdContainer()
         performAdLoad(
-            adspaceId = "69ca2675576a0a20dd6c6cfb",
+            adspaceId = "6a82e3bae0f53b7dac65f76a",
             adSpaceType = AdType.BANNER,
             isResponsive = false,
             width = 360,

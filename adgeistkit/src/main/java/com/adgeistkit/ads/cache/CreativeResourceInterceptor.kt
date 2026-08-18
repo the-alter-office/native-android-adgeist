@@ -23,7 +23,7 @@ import java.io.InputStream
  */
 internal object CreativeResourceInterceptor {
 
-    private const val TAG = "CreativeCache"
+    private const val TAG = "CreativeMediaCache"
 
     /**
      * How long a WebView resource thread waits for a creative to land on disk before
@@ -49,9 +49,9 @@ internal object CreativeResourceInterceptor {
 
         val url = request.url?.toString() ?: return null
         // Only media from an ad response is ours to serve
-        if (!CreativeCache.isRegistered(url)) return null
+        if (!CreativeMediaCache.isRegistered(url)) return null
 
-        val file = CreativeCache.ensureCached(context, url, SERVE_WAIT_MS)
+        val file = CreativeMediaCache.ensureCached(context, url, SERVE_WAIT_MS)
         if (file == null) {
             Log.i(TAG, "MISS not cached in time, WebView will fetch it: $url")
             return null
@@ -68,7 +68,7 @@ internal object CreativeResourceInterceptor {
     }
 
     private fun respond(file: File, url: String, rangeHeader: String?): WebResourceResponse {
-        val mimeType = CreativeCache.mimeTypeOf(file, url)
+        val mimeType = CreativeMediaCache.mimeTypeOf(file, url)
         val fileLength = file.length()
 
         return when (val range = parseRange(rangeHeader, fileLength)) {

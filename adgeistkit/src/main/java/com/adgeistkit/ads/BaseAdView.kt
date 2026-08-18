@@ -10,18 +10,23 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.annotation.RequiresPermission
+import androidx.core.view.doOnLayout
 import com.adgeistkit.AdgeistCore.Companion.getInstance
 import com.adgeistkit.R
 import com.adgeistkit.request.AdRequest
 import com.adgeistkit.data.models.FixedAdResponse
 import kotlin.math.max
-import com.adgeistkit.ads.cache.CreativeCache
+import com.adgeistkit.ads.cache.CreativeMediaCache
+import com.adgeistkit.ads.host.findAdViewModel
 import com.adgeistkit.ads.host.pxToDp
 import com.adgeistkit.ads.host.releaseImeSession
 import com.adgeistkit.ads.render.AdCardHtml
 import com.adgeistkit.ads.render.AdCreativePayload
 import com.adgeistkit.ads.render.AdWebViewFactory
 import com.adgeistkit.ads.render.AdWebViewTeardown
+import com.adgeistkit.ads.tracking.AdTrackingState
+import com.adgeistkit.ads.viewmodel.AdViewModel
+import com.adgeistkit.ads.viewmodel.RetainedAd
 import com.adgeistkit.data.network.FetchCreative
 
 open class BaseAdView : ViewGroup {
@@ -59,6 +64,14 @@ open class BaseAdView : ViewGroup {
     private var isLoading: Boolean = false
     private var isDestroyed = false
     private var mainHandler: Handler? = null
+
+    private var adViewModel: AdViewModel? = null
+    internal var tracking: AdTrackingState = AdTrackingState()
+        private set
+
+    // loadAd() before attach cannot reach the screen yet, so the request waits here
+    // until onAttachedToWindow()
+    private var pendingLoadRequest: AdRequest? = null
 
     // Benchmarking
     private var benchmarkStartTime: Long = 0
@@ -120,7 +133,13 @@ open class BaseAdView : ViewGroup {
         }
 
         if (isLoading) {
-            Log.w(TAG, "loadAd ignored - ad is already loading")
+            listener?.onAdFailedToLoad("Ad unit ID is already loading")
+            return
+        }
+
+        if (!resolveAdViewModel() && !isAttachedToWindow) {
+            // The view-tree owners are unreachable before attach. Resumed from onAttachedToWindow();
+            pendingLoadRequest = adRequest
             return
         }
 
@@ -128,6 +147,11 @@ open class BaseAdView : ViewGroup {
     }
 
     private fun performLoad(adRequest: AdRequest) {
+        adViewModel?.retained(adUnitId)?.let { retained ->
+            restoreRetained(retained)
+            return
+        }
+
         isLoading = true
 
         if (webView != null) {
@@ -140,7 +164,52 @@ open class BaseAdView : ViewGroup {
         }
     }
 
+    private fun restoreRetained(retained: RetainedAd) {
+        isLoading = true
+
+        if (webView != null) {
+            safelyDestroyWebView()
+        }
+
+        tracking = retained.tracking
+        prefetchCreativeMedia(retained.response)
+
+        mainHandler?.post {
+            doOnLayout {
+                if (!isAttachedToWindow) {
+                    isLoading = false
+                    return@doOnLayout
+                }
+
+                isLoading = false
+                isDestroyed = false
+
+                val payload = AdCreativePayload.build(
+                    response = retained.response,
+                    adUnitId = adUnitId,
+                    adType = adType,
+                    adIsResponsive = adIsResponsive,
+                    adSize = adSize,
+                    measuredWidthDp = pxToDp(measuredWidth),
+                    measuredHeightDp = pxToDp(measuredHeight),
+                )
+
+                when (payload) {
+                    is AdCreativePayload.Result.Failure -> {
+                        listener?.onAdFailedToLoad(payload.message)
+                    }
+
+                    is AdCreativePayload.Result.Success -> {
+                        metaData = payload.metaData
+                        renderAdWithAdCard(payload.creativeJson)
+                    }
+                }
+            }
+        }
+    }
+
     fun destroyAd() {
+        adViewModel?.release(adUnitId)
         destroyInternal()
         removeFromParent()
     }
@@ -152,6 +221,14 @@ open class BaseAdView : ViewGroup {
         mainHandler?.removeCallbacksAndMessages(null)
         listener?.onAdClosed()
         safelyDestroyWebView()
+    }
+
+    private fun resolveAdViewModel(): Boolean {
+        if (adViewModel == null) {
+            adViewModel = findAdViewModel(watchFragmentLifecycle)
+        }
+
+        return adViewModel != null
     }
 
     fun removeFromParent() {
@@ -173,7 +250,6 @@ open class BaseAdView : ViewGroup {
         jsInterface = null
 
         if (webViewToDestroy == null) return
-
 
         val handler = mainHandler ?: return
         handler.post {
@@ -224,12 +300,7 @@ open class BaseAdView : ViewGroup {
                 }
 
                 try {
-                    // Parse the static JSON
                     val campaignDetails = result.data as FixedAdResponse
-
-                    // Downloads start here, in parallel with WebView creation and HTML
-                    // assembly, so the media is often already on disk when the page asks
-                    // for it. Never blocks this thread.
                     prefetchCreativeMedia(campaignDetails)
 
                     val payload = AdCreativePayload.build(
@@ -244,12 +315,16 @@ open class BaseAdView : ViewGroup {
 
                     when (payload) {
                         is AdCreativePayload.Result.Failure -> {
-                            Log.e(TAG, "Creative payload rejected: ${payload.message}")
                             listener?.onAdFailedToLoad(payload.message)
                         }
 
                         is AdCreativePayload.Result.Success -> {
                             metaData = payload.metaData
+
+                            val retainedAd = RetainedAd(campaignDetails)
+                            tracking = retainedAd.tracking
+                            adViewModel?.retain(adUnitId, retainedAd)
+
                             renderAdWithAdCard(payload.creativeJson)
                         }
                     }
@@ -262,7 +337,7 @@ open class BaseAdView : ViewGroup {
     }
 
     /**
-     * Hands every media URL in the response to [CreativeCache], which downloads them
+     * Hands every media URL in the response to [CreativeMediaCache], which downloads them
      * to the app's cache directory. The page keeps requesting the original URLs; the
      * WebView's request interceptor answers them from disk.
      */
@@ -278,7 +353,7 @@ open class BaseAdView : ViewGroup {
                 urls.add(companion.thumbnailUrl)
             }
         }
-        CreativeCache.prefetch(context, urls)
+        CreativeMediaCache.prefetch(context, urls)
     }
 
     /** Creates the WebView, wires the JS bridge, and renders the creative. */
@@ -355,10 +430,8 @@ open class BaseAdView : ViewGroup {
             val childWidthSpec = MeasureSpec.makeMeasureSpec(resolvedWidth, MeasureSpec.EXACTLY)
             val childHeightSpec = MeasureSpec.makeMeasureSpec(resolvedHeight, MeasureSpec.EXACTLY)
             child.measure(childWidthSpec, childHeightSpec)
-            Log.d(TAG, "Ad child measured $resolvedWidth $resolvedHeight")
         }
 
-        Log.d(TAG, "onMeasure - resolvedWidth: $resolvedWidth, resolvedHeight: $resolvedHeight")
         setMeasuredDimension(resolvedWidth, resolvedHeight)
     }
 
@@ -385,6 +458,14 @@ open class BaseAdView : ViewGroup {
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+
+        // The view-tree owners are only reachable now, so this is where the screen
+        // becomes reachable and a deferred loadAd() can proceed.
+        resolveAdViewModel()
+        pendingLoadRequest?.let { request ->
+            pendingLoadRequest = null
+            performLoad(request)
+        }
 
         if (isDestroyed) return
 
