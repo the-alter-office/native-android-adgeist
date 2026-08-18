@@ -217,15 +217,15 @@ class HomeFragment : Fragment() {
             containerWidth = 360,
             containerHeight = 360
         )
-        performAdLoad(
-            adspaceId = "6a4b7c9a50946c5aa2fda929",
-            adSpaceType = AdType.BANNER,
-            isResponsive = false,
-            width = 360,
-            height = 360,
-            containerWidth = 360,
-            containerHeight = 360
-        )
+        // performAdLoad(
+        //     adspaceId = "6a4b7c9a50946c5aa2fda929",
+        //     adSpaceType = AdType.BANNER,
+        //     isResponsive = false,
+        //     width = 360,
+        //     height = 360,
+        //     containerWidth = 360,
+        //     containerHeight = 360
+        // )
     }
 
     /** Manual mode: everything comes from the input fields. */

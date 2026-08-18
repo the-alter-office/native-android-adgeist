@@ -4,17 +4,15 @@ import android.os.Handler
 import android.view.ViewGroup
 import android.webkit.WebView
 
-
 internal object AdWebViewTeardown {
 
-    private const val TAG = "AdWebViewTeardown"
     private const val DESTROY_GRACE_MS = 600L
 
     fun destroy(webView: WebView, handler: Handler, onComplete: (() -> Unit)? = null) {
         try {
             try {
                 webView.removeJavascriptInterface("Android")
-            } catch (e: Exception) { /* nothing left to unbind */
+            } catch (_: Exception) {
             }
 
             webView.stopLoading()
@@ -24,19 +22,19 @@ internal object AdWebViewTeardown {
 
             try {
                 webView.loadUrl("about:blank")
-            } catch (e: Exception) { /* already unusable */
+            } catch (_: Exception) {
             }
 
             handler.postDelayed({
                 try {
                     webView.destroy()
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     //
                 } finally {
                     onComplete?.invoke()
                 }
             }, DESTROY_GRACE_MS)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             onComplete?.invoke()
         }
     }

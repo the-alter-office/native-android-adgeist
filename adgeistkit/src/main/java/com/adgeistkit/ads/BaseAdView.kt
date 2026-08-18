@@ -143,10 +143,10 @@ open class BaseAdView : ViewGroup {
             return
         }
 
-        performLoad(adRequest)
+        performLoad()
     }
 
-    private fun performLoad(adRequest: AdRequest) {
+    private fun performLoad() {
         adViewModel?.retained(adUnitId)?.let { retained ->
             restoreRetained(retained)
             return
@@ -160,7 +160,7 @@ open class BaseAdView : ViewGroup {
 
         mainHandler?.post {
             isDestroyed = false
-            startAdLoad(adRequest)
+            startAdLoad()
         }
     }
 
@@ -234,7 +234,7 @@ open class BaseAdView : ViewGroup {
     fun removeFromParent() {
         try {
             (parent as? ViewGroup)?.removeView(this)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             //
         }
     }
@@ -282,7 +282,7 @@ open class BaseAdView : ViewGroup {
 
     // ---- Loading and rendering ----
 
-    private fun startAdLoad(adRequest: AdRequest) {
+    private fun startAdLoad() {
         val adgeist = getInstance()
         val fetchCreative: FetchCreative = adgeist.getCreative()
 
@@ -462,9 +462,9 @@ open class BaseAdView : ViewGroup {
         // The view-tree owners are only reachable now, so this is where the screen
         // becomes reachable and a deferred loadAd() can proceed.
         resolveAdViewModel()
-        pendingLoadRequest?.let { request ->
+        pendingLoadRequest?.let {
             pendingLoadRequest = null
-            performLoad(request)
+            performLoad()
         }
 
         if (isDestroyed) return
@@ -503,7 +503,7 @@ open class BaseAdView : ViewGroup {
             jsInterface?.onHostDetached()
             try {
                 webView?.onPause()
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 //
             }
         }
