@@ -74,10 +74,15 @@ open class BaseAdView : ViewGroup {
     private var pendingLoadRequest: AdRequest? = null
 
     // Benchmarking
-    private var benchmarkStartTime: Long = 0
+    private var benchmarkLoadStart: Long = 0
+    private var benchmarkFetchStart: Long = 0
+    @Volatile private var benchmarkFetchEnd: Long = 0
+    private var benchmarkRenderStart: Long = 0
     private var benchmarkEngineEnd: Long = 0
-    private var benchmarkAddedEnd: Long = 0
-    private var benchmarkTeardownStartTime: Long = 0
+    private var benchmarkAddViewEnd: Long = 0
+    @Volatile private var benchmarkJsReady: Long = 0
+    @Volatile private var benchmarkFirstFrameReported: Boolean = false
+    private var benchmarkFromCache: Boolean = false
 
     protected constructor(context: Context, adViewType: Int) : super(context) {
         initialize(context, null)
@@ -137,6 +142,10 @@ open class BaseAdView : ViewGroup {
             return
         }
 
+        benchmarkLoadStart = SystemClock.elapsedRealtime()
+        benchmarkFirstFrameReported = false
+        benchmarkFromCache = false
+
         if (!resolveAdViewModel() && !isAttachedToWindow) {
             // The view-tree owners are unreachable before attach. Resumed from onAttachedToWindow();
             pendingLoadRequest = adRequest
@@ -165,6 +174,7 @@ open class BaseAdView : ViewGroup {
     }
 
     private fun restoreRetained(retained: RetainedAd) {
+        benchmarkFromCache = true
         isLoading = true
 
         if (webView != null) {
@@ -241,7 +251,6 @@ open class BaseAdView : ViewGroup {
 
     private fun safelyDestroyWebView() {
         if (isDestroyed) return
-        benchmarkTeardownStartTime = SystemClock.elapsedRealtime()
         isDestroyed = true
 
         val webViewToDestroy = webView
@@ -254,8 +263,7 @@ open class BaseAdView : ViewGroup {
         val handler = mainHandler ?: return
         handler.post {
             AdWebViewTeardown.destroy(webViewToDestroy, handler) {
-                val duration = SystemClock.elapsedRealtime() - benchmarkTeardownStartTime
-                Log.i("Ad Benchmark Teardown", "Ad Benchmark Teardown: WebView Teardown (Unit: $adUnitId): ${duration}ms (inc. grace period)")
+                Log.d(TAG, "WebView destroyed")
             }
             removeAllViews()
         }
@@ -263,21 +271,40 @@ open class BaseAdView : ViewGroup {
 
     // ---- Benchmarking ----
 
-    internal fun reportJsReady() {
-        val jsReadyTime = SystemClock.elapsedRealtime()
-        val totalTime = jsReadyTime - benchmarkStartTime
-        val engineTime = benchmarkEngineEnd - benchmarkStartTime
-        val addViewTime = benchmarkAddedEnd - benchmarkEngineEnd
-        val jsStartupTime = jsReadyTime - benchmarkAddedEnd
+    internal fun markJsReady() {
+        benchmarkJsReady = SystemClock.elapsedRealtime()
+    }
 
-        Log.i("Ad Benchmark Load", """
-            🚀 Ad Load Benchmark (Unit: $adUnitId):
-            - Engine Start (WebView Init): ${engineTime}ms
-            - Add to View Hierarchy: ${addViewTime}ms
-            - JS Runtime Startup: ${jsStartupTime}ms
-            -----------------------------------
-            - Total Ready Time: ${totalTime}ms
-        """.trimIndent())
+    internal fun reportFirstFrame() {
+        val firstFrame = SystemClock.elapsedRealtime()
+
+        if (benchmarkFirstFrameReported) return
+        benchmarkFirstFrameReported = true
+
+        mainHandler?.post {
+            if (benchmarkJsReady == 0L) benchmarkJsReady = benchmarkAddViewEnd
+
+            val fetchTime = if (benchmarkFromCache) 0 else benchmarkFetchEnd - benchmarkFetchStart
+            val prepFrom = if (benchmarkFromCache) benchmarkLoadStart else benchmarkFetchEnd
+            val prepTime = benchmarkRenderStart - prepFrom
+            val engineTime = benchmarkEngineEnd - benchmarkRenderStart
+            val addViewTime = benchmarkAddViewEnd - benchmarkEngineEnd
+            val jsStartupTime = benchmarkJsReady - benchmarkAddViewEnd
+            val paintTime = firstFrame - benchmarkJsReady
+            val totalTime = firstFrame - benchmarkLoadStart
+
+            Log.i("Ad Benchmark", """
+                🎬 Ad Render Cycle (Unit: $adUnitId, cached: $benchmarkFromCache):
+                - Creative Fetch:            ${fetchTime}ms
+                - Payload Prep + Layout:     ${prepTime}ms
+                - WebView Engine Init:       ${engineTime}ms
+                - Add to View Hierarchy:     ${addViewTime}ms
+                - JS Runtime Startup:        ${jsStartupTime}ms
+                - Media Decode + Paint:      ${paintTime}ms
+                ------------------------------------
+                - Total Time to First Frame: ${totalTime}ms
+            """.trimIndent())
+        }
     }
 
     // ---- Loading and rendering ----
@@ -286,9 +313,13 @@ open class BaseAdView : ViewGroup {
         val adgeist = getInstance()
         val fetchCreative: FetchCreative = adgeist.getCreative()
 
+        benchmarkFetchStart = SystemClock.elapsedRealtime()
+
         fetchCreative.fetchCreative(
             adUnitId, "FIXED"
         ) { result ->
+            benchmarkFetchEnd = SystemClock.elapsedRealtime()
+
             mainHandler?.post {
                 isLoading = false
                 if (isDestroyed) return@post
@@ -355,7 +386,7 @@ open class BaseAdView : ViewGroup {
     private fun renderAdWithAdCard(creativeJsonData: String) {
         if (isDestroyed) return
 
-        benchmarkStartTime = SystemClock.elapsedRealtime()
+        benchmarkRenderStart = SystemClock.elapsedRealtime()
         removeAllViews()
 
         val bridge = JsBridge(this, context)
@@ -381,7 +412,7 @@ open class BaseAdView : ViewGroup {
         )
 
         addView(adWebView, AdWebViewFactory.matchParentLayoutParams())
-        benchmarkAddedEnd = SystemClock.elapsedRealtime()
+        benchmarkAddViewEnd = SystemClock.elapsedRealtime()
 
         // Companion ads stay hidden until the overflow check completes
         if (adType == AdType.COMPANION) {

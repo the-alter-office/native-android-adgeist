@@ -26,7 +26,7 @@ class JsBridge(
     fun onHostDetached() {
         adActivity?.pause()
     }
-    
+
     fun onHostAttached() {
         adActivity?.resume()
     }
@@ -55,7 +55,11 @@ class JsBridge(
             val msg = obj.optString("message")
 
             if ("BENCHMARK" == type && "JS_READY" == msg) {
-                baseAdView.reportJsReady()
+                baseAdView.markJsReady()
+            }
+
+            if ("RENDER_STATUS" == type && "Success" == msg) {
+                baseAdView.reportFirstFrame()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Invalid JSON: $json")
