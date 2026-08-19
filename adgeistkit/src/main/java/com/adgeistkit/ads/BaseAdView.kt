@@ -336,11 +336,6 @@ open class BaseAdView : ViewGroup {
         }
     }
 
-    /**
-     * Hands every media URL in the response to [CreativeMediaCache], which downloads them
-     * to the app's cache directory. The page keeps requesting the original URLs; the
-     * WebView's request interceptor answers them from disk.
-     */
     private fun prefetchCreativeMedia(response: FixedAdResponse) {
         val urls = mutableListOf<String?>()
         response.creativesV1.forEach { creative ->
@@ -471,8 +466,8 @@ open class BaseAdView : ViewGroup {
 
         try {
             webView?.onResume()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error resuming WebView: ${e.message}", e)
+        } catch (_: Exception) {
+            //
         }
         jsInterface?.onHostAttached()
     }
@@ -485,14 +480,14 @@ open class BaseAdView : ViewGroup {
         if (visibility == VISIBLE) {
             try {
                 webView?.onResume()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error resuming WebView: ${e.message}", e)
+            } catch (_: Exception) {
+                //
             }
         } else {
             try {
                 webView?.onPause()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error pausing WebView: ${e.message}", e)
+            } catch (_: Exception) {
+                //
             }
             releaseImeSession(mainHandler)
         }

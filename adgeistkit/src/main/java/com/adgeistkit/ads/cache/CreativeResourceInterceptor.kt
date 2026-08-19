@@ -9,36 +9,17 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
 
-/**
- * Serves cached creatives to the WebView.
- *
- * Images are one whole-file request, but a `<video>` element asks for byte ranges -
- * the header first, then the index, which may sit at the end of the file, then the
- * frames it needs. Every one of those arrives as its own call here, so partial
- * content has to be answered properly or Chromium refuses to play, or plays without
- * seeking.
- *
- * Anything this cannot serve returns null, which tells the WebView to fetch the
- * resource itself. A cache problem can therefore never break an ad render.
- */
 internal object CreativeResourceInterceptor {
 
     private const val TAG = "CreativeMediaCache"
 
-    /**
-     * How long a WebView resource thread waits for a creative to land on disk before
-     * giving up and letting the WebView stream it. This is the error path - a bad
-     * network must not leave an ad slot permanently empty.
-     */
     private const val SERVE_WAIT_MS = 15_000L
 
     private const val RANGE_HEADER = "range"
 
     internal sealed interface Range {
-        /** No usable Range header - answer with the whole file. */
         object Absent : Range
 
-        /** Asked for bytes past the end of the file. */
         object Unsatisfiable : Range
 
         data class Slice(val start: Long, val end: Long) : Range
@@ -121,7 +102,6 @@ internal object CreativeResourceInterceptor {
         }
     }
 
-    /** WebView's header casing is not guaranteed, so match case-insensitively. */
     private fun rangeHeaderOf(request: WebResourceRequest): String? =
         request.requestHeaders
             ?.entries
@@ -166,7 +146,6 @@ internal object CreativeResourceInterceptor {
         return Range.Slice(start, end)
     }
 
-    /** Stops the file stream at the end of the requested slice. */
     private class BoundedInputStream(
         private val delegate: InputStream,
         private var remaining: Long,

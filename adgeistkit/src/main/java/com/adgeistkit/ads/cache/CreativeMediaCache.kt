@@ -16,59 +16,31 @@ import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 
-/**
- * Disk cache for creative media - images and video alike - so a creative renders
- * from the device instead of the network.
- *
- * The ad response only carries remote URLs, so [prefetch] starts downloading the
- * moment the response is parsed, in parallel with WebView creation.
- * [CreativeResourceInterceptor] then serves the bytes off disk.
- *
- * A file is published under its final name only once fully downloaded, so "the file
- * exists" and "the file is complete" are the same question everywhere else in the
- * SDK - which is what makes byte-range serving of video safe.
- *
- * Downloads are de-duplicated per URL: a prefetch already in flight and the
- * WebView's own request for the same file share one download.
- */
 internal object CreativeMediaCache {
 
     private const val TAG = "CreativeMediaCache"
 
     private const val DIR_NAME = "adgeist_creatives"
 
-    /** Total budget for cached creatives; trimmed to [TRIM_TARGET_BYTES] once exceeded. */
     private const val MAX_CACHE_BYTES = 128L * 1024 * 1024
     private const val TRIM_TARGET_BYTES = 96L * 1024 * 1024
 
-    /** Creatives above this size are left for the WebView to stream itself. */
     private const val MAX_ENTRY_BYTES = 32L * 1024 * 1024
 
-    /** Ceiling on one creative download, so a slow-but-alive transfer cannot hang forever. */
     private const val CALL_TIMEOUT_SECONDS = 30L
 
-    /** Cap on remembered creative URLs - a long session would otherwise grow this forever. */
     private const val REGISTRY_LIMIT = 256
 
-    /** A partial download left behind by a killed process is swept after this long. */
     private const val STALE_PART_MS = 60L * 60 * 1000
 
     private const val COPY_BUFFER_BYTES = 32 * 1024
 
     private const val PART_SUFFIX = ".part"
 
-    /**
-     * Two threads: enough to overlap a video with its poster, few enough that
-     * creatives never crowd out ad requests or analytics.
-     */
     private val downloadExecutor = Executors.newFixedThreadPool(2) { runnable ->
         Thread(runnable, "adgeist-creative-cache").apply { isDaemon = true }
     }
 
-    /**
-     * Shares the SDK's connection pool and dispatcher, adding a whole-call timeout
-     * that the shared client deliberately does not set.
-     */
     private val downloadClient by lazy {
         NetworkModule.httpClient.newBuilder()
             .callTimeout(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
@@ -77,11 +49,7 @@ internal object CreativeMediaCache {
 
     private val inFlight = ConcurrentHashMap<String, CountDownLatch>()
 
-    /**
-     * Only URLs that arrived in an ad response may be served from disk, so the
-     * interceptor never touches analytics, click, or template traffic. Access-ordered,
-     * so the least-recently-used creative is the one dropped at [REGISTRY_LIMIT].
-     */
+
     private val registry: MutableMap<String, Boolean> = Collections.synchronizedMap(
         object : LinkedHashMap<String, Boolean>(REGISTRY_LIMIT, 0.75f, true) {
             override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Boolean>?) =
@@ -89,15 +57,11 @@ internal object CreativeMediaCache {
         }
     )
 
-    /**
-     * Marks [urls] as cache-eligible without downloading: the interceptor fills the
-     * cache on the WebView's first request for them.
-     */
+
     fun register(urls: Collection<String?>) {
         urls.filterNotNull().forEach { url -> if (isCacheable(url)) registry[url] = true }
     }
 
-    /** Registers [urls] and starts downloading them off the calling thread. */
     fun prefetch(context: Context, urls: Collection<String?>) {
         val appContext = context.applicationContext
         register(urls)
@@ -109,15 +73,7 @@ internal object CreativeMediaCache {
 
     fun isRegistered(url: String): Boolean = registry[url] != null
 
-    /**
-     * @return the cached file for [url], waiting up to [waitMs] for a download to
-     *   finish, or null when it is not on disk in time - callers then fall back to
-     *   the network.
-     *
-     * Blocking, and never safe to call from the main thread. The caller never performs
-     * the download itself: it is handed to [downloadExecutor] and awaited, so a slow
-     * transfer cannot pin a WebView resource thread past [waitMs].
-     */
+
     fun ensureCached(context: Context, url: String, waitMs: Long): File? {
         val appContext = context.applicationContext
         val target = fileFor(appContext, url) ?: return null
@@ -140,7 +96,6 @@ internal object CreativeMediaCache {
         }
     }
 
-    /** Deletes every cached creative. */
     fun clear(context: Context) {
         val dir = cacheDir(context) ?: return
         dir.listFiles()?.forEach { file ->
@@ -148,7 +103,6 @@ internal object CreativeMediaCache {
         }
     }
 
-    /** Lowercase file extension of [url], no leading dot, or an empty string. */
     fun extensionOf(url: String): String {
         val path = url.substringBefore('?').substringBefore('#')
         val extension = path.substringAfterLast('/').substringAfterLast('.', "")
@@ -159,7 +113,6 @@ internal object CreativeMediaCache {
         }
     }
 
-    /** The URL's extension decides the type; content sniffing covers extensionless URLs. */
     fun mimeTypeOf(file: File, url: String): String {
         val extension = extensionOf(url)
         if (extension.isNotEmpty()) {
@@ -171,10 +124,6 @@ internal object CreativeMediaCache {
     private fun isCacheable(url: String?): Boolean =
         url != null && (url.startsWith("https://") || url.startsWith("http://"))
 
-    /**
-     * @return the latch for this URL's download, whether it was already running or
-     *   started here, or null when the download could not be scheduled.
-     */
     private fun startDownload(appContext: Context, url: String): CountDownLatch? {
         val latch = CountDownLatch(1)
         inFlight.putIfAbsent(url, latch)?.let { return it }
@@ -317,11 +266,6 @@ internal object CreativeMediaCache {
         null
     }
 
-    /**
-     * Content-addressed by URL, keeping the extension so the MIME type stays derivable.
-     * The ad server's URLs are themselves content-hashed, so an entry never goes stale
-     * and needs no expiry - only the LRU trim.
-     */
     private fun keyFor(url: String): String {
         val digest = MessageDigest.getInstance("SHA-256").digest(url.toByteArray())
         val hex = digest.joinToString("") { "%02x".format(it) }
