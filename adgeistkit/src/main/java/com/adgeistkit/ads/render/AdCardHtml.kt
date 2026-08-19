@@ -3,10 +3,6 @@ package com.adgeistkit.ads.render
 import android.content.res.AssetManager
 import android.util.Log
 
-/**
- * Builds the ad page from the bundled templates with the creative injected.
- * [escapeForJsString] is separate so it can be tested without an AssetManager.
- */
 internal object AdCardHtml {
 
     private const val TAG = "AdCardHtml"

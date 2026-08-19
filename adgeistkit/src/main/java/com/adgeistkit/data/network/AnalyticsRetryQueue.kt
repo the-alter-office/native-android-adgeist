@@ -17,10 +17,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 
-/**
- * Retries analytics posts that failed to send, on a periodic timer plus a fast
- * path when connectivity visibly returns.
- */
 internal object AnalyticsRetryQueue {
 
     private const val TAG = "AnalyticsRetryQueue"
@@ -113,7 +109,7 @@ internal object AnalyticsRetryQueue {
         networkCallback?.let {
             try {
                 connectivityManager(context)?.unregisterNetworkCallback(it)
-            } catch (e: Exception) { /* already unregistered */
+            } catch (_: Exception) { /* already unregistered */
             }
         }
         networkCallback = null

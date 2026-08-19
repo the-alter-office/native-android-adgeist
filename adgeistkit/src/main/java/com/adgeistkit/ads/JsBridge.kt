@@ -8,11 +8,7 @@ import com.adgeistkit.ads.tracking.AdActivity
 
 /**
  * JS <-> native bridge registered on the ad WebView as the "Android" object, and
- * owner of the ad's tracker. Survives AdView recreation along with it.
- *
- * The `@JavascriptInterface` method names below are a wire contract with the
- * creative JS, kept by name in consumer-rules.pro and asserted by JsBridgeR8Test.
- * Renaming one silently breaks ads in minified host builds.
+ * owner of the ad's tracker.
  */
 class JsBridge(
     private var baseAdView: BaseAdView,
@@ -27,17 +23,14 @@ class JsBridge(
 
     // ---- Host lifecycle (called by BaseAdView) ----
 
-    /** Suspends tracking on window detach; the ad itself stays alive. */
     fun onHostDetached() {
         adActivity?.pause()
     }
-
-    /** Re-registers tracking against the new window on re-attach. */
+    
     fun onHostAttached() {
         adActivity?.resume()
     }
 
-    /** Redirects this bridge and its tracker to the AdView that adopted the ad. */
     fun rebind(newHost: BaseAdView) {
         baseAdView = newHost
         adActivity?.rebind(newHost)

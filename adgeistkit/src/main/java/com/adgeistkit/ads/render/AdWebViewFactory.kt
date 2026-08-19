@@ -18,10 +18,6 @@ import android.webkit.WebViewClient
 import com.adgeistkit.ads.JsBridge
 import com.adgeistkit.ads.cache.CreativeResourceInterceptor
 
-/**
- * Builds the WebView an ad renders into, together with its clients and the
- * click-out handling.
- */
 internal object AdWebViewFactory {
 
     private const val TAG = "AdWebView"
@@ -46,13 +42,11 @@ internal object AdWebViewFactory {
         webView.webViewClient = AdWebViewClient(bridge)
         webView.webChromeClient = AdWebChromeClient()
 
-        // Exposed to the page as the 'Android' object
         webView.addJavascriptInterface(bridge, "Android")
 
         return Created(webView, wrapper)
     }
 
-    /** Fills the WebView's parent, matching how BaseAdView measures its child. */
     fun matchParentLayoutParams() = ViewGroup.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT,
         ViewGroup.LayoutParams.MATCH_PARENT
@@ -76,11 +70,6 @@ internal object AdWebViewFactory {
         }
     }
 
-    /**
-     * Holds only the bridge, never the creating AdView: the session's WebView
-     * outlives its first host and clicks must keep flowing after adoption. URLs open
-     * via the WebView's own swappable context.
-     */
     private class AdWebViewClient(private val bridge: JsBridge) : WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
             openInBrowser(view.context, url)

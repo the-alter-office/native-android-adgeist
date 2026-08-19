@@ -5,9 +5,6 @@ import com.google.gson.Gson
 import com.adgeistkit.ads.AdType
 import com.adgeistkit.ads.AdSize
 
-/**
- * Maps an ad-server response onto the JSON payload the ad page expects.
- */
 internal object AdCreativePayload {
 
     sealed interface Result {
