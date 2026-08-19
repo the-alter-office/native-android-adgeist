@@ -18,7 +18,7 @@ class PlaceholderFragment : Fragment() {
         private const val TAG = "PlaceholderFragment"
         private const val ARG_TITLE = "title"
 
-        private const val SHARED_AD_UNIT_ID = "6a4b7c9a50946c5aa2fda929"
+        private const val SHARED_AD_UNIT_ID = "69ca2675576a0a20dd6c6cfb"
 
         fun newInstance(title: String): PlaceholderFragment {
             return PlaceholderFragment().apply {

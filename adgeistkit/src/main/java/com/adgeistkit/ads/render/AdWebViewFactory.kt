@@ -106,8 +106,6 @@ internal object AdWebViewFactory {
             view: WebView,
             request: WebResourceRequest
         ): WebResourceResponse? {
-
-            Log.e(TAG, "intercepting ${request.toString()}")
             // The WebView outlives its first host, so only the application context is safe
             val cached = CreativeResourceInterceptor.intercept(
                 view.context.applicationContext,
