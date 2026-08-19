@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
+import com.adgeistkit.ads.cache.utilities.MediaType
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileInputStream
@@ -49,7 +50,7 @@ internal object CreativeResourceInterceptor {
     }
 
     private fun respond(file: File, url: String, rangeHeader: String?): WebResourceResponse {
-        val mimeType = CreativeMediaCache.mimeTypeOf(file, url)
+        val mimeType = MediaType.mimeTypeOf(file, url)
         val fileLength = file.length()
 
         return when (val range = parseRange(rangeHeader, fileLength)) {

@@ -2,13 +2,11 @@ package com.adgeistkit.ads.cache
 
 import android.content.Context
 import android.util.Log
-import android.webkit.MimeTypeMap
+import com.adgeistkit.ads.cache.utilities.CacheFiles
 import com.adgeistkit.data.network.NetworkModule
 import okhttp3.Request
 import java.io.File
-import java.io.FileInputStream
 import java.io.FileOutputStream
-import java.security.MessageDigest
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
@@ -20,21 +18,13 @@ internal object CreativeMediaCache {
 
     private const val TAG = "CreativeMediaCache"
 
-    private const val DIR_NAME = "adgeist_creatives"
-
-    private const val MAX_CACHE_BYTES = 128L * 1024 * 1024
-    private const val TRIM_TARGET_BYTES = 96L * 1024 * 1024
-
-    private const val MAX_ENTRY_BYTES = 32L * 1024 * 1024
-
+    private const val MAX_CACHE_BYTES = 64L * 1024 * 1024
+    private const val TRIM_TARGET_BYTES = 48L * 1024 * 1024
+    private const val MAX_ENTRY_BYTES = 10L * 1024 * 1024
     private const val CALL_TIMEOUT_SECONDS = 30L
-
     private const val REGISTRY_LIMIT = 256
-
     private const val STALE_PART_MS = 60L * 60 * 1000
-
     private const val COPY_BUFFER_BYTES = 32 * 1024
-
     private const val PART_SUFFIX = ".part"
 
     private val downloadExecutor = Executors.newFixedThreadPool(2) { runnable ->
@@ -49,14 +39,12 @@ internal object CreativeMediaCache {
 
     private val inFlight = ConcurrentHashMap<String, CountDownLatch>()
 
-
     private val registry: MutableMap<String, Boolean> = Collections.synchronizedMap(
         object : LinkedHashMap<String, Boolean>(REGISTRY_LIMIT, 0.75f, true) {
             override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Boolean>?) =
                 size > REGISTRY_LIMIT
         }
     )
-
 
     fun register(urls: Collection<String?>) {
         urls.filterNotNull().forEach { url -> if (isCacheable(url)) registry[url] = true }
@@ -73,10 +61,9 @@ internal object CreativeMediaCache {
 
     fun isRegistered(url: String): Boolean = registry[url] != null
 
-
     fun ensureCached(context: Context, url: String, waitMs: Long): File? {
         val appContext = context.applicationContext
-        val target = fileFor(appContext, url) ?: return null
+        val target = CacheFiles.fileFor(appContext, url) ?: return null
 
         if (target.length() > 0L) {
             // Keeps the entry fresh for the LRU trim
@@ -85,10 +72,12 @@ internal object CreativeMediaCache {
         }
 
         val latch = startDownload(appContext, url) ?: return null
+
         if (waitMs <= 0L) return null
 
         return try {
             val finished = latch.await(waitMs, TimeUnit.MILLISECONDS)
+
             if (finished && target.length() > 0L) target else null
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
@@ -97,28 +86,11 @@ internal object CreativeMediaCache {
     }
 
     fun clear(context: Context) {
-        val dir = cacheDir(context) ?: return
+        val dir = CacheFiles.cacheDir(context) ?: return
+
         dir.listFiles()?.forEach { file ->
             if (!file.delete()) Log.w(TAG, "Could not delete cached creative ${file.name}")
         }
-    }
-
-    fun extensionOf(url: String): String {
-        val path = url.substringBefore('?').substringBefore('#')
-        val extension = path.substringAfterLast('/').substringAfterLast('.', "")
-        return if (extension.length in 1..5 && extension.all { it.isLetterOrDigit() }) {
-            extension.lowercase()
-        } else {
-            ""
-        }
-    }
-
-    fun mimeTypeOf(file: File, url: String): String {
-        val extension = extensionOf(url)
-        if (extension.isNotEmpty()) {
-            MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)?.let { return it }
-        }
-        return sniffMimeType(file) ?: "application/octet-stream"
     }
 
     private fun isCacheable(url: String?): Boolean =
@@ -131,7 +103,8 @@ internal object CreativeMediaCache {
         return try {
             downloadExecutor.execute {
                 try {
-                    val target = fileFor(appContext, url)
+                    val target = CacheFiles.fileFor(appContext, url)
+                    
                     if (target != null && target.length() == 0L) download(url, target)
                 } finally {
                     inFlight.remove(url)
@@ -149,20 +122,25 @@ internal object CreativeMediaCache {
 
     private fun download(url: String, target: File): Boolean {
         val temp = File(target.parentFile, target.name + PART_SUFFIX)
+
         try {
             val request = Request.Builder().url(url).get().build()
+
             downloadClient.newCall(request).execute().use { response ->
                 val body = response.body
+
                 if (!response.isSuccessful || body == null) {
                     Log.w(TAG, "Creative download failed (${response.code}) for $url")
                     return false
                 }
+
                 if (body.contentLength() > MAX_ENTRY_BYTES) {
                     Log.i(TAG, "Creative too large to cache (${body.contentLength()} bytes): $url")
                     return false
                 }
 
                 var written = 0L
+
                 body.byteStream().use { input ->
                     FileOutputStream(temp).use { output ->
                         val buffer = ByteArray(COPY_BUFFER_BYTES)
@@ -222,11 +200,14 @@ internal object CreativeMediaCache {
         }
 
         var total = complete.sumOf { it.length() }
+
         if (total <= MAX_CACHE_BYTES) return
 
         complete.sortedBy { it.lastModified() }.forEach { file ->
             if (total <= TRIM_TARGET_BYTES) return
+
             val size = file.length()
+
             if (file.delete()) {
                 total -= size
                 Log.d(TAG, "Trimmed cached creative ${file.name}")
@@ -234,42 +215,4 @@ internal object CreativeMediaCache {
         }
     }
 
-    private fun sniffMimeType(file: File): String? = try {
-        val header = ByteArray(12)
-        val read = FileInputStream(file).use { it.read(header) }
-        when {
-            read >= 12 && header.matches(4, "ftyp") -> "video/mp4"
-            read >= 8 && header[0] == 0x89.toByte() && header.matches(1, "PNG") -> "image/png"
-            read >= 3 && header[0] == 0xFF.toByte() && header[1] == 0xD8.toByte() -> "image/jpeg"
-            read >= 4 && header.matches(0, "GIF8") -> "image/gif"
-            read >= 12 && header.matches(0, "RIFF") && header.matches(8, "WEBP") -> "image/webp"
-            else -> null
-        }
-    } catch (e: Exception) {
-        null
-    }
-
-    private fun ByteArray.matches(offset: Int, ascii: String): Boolean =
-        ascii.indices.all { index -> this[offset + index] == ascii[index].code.toByte() }
-
-    private fun fileFor(context: Context, url: String): File? {
-        val dir = cacheDir(context) ?: return null
-        return File(dir, keyFor(url))
-    }
-
-    private fun cacheDir(context: Context): File? = try {
-        File(context.cacheDir, DIR_NAME)
-            .apply { if (!exists()) mkdirs() }
-            .takeIf { it.isDirectory }
-    } catch (e: Exception) {
-        Log.w(TAG, "Creative cache directory unavailable", e)
-        null
-    }
-
-    private fun keyFor(url: String): String {
-        val digest = MessageDigest.getInstance("SHA-256").digest(url.toByteArray())
-        val hex = digest.joinToString("") { "%02x".format(it) }
-        val extension = extensionOf(url)
-        return if (extension.isEmpty()) hex else "$hex.$extension"
-    }
 }
