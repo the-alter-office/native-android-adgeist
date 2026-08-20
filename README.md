@@ -312,6 +312,32 @@ container.addView(adView)
 adView.loadAd(AdRequest.Builder().build())
 ```
 
+#### Compose hosts
+
+In Compose, host the `AdView` inside an `AndroidView` and connect it to your screen with
+— `viewModelStoreOwner`:
+
+```kotlin
+val owner = LocalViewModelStoreOwner.current
+
+AndroidView(
+    factory = { ctx ->
+        AdView(ctx).apply {
+            viewModelStoreOwner = owner   // must be set before loadAd()
+            adUnitId = "YOUR_AD_UNIT_ID"
+            loadAd(AdRequest.Builder().build())
+        }
+    },
+    onRelease = { },
+)
+```
+
+**Why `viewModelStoreOwner`.** The SDK ties each loaded ad to the screen showing it, so coming back
+to that screen — after a rotation, or back through the navigation stack — reuses the ad instead of
+spending a new request on it. In Compose, the screen's scope lives in the composition, and
+`LocalViewModelStoreOwner.current` is how you hand it over. Assign it before `loadAd()`, which is
+when the SDK reads it.
+
 #### Ad Events
 
 You can listen for a number of events in the ad's lifecycle, including loading, impression, click, as well as open and close events. It is recommended to set the listener before loading the ad:

@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.annotation.RequiresPermission
 import androidx.core.view.doOnLayout
+import androidx.lifecycle.ViewModelStoreOwner
 import com.adgeistkit.AdgeistCore.Companion.getInstance
 import com.adgeistkit.R
 import com.adgeistkit.request.AdRequest
@@ -48,6 +49,13 @@ open class BaseAdView : ViewGroup {
      * recreates one every time a screen is covered).
      */
     var watchFragmentLifecycle: Boolean = true
+
+    var viewModelStoreOwner: ViewModelStoreOwner? = null
+        set(value) {
+            if (value === field) return
+            field = value
+            adViewModel = null
+        }
 
     // ---- Creative metadata (read by tracking) ----
 
@@ -235,7 +243,7 @@ open class BaseAdView : ViewGroup {
 
     private fun resolveAdViewModel(): Boolean {
         if (adViewModel == null) {
-            adViewModel = findAdViewModel(watchFragmentLifecycle)
+            adViewModel = findAdViewModel(watchFragmentLifecycle, viewModelStoreOwner)
         }
 
         return adViewModel != null
@@ -491,6 +499,16 @@ open class BaseAdView : ViewGroup {
         pendingLoadRequest?.let {
             pendingLoadRequest = null
             performLoad()
+            return
+        }
+
+        // react-native-screens re-parents this same view on screen recreation instead of
+        // inflating a new one, so no loadAd() follows: restore the retained ad, not a new one.
+        if (!watchFragmentLifecycle && webView == null && adUnitId.isNotEmpty() && !isLoading) {
+            if (adViewModel?.retained(adUnitId) != null) {
+                performLoad()
+            }
+            return
         }
 
         if (isDestroyed) return
@@ -535,6 +553,8 @@ open class BaseAdView : ViewGroup {
         }
         super.onDetachedFromWindow()
         mainHandler?.post {
+            if (isAttachedToWindow) return@post
+
             destroyInternal()
             releaseImeSession(mainHandler)
         }

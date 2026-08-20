@@ -8,10 +8,13 @@ import android.util.Log
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.lifecycle.findViewTreeViewModelStoreOwner
 import com.adgeistkit.ads.viewmodel.AdViewModel
 
 private const val TAG = "ViewHostUtils"
+
+@Volatile private var warnedActivityScope = false
 
 internal fun Context.findActivity(): Activity? {
     var current: Context? = this
@@ -24,8 +27,17 @@ internal fun Context.findActivity(): Activity? {
     return null
 }
 
-internal fun View.findAdViewModel(watchFragmentLifecycle: Boolean): AdViewModel? {
-    val owner = findScreenOwner(watchFragmentLifecycle) ?: return null
+internal fun View.findAdViewModel(
+    watchFragmentLifecycle: Boolean,
+    injectedOwner: ViewModelStoreOwner? = null,
+): AdViewModel? {
+    val owner = injectedOwner
+        ?: findScreenOwner(watchFragmentLifecycle)
+        ?: return null
+
+    if (injectedOwner == null && watchFragmentLifecycle && owner is Activity) {
+        warnActivityScope()
+    }
 
     return try {
         AdViewModel.of(owner)
@@ -40,11 +52,35 @@ private fun View.findScreenOwner(watchFragmentLifecycle: Boolean): ViewModelStor
         return context.findActivity() as? ViewModelStoreOwner
     }
 
-    findViewTreeViewModelStoreOwner()?.let { return it }
+    val treeOwner = findViewTreeViewModelStoreOwner()
+
+    // Compose gap: AndroidView bridges LifecycleOwner into the view tree but not
+    // ViewModelStoreOwner, so treeOwner is only the Activity while the real screen scope is
+    // the bridged lifecycle owner - a NavBackStackEntry, which is a ViewModelStoreOwner too.
+    if (treeOwner == null || treeOwner is Activity) {
+        (findViewTreeLifecycleOwner() as? ViewModelStoreOwner)
+            ?.takeIf { it !== treeOwner }
+            ?.let { return it }
+    }
+
+    if (treeOwner != null) return treeOwner
 
     if (!isAttachedToWindow) return null
 
     return context.findActivity() as? ViewModelStoreOwner
+}
+
+private fun warnActivityScope() {
+    if (warnedActivityScope) return
+    warnedActivityScope = true
+
+    Log.w(
+        TAG,
+        "Retaining this ad against the Activity's ViewModelStore - no per-screen scope was " +
+            "found. Two placements of the same ad unit on different screens will share one " +
+            "retained ad. Set AdView.viewModelStoreOwner to the screen's owner " +
+            "(LocalViewModelStoreOwner.current under Compose) to scope it correctly."
+    )
 }
 
 internal fun View.pxToDp(px: Int): Int = (px / resources.displayMetrics.density).toInt()

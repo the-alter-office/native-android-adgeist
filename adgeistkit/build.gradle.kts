@@ -71,7 +71,7 @@ dependencies {
 
     implementation("androidx.lifecycle:lifecycle-common:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-viewmodel:2.8.7")
+    api("androidx.lifecycle:lifecycle-viewmodel:2.8.7")
     implementation("androidx.fragment:fragment:1.8.9")
     
     implementation("com.google.android.gms:play-services-ads-identifier:18.0.1")
