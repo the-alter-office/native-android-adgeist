@@ -55,11 +55,11 @@ class JsBridge(
             val msg = obj.optString("message")
 
             if ("BENCHMARK" == type && "JS_READY" == msg) {
-                adActivity?.captureImpression()
                 baseAdView.markJsReady()
             }
 
             if ("RENDER_STATUS" == type && "Success" == msg) {
+                adActivity?.captureImpression()
                 baseAdView.reportFirstFrame()
             }
         } catch (e: Exception) {
