@@ -377,7 +377,7 @@ open class BaseAdView : ViewGroup {
 
     private fun prefetchCreativeMedia(response: FixedAdResponse) {
         val urls = mutableListOf<String?>()
-        response.creativesV1.forEach { creative ->
+        response.creativesV1.firstOrNull()?.let { creative ->
             creative.primary?.let { media ->
                 urls.add(media.fileUrl)
                 urls.add(media.thumbnailUrl)

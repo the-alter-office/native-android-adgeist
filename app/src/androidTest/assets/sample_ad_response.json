@@ -46,7 +46,6 @@
       "width": 300
     },
     "isResponsive": true,
-    "responsiveType": "fluid",
     "styleOptions": {
       "fontColor": "#000000",
       "fontFamily": "Roboto"

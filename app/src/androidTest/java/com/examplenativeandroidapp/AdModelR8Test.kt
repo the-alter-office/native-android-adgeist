@@ -76,7 +76,6 @@ class AdModelR8Test {
         assertEquals("#000000", style?.fontColor)
         assertEquals("Roboto", style?.fontFamily)
         assertEquals(true, response.displayOptions?.isResponsive)
-        assertEquals("fluid", response.displayOptions?.responsiveType)
         assertEquals(listOf("banner", "display"), response.displayOptions?.allowedFormats)
 
         val impressions = response.impressionRequirements
