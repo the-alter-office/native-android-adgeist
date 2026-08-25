@@ -22,10 +22,6 @@ internal object MediaType {
         }
     }
 
-    /**
-     * The extension wins over [contentType] on purpose: S3 often serves creatives as
-     * octet-stream, and Chromium will not play a <video> source with a generic type.
-     */
     fun mimeTypeOf(url: String, contentType: String? = null): String {
         val extension = extensionOf(url)
 

@@ -41,7 +41,6 @@ internal object CreativeResourceInterceptor {
                     "served=$mimeType, origin sent Content-Type=$contentType): $url"
             )
 
-            // The WebView owns the stream now and closes it, which closes the response.
             WebResourceResponse(mimeType, null, body.byteStream())
         } catch (e: Exception) {
             Log.w(TAG, "Could not serve $url from cache, falling back to network", e)
