@@ -504,7 +504,11 @@ open class BaseAdView : ViewGroup {
 
         // react-native-screens re-parents this same view on screen recreation instead of
         // inflating a new one, so no loadAd() follows: restore the retained ad, not a new one.
-        if (!watchFragmentLifecycle && webView == null && adUnitId.isNotEmpty() && !isLoading) {
+        // isDestroyed covers the same gap for plain Android hosts - a RecyclerView row that
+        // scrolled off long enough to be torn down reattaches without a loadAd() either.
+        if ((!watchFragmentLifecycle || isDestroyed) &&
+            webView == null && adUnitId.isNotEmpty() && !isLoading
+        ) {
             if (adViewModel?.retained(adUnitId) != null) {
                 performLoad()
             }
