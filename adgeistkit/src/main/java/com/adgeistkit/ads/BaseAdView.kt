@@ -3,7 +3,6 @@ package com.adgeistkit.ads
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
@@ -28,6 +27,7 @@ import com.adgeistkit.ads.render.AdWebViewTeardown
 import com.adgeistkit.ads.tracking.AdTrackingState
 import com.adgeistkit.ads.viewmodel.AdViewModel
 import com.adgeistkit.ads.viewmodel.RetainedAd
+import com.adgeistkit.benchmark.AdRenderBenchmark
 import com.adgeistkit.data.network.FetchCreative
 
 open class BaseAdView : ViewGroup {
@@ -81,16 +81,7 @@ open class BaseAdView : ViewGroup {
     // until onAttachedToWindow()
     private var pendingLoadRequest: AdRequest? = null
 
-    // Benchmarking
-    private var benchmarkLoadStart: Long = 0
-    private var benchmarkFetchStart: Long = 0
-    @Volatile private var benchmarkFetchEnd: Long = 0
-    private var benchmarkRenderStart: Long = 0
-    private var benchmarkEngineEnd: Long = 0
-    private var benchmarkAddViewEnd: Long = 0
-    @Volatile private var benchmarkJsReady: Long = 0
-    @Volatile private var benchmarkFirstFrameReported: Boolean = false
-    private var benchmarkFromCache: Boolean = false
+    private val benchmark = AdRenderBenchmark()
 
     protected constructor(context: Context, adViewType: Int) : super(context) {
         initialize(context, null)
@@ -150,9 +141,7 @@ open class BaseAdView : ViewGroup {
             return
         }
 
-        benchmarkLoadStart = SystemClock.elapsedRealtime()
-        benchmarkFirstFrameReported = false
-        benchmarkFromCache = false
+        benchmark.onLoadStart()
 
         if (!resolveAdViewModel() && !isAttachedToWindow) {
             // The view-tree owners are unreachable before attach. Resumed from onAttachedToWindow();
@@ -182,7 +171,7 @@ open class BaseAdView : ViewGroup {
     }
 
     private fun restoreRetained(retained: RetainedAd) {
-        benchmarkFromCache = true
+        benchmark.onCacheHit()
         isLoading = true
 
         if (webView != null) {
@@ -279,40 +268,13 @@ open class BaseAdView : ViewGroup {
 
     // ---- Benchmarking ----
 
-    internal fun markJsReady() {
-        benchmarkJsReady = SystemClock.elapsedRealtime()
+    internal fun markJsPhase(phase: AdRenderBenchmark.JsPhase) {
+        benchmark.onJsPhase(phase)
     }
 
     internal fun reportFirstFrame() {
-        val firstFrame = SystemClock.elapsedRealtime()
-
-        if (benchmarkFirstFrameReported) return
-        benchmarkFirstFrameReported = true
-
-        mainHandler?.post {
-            if (benchmarkJsReady == 0L) benchmarkJsReady = benchmarkAddViewEnd
-
-            val fetchTime = if (benchmarkFromCache) 0 else benchmarkFetchEnd - benchmarkFetchStart
-            val prepFrom = if (benchmarkFromCache) benchmarkLoadStart else benchmarkFetchEnd
-            val prepTime = benchmarkRenderStart - prepFrom
-            val engineTime = benchmarkEngineEnd - benchmarkRenderStart
-            val addViewTime = benchmarkAddViewEnd - benchmarkEngineEnd
-            val jsStartupTime = benchmarkJsReady - benchmarkAddViewEnd
-            val paintTime = firstFrame - benchmarkJsReady
-            val totalTime = firstFrame - benchmarkLoadStart
-
-            Log.i("Ad Benchmark", """
-                🎬 Ad Render Cycle (Unit: $adUnitId, cached: $benchmarkFromCache):
-                - Creative Fetch:            ${fetchTime}ms
-                - Payload Prep + Layout:     ${prepTime}ms
-                - WebView Engine Init:       ${engineTime}ms
-                - Add to View Hierarchy:     ${addViewTime}ms
-                - JS Runtime Startup:        ${jsStartupTime}ms
-                - Media Decode + Paint:      ${paintTime}ms
-                ------------------------------------
-                - Total Time to First Frame: ${totalTime}ms
-            """.trimIndent())
-        }
+        if (!benchmark.markFirstFrame()) return
+        mainHandler?.post { benchmark.log(adUnitId) }
     }
 
     // ---- Loading and rendering ----
@@ -321,12 +283,12 @@ open class BaseAdView : ViewGroup {
         val adgeist = getInstance()
         val fetchCreative: FetchCreative = adgeist.getCreative()
 
-        benchmarkFetchStart = SystemClock.elapsedRealtime()
+        benchmark.onFetchStart()
 
         fetchCreative.fetchCreative(
             adUnitId, "FIXED"
         ) { result ->
-            benchmarkFetchEnd = SystemClock.elapsedRealtime()
+            benchmark.onFetchEnd(result.timings)
 
             mainHandler?.post {
                 isLoading = false
@@ -390,11 +352,10 @@ open class BaseAdView : ViewGroup {
         CreativeMediaCache.prefetch(context, urls)
     }
 
-    /** Creates the WebView, wires the JS bridge, and renders the creative. */
     private fun renderAdWithAdCard(creativeJsonData: String) {
         if (isDestroyed) return
 
-        benchmarkRenderStart = SystemClock.elapsedRealtime()
+        benchmark.onRenderStart()
         removeAllViews()
 
         val bridge = JsBridge(this, context)
@@ -402,14 +363,14 @@ open class BaseAdView : ViewGroup {
         listener?.onAdOpened()
 
         val created = AdWebViewFactory.create(context, bridge)
-        benchmarkEngineEnd = SystemClock.elapsedRealtime()
+        benchmark.onWebViewReady(created.allocEndAt)
 
         val adWebView = created.webView
         webView = adWebView
 
-        // Inject JS signal at the end of the HTML to detect JS Runtime ready
-        val benchmarkScript = "<script>Android.postMessage(JSON.stringify({type:'BENCHMARK', message:'JS_READY'}));</script>"
-        val htmlContent = AdCardHtml.build(context.assets, creativeJsonData) + benchmarkScript
+        val htmlContent =
+            AdCardHtml.build(context.assets, creativeJsonData) + AdRenderBenchmark.jsReadyScript
+        benchmark.onHtmlRead()
 
         adWebView.loadDataWithBaseURL(
             "https://adgeist.ai",
@@ -420,7 +381,7 @@ open class BaseAdView : ViewGroup {
         )
 
         addView(adWebView, AdWebViewFactory.matchParentLayoutParams())
-        benchmarkAddViewEnd = SystemClock.elapsedRealtime()
+        benchmark.onViewAdded()
 
         // Companion ads stay hidden until the overflow check completes
         if (adType == AdType.COMPANION) {

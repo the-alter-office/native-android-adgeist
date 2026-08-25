@@ -5,6 +5,7 @@ import android.util.Log
 import android.webkit.JavascriptInterface
 import org.json.JSONObject
 import com.adgeistkit.ads.tracking.AdActivity
+import com.adgeistkit.benchmark.AdRenderBenchmark
 
 /**
  * JS <-> native bridge registered on the ad WebView as the "Android" object, and
@@ -54,8 +55,8 @@ class JsBridge(
             val type = obj.optString("type")
             val msg = obj.optString("message")
 
-            if ("BENCHMARK" == type && "JS_READY" == msg) {
-                baseAdView.markJsReady()
+            if (AdRenderBenchmark.MESSAGE_TYPE == type) {
+                AdRenderBenchmark.jsPhaseOf(msg)?.let { baseAdView.markJsPhase(it) }
             }
 
             if ("RENDER_STATUS" == type && "Success" == msg) {

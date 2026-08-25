@@ -6,6 +6,7 @@ import android.content.MutableContextWrapper
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
+import android.os.SystemClock
 import android.util.Log
 import android.view.ViewGroup
 import android.webkit.ConsoleMessage
@@ -23,17 +24,22 @@ internal object AdWebViewFactory {
     private const val TAG = "AdWebView"
 
     /** [contextWrapper] is swappable so the WebView can be rebound to a recreated Activity. */
-    class Created(val webView: WebView, val contextWrapper: MutableContextWrapper)
+    class Created(
+        val webView: WebView,
+        val contextWrapper: MutableContextWrapper,
+        val allocEndAt: Long,
+    )
 
     fun create(context: Context, bridge: JsBridge): Created {
         val wrapper = MutableContextWrapper(context)
-        val webView = WebView(wrapper).apply {
-            setBackgroundColor(Color.TRANSPARENT)
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.loadWithOverviewMode = true
-            settings.useWideViewPort = true
-        }
+        val webView = WebView(wrapper)
+        val allocEndAt = SystemClock.elapsedRealtime()
+
+        webView.setBackgroundColor(Color.TRANSPARENT)
+        webView.settings.javaScriptEnabled = true
+        webView.settings.domStorageEnabled = true
+        webView.settings.loadWithOverviewMode = true
+        webView.settings.useWideViewPort = true
 
         if (com.adgeistkit.BuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             WebView.setWebContentsDebuggingEnabled(true)
@@ -44,7 +50,7 @@ internal object AdWebViewFactory {
 
         webView.addJavascriptInterface(bridge, "Android")
 
-        return Created(webView, wrapper)
+        return Created(webView, wrapper, allocEndAt)
     }
 
     fun matchParentLayoutParams() = ViewGroup.LayoutParams(
