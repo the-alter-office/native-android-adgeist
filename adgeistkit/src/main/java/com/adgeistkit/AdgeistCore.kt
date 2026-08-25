@@ -15,6 +15,7 @@ import com.adgeistkit.data.models.UserDetails
 import com.adgeistkit.data.network.AnalyticsRetryQueue
 import com.adgeistkit.data.network.CreativeAnalytics
 import com.adgeistkit.data.network.FetchCreative
+import com.adgeistkit.data.network.NetworkModule
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -62,6 +63,8 @@ class AdgeistCore private constructor(
                         if (it.adgeistAppID.isEmpty()) {
                             Log.w(TAG, "WARNING: adgeistAppID is empty. Set com.adgeistkit.ads.ADGEIST_APP_ID in AndroidManifest.xml")
                         }
+
+                        AnalyticsRetryQueue.start(it.context, NetworkModule.httpClient)
                     }
                 } catch (e: Throwable) {
                     Log.e(TAG, "CRITICAL: AdgeistCore initialization failed", e)

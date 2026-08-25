@@ -1,6 +1,5 @@
 package com.adgeistkit.data.network
 
-import android.util.Log
 import com.adgeistkit.AdgeistCore
 import com.adgeistkit.request.AnalyticsRequest
 import kotlinx.coroutines.launch
@@ -10,9 +9,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 
 class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
-    companion object {
-        private const val TAG = "CreativeAnalytics"
-    }
 
     private val scope = adgeistCore.ioScope
     private val client = NetworkModule.httpClient
@@ -41,15 +37,17 @@ class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
 
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    AnalyticsRetryQueue.enqueue(adgeistCore.context, client, request)
+                    AnalyticsRetryQueue.enqueue(adgeistCore.context, client, url, requestPayload)
                 }
 
                 override fun onResponse(call: Call, response: Response) {
                     response.use {
-                        if (!response.isSuccessful) {
-                            val errorBody = response.body?.string() ?: "No error message"
-                            Log.d(TAG, "Request failed with code: ${response.code}, message: $errorBody")
-                            return
+                        if (it.isSuccessful) return
+
+                        if (RetryPolicy.isRetryable(it.code)) {
+                            AnalyticsRetryQueue.enqueue(
+                                adgeistCore.context, client, url, requestPayload, it
+                            )
                         }
                     }
                 }

@@ -41,6 +41,8 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
         callback: (AdData) -> Unit
     ) {
         scope.launch {
+            AnalyticsRetryQueue.flushNow(adgeistCore.context, NetworkModule.httpClient)
+
             val deviceId = deviceIdentifier.getDeviceIdentifier()
             val userIP = networkUtils.getLocalIpAddress()
                 ?: networkUtils.getWifiIpAddress()
