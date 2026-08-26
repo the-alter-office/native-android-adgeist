@@ -47,7 +47,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
         scope.launch {
             val tStart = SystemClock.elapsedRealtime()
 
-            AnalyticsRetryQueue.flushNow(adgeistCore.context, NetworkModule.httpClient)
+            AnalyticsRetryQueue.flushNow(adgeistCore.context)
 
             val deviceId = deviceIdentifier.getDeviceIdentifier()
             val tDeviceId = SystemClock.elapsedRealtime()

@@ -19,7 +19,6 @@ import java.util.concurrent.atomic.AtomicInteger
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
@@ -43,20 +42,22 @@ internal object AnalyticsRetryQueue {
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
     private var lifecycleCallbacks: Application.ActivityLifecycleCallbacks? = null
 
+    @Volatile private var warmUpBaseUrl: String? = null
+
     // ---- Public surface ----
 
-    fun start(context: Context, client: OkHttpClient) {
+    fun start(context: Context, baseUrl: String? = null) {
         foreground = true
+        warmUpBaseUrl = baseUrl
 
-        registerConnectivityListener(context, client)
-        registerLifecycleListener(context, client)
+        registerConnectivityListener(context)
+        registerLifecycleListener(context)
 
-        worker.execute { flush(context, client, ignoreDueTimes = true) }
+        worker.execute { flush(context, ignoreDueTimes = true) }
     }
 
     fun enqueue(
         context: Context,
-        client: OkHttpClient,
         url: String,
         body: String,
         failure: Response? = null,
@@ -78,12 +79,12 @@ internal object AnalyticsRetryQueue {
                 Log.e(TAG, "Failed to persist retry item - it will not be retried", e)
                 return@execute
             }
-            scheduleRetry(context, client)
+            scheduleRetry(context)
         }
     }
 
-    fun flushNow(context: Context, client: OkHttpClient) {
-        worker.execute { flush(context, client) }
+    fun flushNow(context: Context) {
+        worker.execute { flush(context) }
     }
 
     fun shutdown(context: Context) {
@@ -95,13 +96,14 @@ internal object AnalyticsRetryQueue {
     // ---- Triggers ----
 
     @Synchronized
-    private fun registerConnectivityListener(context: Context, client: OkHttpClient) {
+    private fun registerConnectivityListener(context: Context) {
         if (networkCallback != null) return
 
         val connectivityManager = Connectivity.connectivityManager(context) ?: return
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                worker.execute { flush(context, client) }
+                NetworkModule.dns.invalidateAll()
+                worker.execute { flush(context) }
             }
         }
         val networkRequest = NetworkRequest.Builder()
@@ -117,7 +119,7 @@ internal object AnalyticsRetryQueue {
     }
 
     @Synchronized
-    private fun registerLifecycleListener(context: Context, client: OkHttpClient) {
+    private fun registerLifecycleListener(context: Context) {
         if (lifecycleCallbacks != null) return
 
         val application = context.applicationContext as? Application ?: return
@@ -126,7 +128,8 @@ internal object AnalyticsRetryQueue {
             override fun onActivityStarted(activity: Activity) {
                 if (startedActivities++ == 0) {
                     foreground = true
-                    worker.execute { flush(context, client) }
+                    warmUpBaseUrl?.let { ConnectionWarmer.warm(it) }
+                    worker.execute { flush(context) }
                 }
             }
 
@@ -169,7 +172,7 @@ internal object AnalyticsRetryQueue {
     }
 
     @Synchronized
-    private fun scheduleRetry(context: Context, client: OkHttpClient) {
+    private fun scheduleRetry(context: Context) {
         if (retryScheduled || !foreground || !Connectivity.hasValidatedInternet(context)) return
 
         val earliest = try {
@@ -186,7 +189,7 @@ internal object AnalyticsRetryQueue {
         retryScheduled = true
         handler.postDelayed({
             synchronized(this) { retryScheduled = false }
-            worker.execute { flush(context, client) }
+            worker.execute { flush(context) }
         }, delay)
     }
 
@@ -198,7 +201,7 @@ internal object AnalyticsRetryQueue {
 
     // ---- Sending ----
 
-    private fun flush(context: Context, client: OkHttpClient, ignoreDueTimes: Boolean = false) {
+    private fun flush(context: Context, ignoreDueTimes: Boolean = false) {
         if (inFlight.get() > 0) return
 
         val rows = try {
@@ -210,25 +213,25 @@ internal object AnalyticsRetryQueue {
         }
 
         if (rows.isEmpty()) {
-            scheduleRetry(context, client)
+            scheduleRetry(context)
             return
         }
 
         inFlight.set(rows.size)
-        rows.forEach { resend(context, client, it) }
+        rows.forEach { resend(context, it) }
     }
 
-    private fun resend(context: Context, client: OkHttpClient, row: QueuedAnalyticsRequest) {
+    private fun resend(context: Context, row: QueuedAnalyticsRequest) {
         val request = Request.Builder()
             .url(row.url)
             .header("Content-Type", "application/json")
             .post(row.body.toRequestBody("application/json".toMediaType()))
             .build()
 
-        client.newCall(request).enqueue(object : Callback {
+        NetworkModule.httpClient.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 // We never reached the server, so the row keeps its re-attempt count and due time.
-                worker.execute { finishOne(context, client) }
+                worker.execute { finishOne(context) }
             }
 
             override fun onResponse(call: Call, response: Response) {
@@ -244,7 +247,7 @@ internal object AnalyticsRetryQueue {
 
                 worker.execute {
                     applyOutcome(context, row, retryAfter, now)
-                    finishOne(context, client)
+                    finishOne(context)
                 }
             }
         })
@@ -278,10 +281,10 @@ internal object AnalyticsRetryQueue {
         }
     }
 
-    private fun finishOne(context: Context, client: OkHttpClient) {
+    private fun finishOne(context: Context) {
         if (inFlight.decrementAndGet() > 0) return
 
-        scheduleRetry(context, client)
+        scheduleRetry(context)
     }
 
     // ---- Helpers ----

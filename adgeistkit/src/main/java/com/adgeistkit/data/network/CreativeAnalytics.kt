@@ -37,7 +37,7 @@ class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
 
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    AnalyticsRetryQueue.enqueue(adgeistCore.context, client, url, requestPayload)
+                    AnalyticsRetryQueue.enqueue(adgeistCore.context, url, requestPayload)
                 }
 
                 override fun onResponse(call: Call, response: Response) {
@@ -46,7 +46,7 @@ class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
 
                         if (RetryPolicy.isRetryable(it.code)) {
                             AnalyticsRetryQueue.enqueue(
-                                adgeistCore.context, client, url, requestPayload, it
+                                adgeistCore.context, url, requestPayload, it
                             )
                         }
                     }
