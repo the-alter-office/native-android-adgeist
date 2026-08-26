@@ -59,7 +59,6 @@ class AdgeistCore private constructor(
                         instance = it
                         Log.i(TAG, "AdgeistCore initialized successfully")
 
-                        // Validate critical configuration after successful initialization
                         if (it.adgeistAppID.isEmpty()) {
                             Log.w(TAG, "WARNING: adgeistAppID is empty. Set com.adgeistkit.ads.ADGEIST_APP_ID in AndroidManifest.xml")
                         }
@@ -91,10 +90,7 @@ class AdgeistCore private constructor(
                 throw IllegalStateException("AdgeistCore is not initialized. Call AdgeistCore.initialize() first.")
             }
         }
-        
-        /**
-         * Check if AdgeistCore has been initialized
-         */
+
         @JvmStatic
         fun isInitialized(): Boolean {
             return instance != null
