@@ -11,7 +11,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import com.adgeistkit.core.device.NetworkUtils
 import com.adgeistkit.data.local.AnalyticsRetryQueueStore
 import com.adgeistkit.data.local.QueuedAnalyticsRequest
 import java.io.IOException
@@ -99,7 +98,7 @@ internal object AnalyticsRetryQueue {
     private fun registerConnectivityListener(context: Context, client: OkHttpClient) {
         if (networkCallback != null) return
 
-        val connectivityManager = NetworkUtils.connectivityManager(context) ?: return
+        val connectivityManager = Connectivity.connectivityManager(context) ?: return
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 worker.execute { flush(context, client) }
@@ -155,7 +154,7 @@ internal object AnalyticsRetryQueue {
     private fun unregisterConnectivityListener(context: Context) {
         val callback = networkCallback ?: return
         try {
-            NetworkUtils.connectivityManager(context)?.unregisterNetworkCallback(callback)
+            Connectivity.connectivityManager(context)?.unregisterNetworkCallback(callback)
         } catch (_: Exception) {
         }
         networkCallback = null
@@ -171,7 +170,7 @@ internal object AnalyticsRetryQueue {
 
     @Synchronized
     private fun scheduleRetry(context: Context, client: OkHttpClient) {
-        if (retryScheduled || !foreground || !NetworkUtils.hasValidatedInternet(context)) return
+        if (retryScheduled || !foreground || !Connectivity.hasValidatedInternet(context)) return
 
         val earliest = try {
             store(context).earliestNextAttempt()

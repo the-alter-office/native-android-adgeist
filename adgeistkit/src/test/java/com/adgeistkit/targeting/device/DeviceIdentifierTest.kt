@@ -1,4 +1,4 @@
-package com.adgeistkit.core.device
+package com.adgeistkit.targeting.device
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

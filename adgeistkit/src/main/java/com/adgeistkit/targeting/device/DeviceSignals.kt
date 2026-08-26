@@ -1,4 +1,4 @@
-package com.adgeistkit.core.device
+package com.adgeistkit.targeting.device
 
 import android.Manifest
 import android.content.Context
@@ -8,15 +8,12 @@ import android.content.res.Resources
 import android.os.Build
 import android.telephony.TelephonyManager
 import android.util.DisplayMetrics
-import android.util.Log
 import android.view.accessibility.AccessibilityManager
 import androidx.core.content.ContextCompat
-import android.opengl.GLES20
 import android.annotation.SuppressLint
-import android.opengl.EGLContext
 import android.nfc.NfcAdapter
 
-class DeviceMeta(private val context: Context) {
+class DeviceSignals(private val context: Context) {
     companion object {
         // READ_PHONE_STATE is not declared by this SDK; telephony details are
         // collected only when the host app has declared and been granted it.

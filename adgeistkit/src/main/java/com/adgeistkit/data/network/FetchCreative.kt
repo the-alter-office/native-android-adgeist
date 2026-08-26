@@ -34,7 +34,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
     private val adgeistAppID = adgeistCore.adgeistAppID
 
     private val deviceIdentifier = adgeistCore.deviceIdentifier
-    private val networkUtils = adgeistCore.networkUtils
+    private val networkSignals = adgeistCore.networkSignals
     private val targetingInfo = adgeistCore.targetingInfo
 
     fun fetchCreative(
@@ -52,8 +52,8 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
             val deviceId = deviceIdentifier.getDeviceIdentifier()
             val tDeviceId = SystemClock.elapsedRealtime()
 
-            val userIP = networkUtils.getLocalIpAddress()
-                ?: networkUtils.getWifiIpAddress()
+            val userIP = networkSignals.getLocalIpAddress()
+                ?: networkSignals.getWifiIpAddress()
                 ?: "unknown"
 
             val url = "$bidRequestBackendDomain/v2/dsp/ad"

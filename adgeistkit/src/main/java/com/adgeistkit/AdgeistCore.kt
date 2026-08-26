@@ -6,10 +6,10 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
 import com.adgeistkit.ads.cache.CreativeMediaCache
-import com.adgeistkit.core.TargetingOptions
-import com.adgeistkit.core.device.DeviceIdentifier
-import com.adgeistkit.core.device.DeviceMeta
-import com.adgeistkit.core.device.NetworkUtils
+import com.adgeistkit.targeting.TargetingSignals
+import com.adgeistkit.targeting.device.DeviceIdentifier
+import com.adgeistkit.targeting.device.DeviceSignals
+import com.adgeistkit.targeting.device.NetworkSignals
 import com.adgeistkit.data.models.Event
 import com.adgeistkit.data.models.UserDetails
 import com.adgeistkit.data.network.AnalyticsRetryQueue
@@ -121,9 +121,9 @@ class AdgeistCore private constructor(
         }
     )
 
-    val deviceMeta = DeviceMeta(context)
+    val deviceSignals = DeviceSignals(context)
     val deviceIdentifier = DeviceIdentifier(context)
-    val networkUtils = NetworkUtils(context)
+    val networkSignals = NetworkSignals(context)
     var targetingInfo: Map<String, Any?>? = null
 
     private var userDetails: UserDetails? = null
@@ -137,7 +137,7 @@ class AdgeistCore private constructor(
         }
 
         try {
-            targetingInfo = TargetingOptions(context).getTargetingInfo()
+            targetingInfo = TargetingSignals(deviceSignals).getTargetingInfo()
         } catch (e: Throwable) {
             Log.e(TAG, "Non-fatal: failed to collect device targeting info", e)
         }
@@ -207,7 +207,7 @@ class AdgeistCore private constructor(
     }
 
     fun hasPhoneStatePermission(): Boolean {
-        return DeviceMeta.hasPhoneStatePermission(context)
+        return DeviceSignals.hasPhoneStatePermission(context)
     }
 
 }
