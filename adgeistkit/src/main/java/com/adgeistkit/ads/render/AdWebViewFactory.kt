@@ -13,11 +13,9 @@ import android.webkit.ConsoleMessage
 import android.webkit.ConsoleMessage.MessageLevel
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.adgeistkit.ads.JsBridge
-import com.adgeistkit.ads.cache.CreativeResourceInterceptor
 
 internal object AdWebViewFactory {
 
@@ -29,6 +27,13 @@ internal object AdWebViewFactory {
         val contextWrapper: MutableContextWrapper,
         val allocEndAt: Long,
     )
+
+    fun warmup(context: Context) {
+        try {
+            WebView(context.applicationContext)
+        } catch (_: Exception) {
+        }
+    }
 
     fun create(context: Context, bridge: JsBridge): Created {
         val wrapper = MutableContextWrapper(context)

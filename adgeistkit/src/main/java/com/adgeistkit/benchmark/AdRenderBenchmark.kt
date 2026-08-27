@@ -116,7 +116,6 @@ internal class AdRenderBenchmark {
         val webViewAllocTime = webViewAllocEnd - renderStart
         val webViewInitTime = webViewInitEnd - webViewAllocEnd
         val htmlAssetReadTime = htmlReadEnd - webViewInitEnd
-        val addViewTime = addViewEnd - htmlReadEnd
         val jsBootTime = jsBoot - addViewEnd
         val jsDomTime = jsDom - jsBoot
         val jsInitDelayTime = jsInit - jsDom

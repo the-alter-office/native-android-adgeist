@@ -5,7 +5,10 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import com.adgeistkit.ads.cache.CreativeMediaCache
+import com.adgeistkit.ads.render.AdWebViewFactory
 import com.adgeistkit.targeting.TargetingSignals
 import com.adgeistkit.targeting.device.DeviceIdentifier
 import com.adgeistkit.targeting.device.DeviceSignals
@@ -136,6 +139,10 @@ class AdgeistCore private constructor(
             targetingInfo = TargetingSignals(deviceSignals).getTargetingInfo()
         } catch (e: Throwable) {
             Log.e(TAG, "Non-fatal: failed to collect device targeting info", e)
+        }
+
+        Handler(Looper.getMainLooper()).post {
+            AdWebViewFactory.warmup(context)
         }
 
         ioScope.launch { deviceIdentifier.getDeviceIdentifier() }

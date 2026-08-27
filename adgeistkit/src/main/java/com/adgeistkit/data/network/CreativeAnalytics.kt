@@ -54,5 +54,4 @@ class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
             })
         }
     }
-
 }
