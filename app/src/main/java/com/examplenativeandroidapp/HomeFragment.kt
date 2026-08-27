@@ -209,9 +209,9 @@ class HomeFragment : Fragment() {
     private fun loadAdWithDefaults() {
         clearAdContainer()
         performAdLoad(
-            adspaceId = "6a82e3bae0f53b7dac65f76a",
-            adSpaceType = AdType.BANNER,
-            isResponsive = false,
+            adspaceId = "6a8fe8dd5b4f4fd5b006dc9f",
+            adSpaceType = AdType.COMPANION,
+            isResponsive = true,
             width = 360,
             height = 360,
             containerWidth = 360,
