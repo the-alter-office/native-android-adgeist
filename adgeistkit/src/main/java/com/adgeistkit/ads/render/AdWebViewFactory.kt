@@ -2,7 +2,6 @@ package com.adgeistkit.ads.render
 
 import android.content.Context
 import android.content.Intent
-import android.content.MutableContextWrapper
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -21,10 +20,8 @@ internal object AdWebViewFactory {
 
     private const val TAG = "AdWebView"
 
-    /** [contextWrapper] is swappable so the WebView can be rebound to a recreated Activity. */
     class Created(
         val webView: WebView,
-        val contextWrapper: MutableContextWrapper,
         val allocEndAt: Long,
     )
 
@@ -36,8 +33,7 @@ internal object AdWebViewFactory {
     }
 
     fun create(context: Context, bridge: JsBridge): Created {
-        val wrapper = MutableContextWrapper(context)
-        val webView = WebView(wrapper)
+        val webView = WebView(context)
         val allocEndAt = SystemClock.elapsedRealtime()
 
         webView.setBackgroundColor(Color.TRANSPARENT)
@@ -55,7 +51,7 @@ internal object AdWebViewFactory {
 
         webView.addJavascriptInterface(bridge, "Android")
 
-        return Created(webView, wrapper, allocEndAt)
+        return Created(webView, allocEndAt)
     }
 
     fun matchParentLayoutParams() = ViewGroup.LayoutParams(
