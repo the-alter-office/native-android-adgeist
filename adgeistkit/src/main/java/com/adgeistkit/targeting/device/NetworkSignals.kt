@@ -1,13 +1,11 @@
-package com.adgeistkit.core.device
+package com.adgeistkit.targeting.device
 
 import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
 import java.net.NetworkInterface
 import java.util.*
 
-class NetworkUtils(private val context: Context) {
+class NetworkSignals(private val context: Context) {
 
     /**
      * Get the device's local IP address
@@ -51,27 +49,5 @@ class NetworkUtils(private val context: Context) {
                 ipAddress shr 24 and 0xff
             )
         } else null
-    }
-
-    /**
-     * Check if device is connected to network
-     */
-    fun isNetworkAvailable(): Boolean {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-
-        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            // API 23 and above
-            val network = connectivityManager.activeNetwork ?: return false
-            val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
-        } else {
-            // API 21-22 fallback
-            @Suppress("DEPRECATION")
-            val networkInfo = connectivityManager.activeNetworkInfo
-            networkInfo != null && networkInfo.isConnected
-        }
     }
 }

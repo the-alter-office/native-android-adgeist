@@ -1,4 +1,4 @@
-package com.adgeistkit.ads
+package com.adgeistkit.ads.tracking
 
 import android.graphics.Rect
 import android.os.Handler
@@ -14,12 +14,18 @@ import android.widget.ScrollView
 import androidx.core.widget.NestedScrollView
 import com.adgeistkit.AdgeistCore.Companion.getInstance
 import com.adgeistkit.request.AnalyticsRequest
+import com.adgeistkit.ads.BaseAdView
 
 /**
  * Tracks viewability, impressions, clicks and video playback for one ad.
- * Survives AdView recreation (see AdSessionStore) via pause/resume/rebind.
+ *
+ * A new instance is built every time the ad is rendered, including after a rotation
+ * or a return to the screen. What must not restart lives in [tracking], which the
+ * screen's cache owns and hands to every instance - so a rebuilt ad is never counted
+ * twice.
  */
-class AdActivity(private var baseAdView: BaseAdView) {
+internal class AdActivity(private var baseAdView: BaseAdView) {
+    private val tracking: AdTrackingState = baseAdView.tracking
 
     companion object {
         private const val TAG = "Ad Activity"
@@ -28,30 +34,30 @@ class AdActivity(private var baseAdView: BaseAdView) {
         private const val CLICK_DEBOUNCE_MS = 1000L
     }
 
+    // ---- Collaborators ----
+
     private val postCreativeAnalytics = getInstance().postCreativeAnalytics()
     private val renderStartTime = SystemClock.elapsedRealtime()
-    private val mediaType = baseAdView.mediaType
+    private val mediaType = "VIDEO"
+    private val handler = Handler(Looper.getMainLooper())
 
-    // Viewability state
+    // ---- Viewability state ----
+
     private var currentVisibilityRatio = 0f
     private var isVisible = false
     private var viewStartTime: Long = 0
-    private var totalViewTime: Long = 0
-    private var hasViewEvent = false
     private var hasImpression = false
-    private var renderTime: Long = 0
-    private var lastClickTime = 0L
 
-    // Video playback state
+    // ---- Video playback state ----
+
     private var playbackStartTime: Long = 0
-    private var totalPlaybackTime: Long = 0
     private var hasEnded = false
 
-    // ViewTreeObserver listeners and the periodic visibility check
+    // ---- Observer registration ----
+
     private var scrollListener: OnScrollChangedListener? = null
     private var focusListener: OnWindowFocusChangeListener? = null
     private var listenersAttached = false
-    private val handler = Handler(Looper.getMainLooper())
     private var visibilityCheckRunnable: Runnable? = null
 
     init {
@@ -59,13 +65,11 @@ class AdActivity(private var baseAdView: BaseAdView) {
         checkVisibility()
     }
 
-    // ---------------------------------------------------------------------
-    // Lifecycle: pause on detach, resume on attach, rebind on adoption
-    // ---------------------------------------------------------------------
+    // ---- Lifecycle: pause on detach, resume on attach, rebind on adoption ----
 
     /** Suspends tracking while detached; view time and impression flags are kept. */
     fun pause() {
-        updateViewTime()
+        endViewInterval()
         stopVisibilityCheck()
         detachListeners()
         if ("video" == mediaType && !hasEnded) {
@@ -90,7 +94,7 @@ class AdActivity(private var baseAdView: BaseAdView) {
     }
 
     fun destroy() {
-        updateViewTime()
+        endViewInterval()
         stopVisibilityCheck()
         detachListeners()
     }
@@ -124,9 +128,7 @@ class AdActivity(private var baseAdView: BaseAdView) {
         listenersAttached = false
     }
 
-    // ---------------------------------------------------------------------
-    // Viewability
-    // ---------------------------------------------------------------------
+    // ---- Viewability ----
 
     private fun checkVisibility() {
         val rect = Rect()
@@ -162,7 +164,7 @@ class AdActivity(private var baseAdView: BaseAdView) {
                 onVideoPlay()
             }
         } else if (!isVisible && wasVisible) {
-            updateViewTime()
+            endViewInterval()
             stopVisibilityCheck()
             if ("video" == mediaType && !hasEnded) {
                 webView?.onPause()
@@ -172,17 +174,17 @@ class AdActivity(private var baseAdView: BaseAdView) {
     }
 
     private fun startVisibilityCheck() {
-        if (visibilityCheckRunnable != null || hasViewEvent) return
+        if (visibilityCheckRunnable != null || tracking.impressionSent) return
 
         val runnable = object : Runnable {
             override fun run() {
                 // Stop if this check was cancelled (stopVisibilityCheck nulls the field)
                 if (visibilityCheckRunnable !== this) return
 
-                if (isVisible && viewStartTime > 0 && !hasViewEvent) {
+                if (isVisible && viewStartTime > 0 && !tracking.impressionSent) {
                     val timeInView = SystemClock.elapsedRealtime() - viewStartTime
                     if (timeInView >= MIN_VIEW_TIME) {
-                        hasViewEvent = true
+                        tracking.impressionSent = true
                         baseAdView.listener?.onAdImpression()
 
                         val scrollDepth: Float = scrollDepth()
@@ -215,9 +217,9 @@ class AdActivity(private var baseAdView: BaseAdView) {
         visibilityCheckRunnable = null
     }
 
-    private fun updateViewTime() {
+    /** Closes the current visible interval; the reported viewTime is measured separately. */
+    private fun endViewInterval() {
         if (viewStartTime > 0) {
-            totalViewTime += SystemClock.elapsedRealtime() - viewStartTime
             viewStartTime = 0
             stopVisibilityCheck()
         }
@@ -225,27 +227,26 @@ class AdActivity(private var baseAdView: BaseAdView) {
 
     fun onVisibilityChange(hasFocus: Boolean) {
         if (!hasFocus) {
-            updateViewTime()
+            endViewInterval()
             stopVisibilityCheck()
             if ("video" == mediaType && !hasEnded) {
                 webView?.onPause()
                 onVideoPause()
             }
-        } else if (isVisible) {
-            if ("video" == mediaType && !hasEnded) {
+            isVisible = false
+        } else {
+            checkVisibility()
+            if (isVisible && "video" == mediaType && !hasEnded) {
                 webView?.onResume()
                 onVideoPlay()
             }
         }
     }
 
-    // ---------------------------------------------------------------------
-    // Events
-    // ---------------------------------------------------------------------
+    // ---- Events ----
 
     fun captureImpression() {
         if (!hasImpression) {
-            renderTime = SystemClock.elapsedRealtime() - renderStartTime
             baseAdView.listener?.onAdLoaded()
             hasImpression = true
         }
@@ -253,11 +254,11 @@ class AdActivity(private var baseAdView: BaseAdView) {
 
     fun captureClick() {
         val now = SystemClock.elapsedRealtime()
-        if (now - lastClickTime < CLICK_DEBOUNCE_MS) {
-            Log.d(TAG, "Click ignored - debounced (${now - lastClickTime}ms since last)")
+        val sinceLastClick = now - tracking.lastClickTime
+        if (sinceLastClick < CLICK_DEBOUNCE_MS) {
             return
         }
-        lastClickTime = now
+        tracking.lastClickTime = now
 
         baseAdView.listener?.onAdClicked()
         val analyticsRequest: AnalyticsRequest =
@@ -274,26 +275,23 @@ class AdActivity(private var baseAdView: BaseAdView) {
     }
 
     fun onVideoPause() {
-        updatePlaybackTime()
+        endPlaybackInterval()
     }
 
     fun onVideoEnd() {
         if (!hasEnded && "video" == mediaType) {
             hasEnded = true
-            updatePlaybackTime()
+            endPlaybackInterval()
         }
     }
 
-    private fun updatePlaybackTime() {
+    private fun endPlaybackInterval() {
         if (playbackStartTime > 0 && "video" == mediaType) {
-            totalPlaybackTime += SystemClock.elapsedRealtime() - playbackStartTime
             playbackStartTime = 0
         }
     }
 
-    // ---------------------------------------------------------------------
-    // Helpers
-    // ---------------------------------------------------------------------
+    // ---- Helpers ----
 
     private val webView: WebView?
         get() {

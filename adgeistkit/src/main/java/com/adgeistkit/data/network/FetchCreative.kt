@@ -1,7 +1,9 @@
 package com.adgeistkit.data.network
 
+import android.os.SystemClock
 import android.util.Log
 import com.adgeistkit.AdgeistCore
+import com.adgeistkit.benchmark.FetchTimings
 import com.adgeistkit.request.FetchCreativeRequest
 import com.adgeistkit.data.models.FixedAdResponse
 import com.adgeistkit.data.models.AdData
@@ -32,7 +34,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
     private val adgeistAppID = adgeistCore.adgeistAppID
 
     private val deviceIdentifier = adgeistCore.deviceIdentifier
-    private val networkUtils = adgeistCore.networkUtils
+    private val networkSignals = adgeistCore.networkSignals
     private val targetingInfo = adgeistCore.targetingInfo
 
     fun fetchCreative(
@@ -40,10 +42,18 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
         buyType: String,
         callback: (AdData) -> Unit
     ) {
+        val tEntry = SystemClock.elapsedRealtime()
+
         scope.launch {
+            val tStart = SystemClock.elapsedRealtime()
+
+            AnalyticsRetryQueue.flushNow(adgeistCore.context)
+
             val deviceId = deviceIdentifier.getDeviceIdentifier()
-            val userIP = networkUtils.getLocalIpAddress()
-                ?: networkUtils.getWifiIpAddress()
+            val tDeviceId = SystemClock.elapsedRealtime()
+
+            val userIP = networkSignals.getLocalIpAddress()
+                ?: networkSignals.getWifiIpAddress()
                 ?: "unknown"
 
             val url = "$bidRequestBackendDomain/v2/dsp/ad"
@@ -99,17 +109,36 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                     .build()
             }
 
+            val tEnqueue = SystemClock.elapsedRealtime()
+
+            fun timings(tHeaders: Long? = null, tBody: Long? = null): FetchTimings {
+                val now = SystemClock.elapsedRealtime()
+                return FetchTimings(
+                    queueWaitMs = tStart - tEntry,
+                    deviceIdMs = tDeviceId - tStart,
+                    requestBuildMs = tEnqueue - tDeviceId,
+                    networkRttMs = (tHeaders ?: now) - tEnqueue,
+                    bodyReadMs = if (tHeaders != null && tBody != null) tBody - tHeaders else 0L,
+                    responseParseMs = if (tBody != null) now - tBody else 0L,
+                )
+            }
+
             NetworkModule.httpClient.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
                     Log.d(TAG, "Request Failed: ${bidRequestBackendDomain} - ${e.message}")
-                    callback(createErrorProp(e.message ?: "Failed to connect to server"))
+                    callback(createErrorProp(e.message ?: "Failed to connect to server", timings = timings()))
                 }
 
                 override fun onResponse(call: Call, response: Response) {
+                    val tHeaders = SystemClock.elapsedRealtime()
                     val jsonString = response.body?.string()
+                    val tBody = SystemClock.elapsedRealtime()
+
+                    fun fail(message: String, code: Int? = null) =
+                        callback(createErrorProp(message, code, timings(tHeaders, tBody)))
 
                     if (jsonString.isNullOrBlank()) {
-                        callback(createErrorProp("Server returned empty response", response.code))
+                        fail("Server returned empty response", response.code)
                         return
                     }
 
@@ -121,7 +150,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                             response.message.ifEmpty { "Request failed" }
                         }
                         
-                        callback(createErrorProp(errorMessage, response.code))
+                        fail(errorMessage, response.code)
                         return
                     }
 
@@ -129,14 +158,14 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                         val parsed = parseCreativeData(jsonString, buyType)
                         
                         if (parsed == null) {
-                            callback(createErrorProp("Failed to parse creative data"))
+                            fail("Failed to parse creative data")
                         } else if (isEmptyCreative(parsed)) {
-                            callback(createErrorProp("No valid ad creative available"))
+                            fail("No valid ad creative available")
                         } else {
-                            callback(AdData(data = parsed, error = null, statusCode = response.code))
+                            callback(AdData(data = parsed, error = null, statusCode = response.code, timings = timings(tHeaders, tBody)))
                         }
                     } catch (e: Exception) {
-                        callback(createErrorProp(e.message ?: "Failed to parse ad response"))
+                        fail(e.message ?: "Failed to parse ad response")
                     }
                 }
 
@@ -144,11 +173,16 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
         }
     }
 
-    private fun createErrorProp(errorMessage: String, statusCode: Int? = null): AdData {
+    private fun createErrorProp(
+        errorMessage: String,
+        statusCode: Int? = null,
+        timings: FetchTimings? = null
+    ): AdData {
         return AdData(
             data = null,
             error = AdVisibilityError(errorMessage),
-            statusCode = statusCode
+            statusCode = statusCode,
+            timings = timings
         )
     }
 

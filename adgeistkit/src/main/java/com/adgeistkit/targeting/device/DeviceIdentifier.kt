@@ -1,4 +1,4 @@
-package com.adgeistkit.core.device
+package com.adgeistkit.targeting.device
 
 import android.content.Context
 import android.util.Log

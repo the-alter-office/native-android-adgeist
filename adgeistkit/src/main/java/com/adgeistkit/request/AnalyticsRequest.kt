@@ -30,7 +30,7 @@ class AnalyticsRequest private constructor(analyticsRequest: AnalyticsRequestBui
         var scrollDepth: Float = 0f
         var viewTime: Long = 0
         var timeToVisible: Long = 0
-         
+
         fun trackViewableImpression(
             timeToVisible: Long,
             scrollDepth: Float,

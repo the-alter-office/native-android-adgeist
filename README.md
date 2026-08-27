@@ -232,18 +232,18 @@ adView.loadAd(adRequest)
 
 #### Destroy the Ad
 
-When you're done with an `AdView`, call `destroy()` to permanently tear the ad down and release its resources. Call it from your activity's or fragment's `onDestroy()`:
+When you're done with an `AdView`, call `destroyAd()` to permanently tear the ad down and release its resources. Call it from your activity's or fragment's `onDestroy()`:
 
 ```kotlin
 override fun onDestroy() {
-    adView?.destroy()
+    adView?.destroyAd()
     super.onDestroy()
 }
 ```
 
-Calling `destroy()` stops any in-progress ad load, releases the underlying WebView, and triggers the `onAdClosed()` callback on your `AdListener`. A destroyed `AdView` should not be reused — create a new instance to show another ad.
+Calling `destroyAd()` stops any in-progress ad load, releases the underlying WebView, and triggers the `onAdClosed()` callback on your `AdListener`. A destroyed `AdView` should not be reused — create a new instance to show another ad.
 
-The SDK also invokes `destroy()` automatically when the host screen is popped or the activity is destroyed, but calling it explicitly is recommended so cleanup happens deterministically.
+The SDK also invokes `destroyAd()` automatically when the host screen is popped or the activity is destroyed, but calling it explicitly is recommended so cleanup happens deterministically.
 
 #### Complete Example
 
@@ -290,7 +290,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        adView?.destroy()
+        adView?.destroyAd()
         super.onDestroy()
     }
 }
@@ -311,6 +311,33 @@ val container = findViewById<FrameLayout>(R.id.adContainer)
 container.addView(adView)
 adView.loadAd(AdRequest.Builder().build())
 ```
+
+#### Compose hosts
+
+In Compose, host the `AdView` inside an `AndroidView` and connect it to your screen with
+— `viewModelStoreOwner`:
+
+```kotlin
+val owner = LocalViewModelStoreOwner.current
+
+AndroidView(
+    factory = { ctx ->
+        AdView(ctx).apply {
+            viewModelStoreOwner = owner   // must be set before loadAd()
+            adUnitId = "YOUR_AD_UNIT_ID"
+            setAdDimension(AdSize(320, 320))
+            loadAd(AdRequest.Builder().build())
+        }
+    },
+    onRelease = { },
+)
+```
+
+**Why `viewModelStoreOwner`.** The SDK ties each loaded ad to the screen showing it, so coming back
+to that screen — after a rotation, or back through the navigation stack — reuses the ad instead of
+spending a new request on it. In Compose, the screen's scope lives in the composition, and
+`LocalViewModelStoreOwner.current` is how you hand it over. Assign it before `loadAd()`, which is
+when the SDK reads it.
 
 #### Ad Events
 

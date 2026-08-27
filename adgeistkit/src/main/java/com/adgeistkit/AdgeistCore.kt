@@ -3,14 +3,21 @@ package com.adgeistkit
 import android.util.Log
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.net.Uri
-import com.adgeistkit.core.TargetingOptions
-import com.adgeistkit.core.device.DeviceIdentifier
-import com.adgeistkit.core.device.DeviceMeta
-import com.adgeistkit.core.device.NetworkUtils
+import android.os.Handler
+import android.os.Looper
+import com.adgeistkit.ads.cache.CreativeMediaCache
+import com.adgeistkit.ads.render.AdWebViewFactory
+import com.adgeistkit.targeting.TargetingSignals
+import com.adgeistkit.targeting.device.DeviceIdentifier
+import com.adgeistkit.targeting.device.DeviceSignals
+import com.adgeistkit.targeting.device.NetworkSignals
 import com.adgeistkit.data.models.Event
 import com.adgeistkit.data.models.UserDetails
+import com.adgeistkit.data.network.AnalyticsRetryQueue
+import com.adgeistkit.data.network.ConnectionWarmer
 import com.adgeistkit.data.network.CreativeAnalytics
 import com.adgeistkit.data.network.FetchCreative
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -21,7 +28,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 class AdgeistCore private constructor(
-    private val context: Context,
+    internal val context: Context,
     val bidRequestBackendDomain: String,
     private val customPackageOrBundleID: String? = null,
     private val customAdgeistAppID: String? = null,
@@ -56,10 +63,11 @@ class AdgeistCore private constructor(
                         instance = it
                         Log.i(TAG, "AdgeistCore initialized successfully")
 
-                        // Validate critical configuration after successful initialization
                         if (it.adgeistAppID.isEmpty()) {
                             Log.w(TAG, "WARNING: adgeistAppID is empty. Set com.adgeistkit.ads.ADGEIST_APP_ID in AndroidManifest.xml")
                         }
+
+                        AnalyticsRetryQueue.start(it.context, it.bidRequestBackendDomain)
                     }
                 } catch (e: Throwable) {
                     Log.e(TAG, "CRITICAL: AdgeistCore initialization failed", e)
@@ -71,7 +79,10 @@ class AdgeistCore private constructor(
         @JvmStatic
         fun destroy() {
             synchronized(lock) {
-                instance?.ioScope?.cancel()
+                instance?.let {
+                    it.ioScope.cancel()
+                    AnalyticsRetryQueue.shutdown(it.context)
+                }
                 instance = null
             }
         }
@@ -83,10 +94,7 @@ class AdgeistCore private constructor(
                 throw IllegalStateException("AdgeistCore is not initialized. Call AdgeistCore.initialize() first.")
             }
         }
-        
-        /**
-         * Check if AdgeistCore has been initialized
-         */
+
         @JvmStatic
         fun isInitialized(): Boolean {
             return instance != null
@@ -96,6 +104,9 @@ class AdgeistCore private constructor(
     val packageOrBundleID = customPackageOrBundleID ?: context.packageName
     val adgeistAppID = customAdgeistAppID ?: getMetaValue("com.adgeistkit.ads.ADGEIST_APP_ID") ?: ""
     val version = customVersioning ?: "ANDROID-${com.adgeistkit.BuildConfig.VERSION_NAME}"
+
+    internal val isHostAppDebuggable: Boolean =
+        (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
     private var prefs: SharedPreferences? = null
 
@@ -113,9 +124,9 @@ class AdgeistCore private constructor(
         }
     )
 
-    val deviceMeta = DeviceMeta(context)
+    val deviceSignals = DeviceSignals(context)
     val deviceIdentifier = DeviceIdentifier(context)
-    val networkUtils = NetworkUtils(context)
+    val networkSignals = NetworkSignals(context)
     var targetingInfo: Map<String, Any?>? = null
 
     private var userDetails: UserDetails? = null
@@ -129,12 +140,17 @@ class AdgeistCore private constructor(
         }
 
         try {
-            targetingInfo = TargetingOptions(context).getTargetingInfo()
+            targetingInfo = TargetingSignals(deviceSignals).getTargetingInfo()
         } catch (e: Throwable) {
             Log.e(TAG, "Non-fatal: failed to collect device targeting info", e)
         }
 
+        Handler(Looper.getMainLooper()).post {
+            AdWebViewFactory.warmup(context)
+        }
+
         ioScope.launch { deviceIdentifier.getDeviceIdentifier() }
+        ioScope.launch { ConnectionWarmer.warm(bidRequestBackendDomain) }
     }
 
     private fun getMetaValue(key: String): String? {
@@ -145,6 +161,7 @@ class AdgeistCore private constructor(
                 .getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
 
             val bundle = ai.metaData
+            
             return bundle?.getString(key)
         } catch (e: Exception) {
             return null
@@ -158,6 +175,7 @@ class AdgeistCore private constructor(
 
     fun updateConsentStatus(consentGiven: Boolean) {
         this.consentGiven = consentGiven
+
         try {
             prefs?.edit()?.putBoolean(KEY_CONSENT, consentGiven)?.apply()
         } catch (e: Exception) {
@@ -181,17 +199,23 @@ class AdgeistCore private constructor(
         ioScope.launch {
             val localUserDetails = userDetails
             val parameters = mutableMapOf<String, Any>()
+
             event.eventProperties?.forEach { (key, value) -> if (value != null) parameters[key] = value }
             
             if (localUserDetails != null) {
                 parameters["userDetails"] = localUserDetails
             }
+
             val fullEvent = event.copy(eventProperties = parameters)
         }
     }
 
+    fun clearCreativeMediaCache() {
+        ioScope.launch { CreativeMediaCache.clear(context) }
+    }
+
     fun hasPhoneStatePermission(): Boolean {
-        return DeviceMeta.hasPhoneStatePermission(context)
+        return DeviceSignals.hasPhoneStatePermission(context)
     }
 
 }

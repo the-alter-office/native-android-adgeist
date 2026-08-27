@@ -13,26 +13,24 @@ import android.widget.LinearLayout
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import com.adgeistkit.AdgeistCore
 import com.adgeistkit.ads.AdListener
 import com.adgeistkit.ads.AdSize
 import com.adgeistkit.ads.AdType
 import com.adgeistkit.ads.AdView
 import com.adgeistkit.request.AdRequest
+import com.examplenativeandroidapp.ui.viewmodel.HomeViewModel
+import kotlinx.coroutines.launch
 
-/**
- * Home screen hosting the ad rendering UI. Ads are never destroyed on
- * navigation: the SDK keeps each ad's session alive, and the next loadAd()
- * for the same placement adopts it, so the same ads re-appear instantly.
- */
 class HomeFragment : Fragment() {
 
     companion object {
         private const val TAG = "HomeFragment"
-
-        // Remembered across fragment recreations so the load mode survives navigation
-        private var autoLoadEnabled = true
     }
 
     // Configuration section
@@ -62,6 +60,10 @@ class HomeFragment : Fragment() {
     private val defaultPackageId = "com.leaguex.crm.beta"
     private val defaultAdgeistAppId = "69a6777707df2b1527e357f9"
     private val defaultBidRequestBackendDomain = "https://beta.v2.bg-services.adgeist.ai"
+
+
+    private val viewModel: HomeViewModel by activityViewModels()
+    private var handledRequestId = -1
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -99,28 +101,48 @@ class HomeFragment : Fragment() {
             configureSDK()
         }
 
-        // Auto Load: default ids, loads immediately. Manual Load: inputs shown.
-        autoLoadSwitch.isChecked = autoLoadEnabled
-        applyLoadMode(autoLoadEnabled)
+        val autoLoad = viewModel.isAutoLoadEnabled.value
+        autoLoadSwitch.isChecked = autoLoad
+
+        applyLoadMode(autoLoad)
+
         autoLoadSwitch.setOnCheckedChangeListener { _, isChecked ->
-            autoLoadEnabled = isChecked
+            viewModel.setAutoLoadEnabled(isChecked)
             applyLoadMode(isChecked)
             if (isChecked) {
-                loadAdWithDefaults()
+                viewModel.generateAd()
             }
         }
 
         generateAdBtn.setOnClickListener {
-            if (autoLoadEnabled) {
-                loadAdWithDefaults()
-            } else {
-                loadAdFromInputs()
-            }
+            viewModel.generateAd()
         }
 
         cancelAdBtn.setOnClickListener {
-            destroyAllAds()
-            clearInputFields()
+            viewModel.cancelAd()
+        }
+
+        observeViewModel()
+    }
+
+    private fun observeViewModel() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.adRequestId.collect { requestId ->
+                    if (requestId == handledRequestId) return@collect
+                    handledRequestId = requestId
+
+                    if (requestId == 0) {
+                        destroyAllAds()
+                        return@collect
+                    }
+                    if (viewModel.isAutoLoadEnabled.value) {
+                        loadAdWithDefaults()
+                    } else {
+                        loadAdFromInputs()
+                    }
+                }
+            }
         }
     }
 
@@ -128,6 +150,7 @@ class HomeFragment : Fragment() {
         // No destroy: sessions stay alive in the SDK and are adopted on return
         Log.d(TAG, "onDestroyView - ad sessions stay alive inside the SDK")
         activeAdViews.clear()
+        handledRequestId = -1
         super.onDestroyView()
     }
 
@@ -186,23 +209,23 @@ class HomeFragment : Fragment() {
     private fun loadAdWithDefaults() {
         clearAdContainer()
         performAdLoad(
-            adspaceId = "69ca2675576a0a20dd6c6cfb",
-            adSpaceType = AdType.BANNER,
-            isResponsive = false,
+            adspaceId = "6a8fe8dd5b4f4fd5b006dc9f",
+            adSpaceType = AdType.COMPANION,
+            isResponsive = true,
             width = 360,
             height = 360,
             containerWidth = 360,
             containerHeight = 360
         )
-        performAdLoad(
-            adspaceId = "6a4b7c9a50946c5aa2fda929",
-            adSpaceType = AdType.BANNER,
-            isResponsive = false,
-            width = 360,
-            height = 360,
-            containerWidth = 360,
-            containerHeight = 360
-        )
+        // performAdLoad(
+        //     adspaceId = "6a4b7c9a50946c5aa2fda929",
+        //     adSpaceType = AdType.BANNER,
+        //     isResponsive = false,
+        //     width = 360,
+        //     height = 360,
+        //     containerWidth = 360,
+        //     containerHeight = 360
+        // )
     }
 
     /** Manual mode: everything comes from the input fields. */
@@ -333,7 +356,7 @@ class HomeFragment : Fragment() {
 
     /** Destroys one ad and removes its wrapper from the stack. */
     private fun removeAd(adView: AdView) {
-        adView.destroy()
+        adView.destroyAd()
         val wrapper = adView.parent as? ViewGroup
         (wrapper?.parent as? ViewGroup)?.removeView(wrapper)
         activeAdViews.remove(adView)

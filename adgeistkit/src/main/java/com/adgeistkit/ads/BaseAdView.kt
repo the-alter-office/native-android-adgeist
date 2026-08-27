@@ -1,104 +1,87 @@
 package com.adgeistkit.ads
 
-import android.app.Activity
-import android.app.Application
 import android.content.Context
-import android.content.ContextWrapper
-import android.content.Intent
-import android.content.MutableContextWrapper
-import android.graphics.Color
-import android.net.Uri
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
-import android.view.inputmethod.InputMethodManager
-import android.webkit.ConsoleMessage
-import android.webkit.ConsoleMessage.MessageLevel
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.annotation.RequiresPermission
-import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleOwner
+import androidx.core.view.doOnLayout
+import androidx.lifecycle.ViewModelStoreOwner
 import com.adgeistkit.AdgeistCore.Companion.getInstance
 import com.adgeistkit.R
 import com.adgeistkit.request.AdRequest
 import com.adgeistkit.data.models.FixedAdResponse
-import com.adgeistkit.data.network.FetchCreative
-import com.google.gson.Gson
 import kotlin.math.max
+import com.adgeistkit.ads.cache.CreativeMediaCache
+import com.adgeistkit.ads.host.findAdViewModel
+import com.adgeistkit.ads.host.pxToDp
+import com.adgeistkit.ads.host.releaseImeSession
+import com.adgeistkit.ads.render.AdCardHtml
+import com.adgeistkit.ads.render.AdCreativePayload
+import com.adgeistkit.ads.render.AdWebViewFactory
+import com.adgeistkit.ads.render.AdWebViewTeardown
+import com.adgeistkit.ads.tracking.AdTrackingState
+import com.adgeistkit.ads.viewmodel.AdViewModel
+import com.adgeistkit.ads.viewmodel.RetainedAd
+import com.adgeistkit.benchmark.AdRenderBenchmark
+import com.adgeistkit.data.network.FetchCreative
 
 open class BaseAdView : ViewGroup {
 
     companion object {
         private const val TAG = "BaseAdView"
-
-        private fun openInBrowser(context: Context, url: String) {
-            try {
-                val uri = Uri.parse(url)
-                // Creative-supplied URLs are untrusted: only hand http(s) to the
-                // system, never intent://, market://, or custom app schemes
-                val scheme = uri.scheme?.lowercase()
-                if (scheme != "http" && scheme != "https") {
-                    Log.w(TAG, "Blocked non-http(s) ad click URL: $url")
-                    return
-                }
-                val intent = Intent(Intent.ACTION_VIEW, uri)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(intent)
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to open external URL: $url", e)
-            }
-        }
     }
 
-    // Ad configuration
+    // ---- Ad configuration ----
+
     var adSize: AdSize? = null
     var adUnitId: String = ""
     var adType: AdType = AdType.BANNER
     var adIsResponsive: Boolean = false
 
-    // Stable identity of this ad slot; sessions are resumed only by the same
-    // placement. Auto-derived (view id / host fragment) when left empty.
-    var placementId: String = ""
-
     /**
-     * When false, the host-destroy watcher ignores fragment lifecycles and only
-     * tears the ad down on activity destroy. Embedders whose fragments are
-     * transient wrappers (react-native-screens recreates the fragment every
-     * time a screen is covered) must disable this and drive teardown explicitly
-     * (e.g. RN's onDropViewInstance).
+     * False scopes identity and teardown to the Activity instead of the fragment,
+     * for embedders whose fragments are transient wrappers (react-native-screens
+     * recreates one every time a screen is covered).
      */
     var watchFragmentLifecycle: Boolean = true
 
-    // Creative metadata used by tracking
+    var viewModelStoreOwner: ViewModelStoreOwner? = null
+        set(value) {
+            if (value === field) return
+            field = value
+            adViewModel = null
+        }
+
+    // ---- Creative metadata (read by tracking) ----
+
     var metaData: String = ""
-    var mediaType: String? = null
+
+    // ---- Collaborators ----
 
     var listener: AdListener? = null
 
-    // Runtime state
+    // ---- Runtime state ----
+
     internal var webView: WebView? = null
     private var jsInterface: JsBridge? = null
     private var isLoading: Boolean = false
     private var isDestroyed = false
     private var mainHandler: Handler? = null
 
-    // Store key of the session this view created/adopted, for cleanup
-    private var activeSessionKey: String? = null
+    private var adViewModel: AdViewModel? = null
+    internal var tracking: AdTrackingState = AdTrackingState()
+        private set
 
-    // Host destroy watcher: tears the ad down when its screen is gone for good
-    private var lifecycleObserver: DefaultLifecycleObserver? = null
-    private var observedLifecycle: Lifecycle? = null
-    private var activityCallbacks: Application.ActivityLifecycleCallbacks? = null
-    private var observedApplication: Application? = null
-    private var watchingFragment = false
+    // loadAd() before attach cannot reach the screen yet, so the request waits here
+    // until onAttachedToWindow()
+    private var pendingLoadRequest: AdRequest? = null
+
+    private val benchmark = AdRenderBenchmark()
 
     protected constructor(context: Context, adViewType: Int) : super(context) {
         initialize(context, null)
@@ -130,11 +113,6 @@ open class BaseAdView : ViewGroup {
                 if (xmlAdUnitId != null && !xmlAdUnitId.isEmpty()) {
                     adUnitId = xmlAdUnitId
                 }
-
-                val xmlPlacementId = typedArray.getString(R.styleable.AdView_placementId)
-                if (xmlPlacementId != null && !xmlPlacementId.isEmpty()) {
-                    placementId = xmlPlacementId
-                }
             } finally {
                 typedArray.recycle()
             }
@@ -151,359 +129,248 @@ open class BaseAdView : ViewGroup {
         requestLayout()
     }
 
-    val isCollapsible: Boolean
-        get() = false
-
-    /**
-     * Shows the ad for this unit: resumes this placement's live session when
-     * one survives, otherwise fetches a fresh creative.
-     */
     @RequiresPermission("android.permission.INTERNET")
     fun loadAd(adRequest: AdRequest) {
-        if (isLoading) {
-            Log.w(TAG, "loadAd ignored - ad is already loading")
-            return
-        }
-
-        if (adUnitId == null || adUnitId.isEmpty()) {
-            Log.e(TAG, "Ad unit ID is null or empty")
+        if (adUnitId.isEmpty()) {
             listener?.onAdFailedToLoad("Ad unit ID is null or empty")
             return
         }
 
-        val key = sessionKey()
-        val session = key?.let { AdSessionStore.get(it) }
-        if (key != null && session != null) {
-            val currentActivity = findActivity(context)
-            val sameActivity =
-                session.hostActivity != null && session.hostActivity === currentActivity
-            // Parked for a config change: the same screen class recreating is
-            // the same logical screen, so the surviving ad is adopted rather
-            // than re-fetched (and re-counted)
-            val recreatedSameScreen = session.isParked &&
-                session.hostActivityClass != null &&
-                session.hostActivityClass == currentActivity?.javaClass
-            // Steal guard: never rip the ad out of another visible slot
-            val hostStillVisible =
-                session.hostView !== this && session.hostView?.isAttachedToWindow == true
+        if (isLoading) {
+            listener?.onAdFailedToLoad("Ad unit ID is already loading")
+            return
+        }
 
-            if ((sameActivity || recreatedSameScreen) && !hostStillVisible) {
-                if (session.hostView === this && webView != null) {
-                    Log.d(TAG, "loadAd ignored - this view is already presenting the live ad")
-                    return
-                }
-                adoptSession(key, session)
-                return
-            }
+        benchmark.onLoadStart()
 
-            if (!sameActivity && !recreatedSameScreen) {
-                // A session's WebView cannot be shown in another activity
-                Log.d(TAG, "Discarding ad session from a different activity")
-                AdSessionStore.remove(key)
-                // A parked session has no host view left to run the teardown
-                session.hostView?.destroy() ?: AdSessionStore.destroyDetachedWebView(session)
-            } else {
-                Log.d(TAG, "Session '$key' is visible in another slot - fetching a new ad instead")
-            }
+        if (!resolveAdViewModel() && !isAttachedToWindow) {
+            // The view-tree owners are unreachable before attach. Resumed from onAttachedToWindow();
+            pendingLoadRequest = adRequest
+            return
+        }
+
+        performLoad()
+    }
+
+    private fun performLoad() {
+        adViewModel?.retained(adUnitId)?.let { retained ->
+            restoreRetained(retained)
+            return
         }
 
         isLoading = true
 
-        // The destroyed flag is reset inside the delayed block: cleanup sets
-        // it, so resetting earlier would be undone and the load would never run.
-        val needsCleanup = webView != null
-        if (needsCleanup) {
+        if (webView != null) {
             safelyDestroyWebView()
         }
 
-        mainHandler?.postDelayed({
+        mainHandler?.post {
             isDestroyed = false
-            startAdLoad(adRequest)
-        }, if (needsCleanup) 400 else 0)
+            startAdLoad()
+        }
     }
 
-    /**
-     * Permanently tears the ad down. Also invoked automatically when the host
-     * screen is popped or the activity is destroyed.
-     */
-    fun destroy() {
+    private fun restoreRetained(retained: RetainedAd) {
+        benchmark.onCacheHit()
+        isLoading = true
+
+        if (webView != null) {
+            safelyDestroyWebView()
+        }
+
+        tracking = retained.tracking
+        prefetchCreativeMedia(retained.response)
+
+        mainHandler?.post {
+            doOnLayout {
+                if (!isAttachedToWindow) {
+                    isLoading = false
+                    return@doOnLayout
+                }
+
+                isLoading = false
+                isDestroyed = false
+
+                val payload = AdCreativePayload.build(
+                    response = retained.response,
+                    adUnitId = adUnitId,
+                    adType = adType,
+                    adIsResponsive = adIsResponsive,
+                    adSize = adSize,
+                    measuredWidthDp = pxToDp(measuredWidth),
+                    measuredHeightDp = pxToDp(measuredHeight),
+                )
+
+                when (payload) {
+                    is AdCreativePayload.Result.Failure -> {
+                        listener?.onAdFailedToLoad(payload.message)
+                    }
+
+                    is AdCreativePayload.Result.Success -> {
+                        metaData = payload.metaData
+                        renderAdWithAdCard(payload.creativeJson)
+                    }
+                }
+            }
+        }
+    }
+
+    fun destroyAd() {
+        adViewModel?.release(adUnitId)
+        destroyInternal()
+        removeFromParent()
+    }
+
+    internal fun destroyInternal() {
         if (isDestroyed) return
 
         isLoading = false
-        unregisterHostDestroyWatcher()
         mainHandler?.removeCallbacksAndMessages(null)
         listener?.onAdClosed()
         safelyDestroyWebView()
     }
 
+    private fun resolveAdViewModel(): Boolean {
+        if (adViewModel == null) {
+            adViewModel = findAdViewModel(watchFragmentLifecycle, viewModelStoreOwner)
+        }
+
+        return adViewModel != null
+    }
+
     fun removeFromParent() {
         try {
             (parent as? ViewGroup)?.removeView(this)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error removing from parent: ${e.message}", e)
+        } catch (_: Exception) {
+            //
         }
     }
 
-    // ---------------------------------------------------------------------
-    // Ad session management
-    // ---------------------------------------------------------------------
-
-    /**
-     * Takes over a surviving session: re-parents its rendered WebView into
-     * this view and rebinds tracking. Impression state carries over, so
-     * analytics are not double-fired.
-     */
-    private fun adoptSession(key: String, session: AdSession) {
-        Log.d(TAG, "Adopting live ad session '$key' - same ad, no re-fetch")
-
-        AdSessionStore.cancelEviction(session)
-        // Rebind the WebView to the adopting view's (possibly recreated) activity
-        session.contextWrapper.baseContext = context
-        session.hostActivity = findActivity(context)
-
-        // Make the previous host inert so it can't destroy the shared WebView
-        session.hostView?.takeIf { it !== this }?.releaseSession()
-        session.hostView = this
-        activeSessionKey = key
-
-        isDestroyed = false
-        isLoading = false
-        metaData = session.metaData
-        mediaType = session.mediaType
-        webView = session.webView
-        jsInterface = session.jsInterface
-
-        (session.webView.parent as? ViewGroup)?.removeView(session.webView)
-        removeAllViews()
-        addView(
-            session.webView, LayoutParams(
-                LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT
-            )
-        )
-
-        session.jsInterface.rebind(this)
-        registerHostDestroyWatcher()
-
-        try {
-            session.webView.onResume()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error resuming adopted WebView: ${e.message}", e)
-        }
-
-        listener?.onAdLoaded()
-    }
-
-    /**
-     * Detaches the session from this dying view and parks it for adoption by
-     * the recreated screen, instead of destroying it. Tracking is paused with
-     * its impression state intact, so the ad neither re-fetches nor re-counts
-     * a view after a config change.
-     */
-    private fun parkForRecreation() {
-        val key = activeSessionKey
-        val session = key?.let { AdSessionStore.get(it) }
-        if (key == null || session == null || session.webView !== webView) {
-            destroy()
-            return
-        }
-
-        unregisterHostDestroyWatcher()
-        mainHandler?.removeCallbacksAndMessages(null)
-        jsInterface?.onHostDetached()
-        try {
-            webView?.onPause()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error pausing parked WebView: ${e.message}", e)
-        }
-        removeAllViews()
-
-        AdSessionStore.park(key, session)
-
-        // Make this view inert without touching the shared WebView.
-        // No onAdClosed(): the ad is surviving, not closing.
-        webView = null
-        jsInterface = null
-        activeSessionKey = null
+    private fun safelyDestroyWebView() {
+        if (isDestroyed) return
         isDestroyed = true
-        isLoading = false
-    }
 
-    /**
-     * Detaches this view from its session WITHOUT destroying the shared
-     * WebView, when another AdView adopts it. destroy() then no-ops here.
-     */
-    internal fun releaseSession() {
-        unregisterHostDestroyWatcher()
-        mainHandler?.removeCallbacksAndMessages(null)
+        val webViewToDestroy = webView
         webView = null
+        jsInterface?.destroyListeners()
         jsInterface = null
-        activeSessionKey = null
-        isDestroyed = true
-        isLoading = false
-    }
 
-    // Placement identity, best effort: explicit placementId, else the view's
-    // android:id name, else the host fragment class, else none (no retention)
-    private fun resolvePlacementKey(): String {
-        if (placementId.isNotEmpty()) return placementId
+        if (webViewToDestroy == null) return
 
-        if (id != View.NO_ID) {
-            try {
-                return "vid:" + resources.getResourceEntryName(id)
-            } catch (e: Exception) {
-                // Generated/unnamed id - fall through
+        val handler = mainHandler ?: return
+        handler.post {
+            AdWebViewTeardown.destroy(webViewToDestroy, handler) {
+                Log.d(TAG, "WebView destroyed")
             }
+            removeAllViews()
         }
-
-        findHostFragment()?.let { fragment ->
-            return "frag:" + fragment.javaClass.name
-        }
-
-        return ""
     }
 
-    private fun sessionKey(): String? {
-        val placement = resolvePlacementKey()
-        if (placement.isEmpty()) return null
-        return "$adUnitId|$placement"
+    // ---- Benchmarking ----
+
+    internal fun markJsPhase(phase: AdRenderBenchmark.JsPhase) {
+        benchmark.onJsPhase(phase)
     }
 
-    // ---------------------------------------------------------------------
-    // Loading and rendering
-    // ---------------------------------------------------------------------
+    internal fun reportFirstFrame() {
+        if (!benchmark.markFirstFrame()) return
+        mainHandler?.post { benchmark.log(adUnitId) }
+    }
 
-    private fun startAdLoad(adRequest: AdRequest) {
-        try {
-            val adgeist = getInstance()
-            val fetchCreative: FetchCreative = adgeist.getCreative()
+    // ---- Loading and rendering ----
 
-            fetchCreative.fetchCreative(
-                adUnitId, "FIXED"
-            ) { result ->
-                mainHandler?.post {
-                    // Clear the flag even when destroyed mid-fetch, so a
-                    // later loadAd isn't rejected
-                    isLoading = false
-                    if (isDestroyed) return@post
+    private fun startAdLoad() {
+        val adgeist = getInstance()
+        val fetchCreative: FetchCreative = adgeist.getCreative()
 
-                    if (!result.isSuccess) {
-                        Log.e(TAG, "API error: ${result.errorMessage}, statusCode: ${result.statusCode}")
-                        listener?.onAdFailedToLoad(result.errorMessage)
-                        return@post
-                    }
+        benchmark.onFetchStart()
 
-                    try {
-                        val campaignDetails = result.data as FixedAdResponse
+        fetchCreative.fetchCreative(
+            adUnitId, "FIXED"
+        ) { result ->
+            benchmark.onFetchEnd(result.timings)
 
-                        if (campaignDetails.creativesV1.isNullOrEmpty()) {
-                            Log.e(TAG, "Empty creative list")
-                            listener?.onAdFailedToLoad("Empty creative")
-                            return@post
-                        }
-
-                        metaData = campaignDetails.metaData
-
-                        val propertiesForAdCard = mutableMapOf<String, Any?>()
-                        propertiesForAdCard["adspaceType"] = adType.value
-                        propertiesForAdCard["adElementId"] = "adgeist_ads_iframe_$adUnitId"
-                        propertiesForAdCard["name"] = campaignDetails.advertiser?.name ?: "-"
-
-                        val options = campaignDetails.displayOptions
-                        propertiesForAdCard["isResponsive"] = options?.isResponsive ?: false
-                        propertiesForAdCard["responsiveType"] = options?.responsiveType ?: "Square"
-
-                        val creativeDataFromApiResponse = campaignDetails.creativesV1[0]
-                        propertiesForAdCard["title"] = creativeDataFromApiResponse.title
-                        propertiesForAdCard["description"] = creativeDataFromApiResponse.description
-                        propertiesForAdCard["ctaUrl"] = creativeDataFromApiResponse.ctaUrl
-
-                        Log.d(TAG, "measuredWidth: ${pxToDp(measuredWidth)}, measuredHeight: ${pxToDp(measuredHeight)}")
-                        if (adIsResponsive) {
-                            propertiesForAdCard["width"] = pxToDp(measuredWidth)
-                            propertiesForAdCard["height"] = pxToDp(measuredHeight)
-                        } else {
-                            val size = adSize
-                            if (size == null) {
-                                Log.e(TAG, "adSize not set - call setAdDimension() or set adIsResponsive = true")
-                                listener?.onAdFailedToLoad("adSize not set. Call setAdDimension() or set adIsResponsive = true before loadAd()")
-                                return@post
-                            }
-                            propertiesForAdCard["width"] = size.width
-                            propertiesForAdCard["height"] = size.height
-                        }
-
-                        val primaryCreative = mutableMapOf<String, String?>()
-                        primaryCreative["src"] = creativeDataFromApiResponse.primary?.fileUrl
-                        primaryCreative["thumbnailUrl"] = creativeDataFromApiResponse.primary?.thumbnailUrl
-                        primaryCreative["type"] = creativeDataFromApiResponse.primary?.type
-
-                        val companionCreative = creativeDataFromApiResponse.companions?.map { companion ->
-                            mapOf(
-                                "src" to companion.fileUrl,
-                                "thumbnailUrl" to companion.thumbnailUrl,
-                                "type" to companion.type
-                            )
-                        } ?: emptyList()
-
-                        val mediaList = mutableListOf<Map<String, String?>>()
-                        mediaList.add(primaryCreative)
-                        mediaList.addAll(companionCreative)
-                        propertiesForAdCard["media"] = mediaList
-
-                        val creativeJson = Gson().toJson(propertiesForAdCard)
-                        renderAdWithAdCard(creativeJson)
-                    } catch (err: Exception) {
-                        Log.e(TAG, "Parsing error: ${err.message}", err)
-                        listener?.onAdFailedToLoad(err.message ?: "Error")
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "startAdLoad exception: ${e.message}", e)
-            listener?.onAdFailedToLoad(e.message ?: "Unknown error")
             mainHandler?.post {
                 isLoading = false
+                if (isDestroyed) return@post
+
+                if (!result.isSuccess) {
+                    Log.e(TAG, "API error: ${result.errorMessage}, statusCode: ${result.statusCode}")
+                    listener?.onAdFailedToLoad(result.errorMessage)
+                    return@post
+                }
+
+                try {
+                    val campaignDetails = result.data as FixedAdResponse
+                    prefetchCreativeMedia(campaignDetails)
+
+                    val payload = AdCreativePayload.build(
+                        response = campaignDetails,
+                        adUnitId = adUnitId,
+                        adType = adType,
+                        adIsResponsive = adIsResponsive,
+                        adSize = adSize,
+                        measuredWidthDp = pxToDp(measuredWidth),
+                        measuredHeightDp = pxToDp(measuredHeight),
+                    )
+
+                    when (payload) {
+                        is AdCreativePayload.Result.Failure -> {
+                            listener?.onAdFailedToLoad(payload.message)
+                        }
+
+                        is AdCreativePayload.Result.Success -> {
+                            metaData = payload.metaData
+
+                            val retainedAd = RetainedAd(campaignDetails)
+                            tracking = retainedAd.tracking
+                            adViewModel?.retain(adUnitId, retainedAd)
+
+                            renderAdWithAdCard(payload.creativeJson)
+                        }
+                    }
+                } catch (err: Exception) {
+                    Log.e(TAG, "Parsing error: ${err.message}", err)
+                    listener?.onAdFailedToLoad(err.message ?: "Error")
+                }
             }
         }
     }
 
-    /** Creates the WebView, wires the JS bridge, and renders the creative. */
+    private fun prefetchCreativeMedia(response: FixedAdResponse) {
+        val urls = mutableListOf<String?>()
+        response.creativesV1.firstOrNull()?.let { creative ->
+            creative.primary?.let { media ->
+                urls.add(media.fileUrl)
+                urls.add(media.thumbnailUrl)
+            }
+            creative.companions?.forEach { companion ->
+                urls.add(companion.fileUrl)
+                urls.add(companion.thumbnailUrl)
+            }
+        }
+        // CreativeMediaCache.prefetch(context, urls)
+    }
+
     private fun renderAdWithAdCard(creativeJsonData: String) {
         if (isDestroyed) return
 
-        registerHostDestroyWatcher()
+        benchmark.onRenderStart()
         removeAllViews()
-
-        // Swappable context so the WebView can be rebound to a recreated
-        // activity instead of being torn down on config changes
-        val webViewContext = MutableContextWrapper(context)
-        val adWebView = WebView(webViewContext).apply {
-            setBackgroundColor(Color.TRANSPARENT)
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.loadWithOverviewMode = true
-            settings.useWideViewPort = true
-        }
-        webView = adWebView
 
         val bridge = JsBridge(this, context)
         jsInterface = bridge
         listener?.onAdOpened()
 
-        // Inspectable via chrome://inspect/#devices - debug builds of the SDK
-        // only, so shipped apps never expose the WebView (and its JS bridge)
-        // to adb-level inspection
-        if (com.adgeistkit.BuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            WebView.setWebContentsDebuggingEnabled(true)
-        }
+        val created = AdWebViewFactory.create(context, bridge)
+        benchmark.onWebViewReady(created.allocEndAt)
 
-        adWebView.webViewClient = AdWebViewClient(bridge)
-        adWebView.webChromeClient = AdWebChromeClient()
+        val adWebView = created.webView
+        webView = adWebView
 
-        // Exposed to the page as the 'Android' object
-        adWebView.addJavascriptInterface(bridge, "Android")
+        val htmlContent = AdCardHtml.build(context.assets, creativeJsonData)
+        benchmark.onHtmlRead()
 
-        val htmlContent = buildAdCardHtml(creativeJsonData)
         adWebView.loadDataWithBaseURL(
             "https://adgeist.ai",
             htmlContent,
@@ -512,67 +379,16 @@ open class BaseAdView : ViewGroup {
             null
         )
 
-       addView(
-           adWebView, LayoutParams(
-               LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT
-           )
-       )
+        addView(adWebView, AdWebViewFactory.matchParentLayoutParams())
+        benchmark.onViewAdded()
 
         // Companion ads stay hidden until the overflow check completes
         if (adType == AdType.COMPANION) {
             adWebView.visibility = View.INVISIBLE
         }
-
-        // Register the session so this ad survives view recreation; views
-        // without a resolvable placement identity get no retention
-        val key = sessionKey()
-        if (key != null) {
-            activeSessionKey = key
-            val hostActivity = findActivity(context)
-            AdSessionStore.put(
-                key,
-                AdSession(
-                    adWebView,
-                    webViewContext,
-                    bridge,
-                    metaData,
-                    mediaType,
-                    hostActivity,
-                    hostActivity?.javaClass,
-                    this
-                )
-            )
-            Log.d(TAG, "Registered ad session '$key'")
-        }
     }
 
-    /** Builds the ad HTML from asset templates with the creative injected. */
-    private fun buildAdCardHtml(creativeJsonData: String): String {
-        val escapedJson = creativeJsonData
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t")
-            .replace("`", "\\`")
-            .replace(Regex("(?i)</script")) { "<\\/script" }
-            .replace(Regex("<!--")) { "<\\!--" }
-
-        return try {
-            val template = context.assets.open("ad_view.html").bufferedReader().use { it.readText() }
-            val adCardJs = context.assets.open("adcard-beta.js").bufferedReader().use { it.readText() }
-            template
-                .replace("{{ADCARD_JS}}", adCardJs)
-                .replace("{{CREATIVE_DATA}}", escapedJson)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to load ad view from assets", e)
-            return ""
-        }
-    }
-
-    // ---------------------------------------------------------------------
-    // Measurement and layout
-    // ---------------------------------------------------------------------
+    // ---- Measurement and layout ----
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val widthSize = MeasureSpec.getSize(widthMeasureSpec)
@@ -608,10 +424,8 @@ open class BaseAdView : ViewGroup {
             val childWidthSpec = MeasureSpec.makeMeasureSpec(resolvedWidth, MeasureSpec.EXACTLY)
             val childHeightSpec = MeasureSpec.makeMeasureSpec(resolvedHeight, MeasureSpec.EXACTLY)
             child.measure(childWidthSpec, childHeightSpec)
-            Log.d(TAG, "Ad child measured $resolvedWidth $resolvedHeight")
         }
 
-        Log.d(TAG, "onMeasure - resolvedWidth: $resolvedWidth, resolvedHeight: $resolvedHeight")
         setMeasuredDimension(resolvedWidth, resolvedHeight)
     }
 
@@ -634,23 +448,41 @@ open class BaseAdView : ViewGroup {
         }
     }
 
-    // ---------------------------------------------------------------------
-    // Window lifecycle: detach is transient, so the ad is only paused/resumed
-    // ---------------------------------------------------------------------
+    // ---- Window lifecycle (detach only pauses, never destroys) ----
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        registerHostDestroyWatcher()
+
+        // The view-tree owners are only reachable now, so this is where the screen
+        // becomes reachable and a deferred loadAd() can proceed.
+        resolveAdViewModel()
+        pendingLoadRequest?.let {
+            pendingLoadRequest = null
+            performLoad()
+            return
+        }
+
+        // react-native-screens re-parents this same view on screen recreation instead of
+        // inflating a new one, so no loadAd() follows: restore the retained ad, not a new one.
+        // isDestroyed covers the same gap for plain Android hosts - a RecyclerView row that
+        // scrolled off long enough to be torn down reattaches without a loadAd() either.
+        if ((!watchFragmentLifecycle || isDestroyed) &&
+            webView == null && adUnitId.isNotEmpty() && !isLoading
+        ) {
+            if (adViewModel?.retained(adUnitId) != null) {
+                performLoad()
+            }
+            return
+        }
 
         if (isDestroyed) return
 
         try {
             webView?.onResume()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error resuming WebView: ${e.message}", e)
+        } catch (_: Exception) {
+            //
         }
         jsInterface?.onHostAttached()
-        Log.d(TAG, "Attached to window - ad resumed")
     }
 
     override fun onWindowVisibilityChanged(visibility: Int) {
@@ -661,289 +493,34 @@ open class BaseAdView : ViewGroup {
         if (visibility == VISIBLE) {
             try {
                 webView?.onResume()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error resuming WebView: ${e.message}", e)
+            } catch (_: Exception) {
+                //
             }
         } else {
             try {
                 webView?.onPause()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error pausing WebView: ${e.message}", e)
+            } catch (_: Exception) {
+                //
             }
-            releaseImeSession()
+            releaseImeSession(mainHandler)
         }
     }
 
     override fun onDetachedFromWindow() {
-        // Suspend tracking before super: the window's ViewTreeObserver is
-        // unreachable afterwards
         if (!isDestroyed) {
             jsInterface?.onHostDetached()
             try {
                 webView?.onPause()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error pausing WebView: ${e.message}", e)
+            } catch (_: Exception) {
+                //
             }
-            releaseImeSession()
-            Log.d(TAG, "Detached from window - ad paused (not destroyed)")
         }
         super.onDetachedFromWindow()
-    }
-
-    /**
-     * A WebView kept alive while its screen is covered can leave the IME
-     * bound to an inactive input connection (its served view is gone but the
-     * binding survives). Key events are routed through the IME stage before
-     * the activity's view hierarchy, so they die in that dead session -
-     * notably the system BACK key, which stops working app-wide. Force
-     * InputMethodManagerService to rebind to whatever is currently focused
-     * (or finish input entirely) so key dispatch recovers.
-     */
-    private fun releaseImeSession() {
-        val activity = findActivity(context) ?: return
-        val imm = activity.getSystemService(Context.INPUT_METHOD_SERVICE)
-            as? InputMethodManager ?: return
-        // Post so this runs after the detach pass completes and window focus
-        // has settled on the newly shown screen
         mainHandler?.post {
-            try {
-                val focused = activity.currentFocus
-                if (focused != null) {
-                    imm.restartInput(focused)
-                } else {
-                    imm.hideSoftInputFromWindow(activity.window.decorView.windowToken, 0)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error releasing IME session: ${e.message}", e)
-            }
+            if (isAttachedToWindow) return@post
+
+            destroyInternal()
+            releaseImeSession(mainHandler)
         }
-    }
-
-    // ---------------------------------------------------------------------
-    // Host destroy watcher
-    // ---------------------------------------------------------------------
-
-    /**
-     * Destroys the ad when its screen is gone for good. Prefers the host
-     * fragment's INSTANCE lifecycle (onDestroy fires on pop/removal, not
-     * while covered on the back stack), falling back to the activity.
-     */
-    private fun registerHostDestroyWatcher() {
-        val fragment = if (watchFragmentLifecycle) findHostFragment() else null
-
-        if (observedLifecycle != null || activityCallbacks != null) {
-            // Upgrade an activity-level watcher once the view is inside a
-            // fragment tree (loadAd can run before the view is added)
-            if (watchingFragment || fragment == null) return
-            unregisterHostDestroyWatcher()
-        }
-
-        val hostOwner: LifecycleOwner? = fragment
-            ?: (findActivity(context) as? LifecycleOwner ?: findLifecycleOwner(context))
-
-        if (hostOwner != null) {
-            val observer = object : DefaultLifecycleObserver {
-                override fun onDestroy(owner: LifecycleOwner) {
-                    // Unregister first: destroy() may no-op on its isDestroyed
-                    // guard, which would leave this fired observer lingering
-                    unregisterHostDestroyWatcher()
-                    if (findActivity(context)?.isChangingConfigurations == true) {
-                        Log.d(TAG, "Host destroyed for config change - parking ad session")
-                        parkForRecreation()
-                    } else {
-                        Log.d(TAG, "Host ${if (owner is androidx.fragment.app.Fragment) "fragment (screen popped/removed)" else "activity"} destroyed - destroying ad")
-                        destroy()
-                    }
-                }
-            }
-            hostOwner.lifecycle.addObserver(observer)
-            lifecycleObserver = observer
-            observedLifecycle = hostOwner.lifecycle
-            watchingFragment = fragment != null
-            return
-        }
-
-        val hostActivity = findActivity(context)
-        if (hostActivity != null) {
-            val callbacks = object : Application.ActivityLifecycleCallbacks {
-                override fun onActivityDestroyed(destroyed: Activity) {
-                    if (destroyed === hostActivity) {
-                        if (destroyed.isChangingConfigurations) {
-                            Log.d(TAG, "Host activity destroyed for config change - parking ad session")
-                            parkForRecreation()
-                        } else {
-                            Log.d(TAG, "Host activity destroyed - destroying ad")
-                            destroy()
-                        }
-                    }
-                }
-
-                override fun onActivityCreated(a: Activity, b: android.os.Bundle?) {}
-                override fun onActivityStarted(a: Activity) {}
-                override fun onActivityResumed(a: Activity) {}
-                override fun onActivityPaused(a: Activity) {}
-                override fun onActivityStopped(a: Activity) {}
-                override fun onActivitySaveInstanceState(a: Activity, b: android.os.Bundle) {}
-            }
-            val application = hostActivity.application
-            application.registerActivityLifecycleCallbacks(callbacks)
-            activityCallbacks = callbacks
-            observedApplication = application
-        }
-    }
-
-    private fun unregisterHostDestroyWatcher() {
-        lifecycleObserver?.let { observedLifecycle?.removeObserver(it) }
-        lifecycleObserver = null
-        observedLifecycle = null
-        watchingFragment = false
-
-        activityCallbacks?.let { observedApplication?.unregisterActivityLifecycleCallbacks(it) }
-        activityCallbacks = null
-        observedApplication = null
-    }
-
-    // ---------------------------------------------------------------------
-    // Teardown
-    // ---------------------------------------------------------------------
-
-    /**
-     * Staged WebView teardown: flag first (async callbacks bail), drop the
-     * session, then gracefully shut the WebView down before native destroy.
-     */
-    private fun safelyDestroyWebView() {
-        if (isDestroyed) return
-        isDestroyed = true
-
-        val webViewToDestroy = webView
-        webView = null
-        jsInterface?.destroyListeners()
-        jsInterface = null
-
-        if (webViewToDestroy == null) return
-
-        activeSessionKey?.let { AdSessionStore.removeIfHosts(it, webViewToDestroy) }
-        activeSessionKey = null
-
-        mainHandler?.post {
-            try {
-                try {
-                    webViewToDestroy.removeJavascriptInterface("Android")
-                } catch (e: Exception) { /* ignore */
-                }
-
-                webViewToDestroy.stopLoading()
-                webViewToDestroy.onPause()
-                webViewToDestroy.clearHistory()
-                webViewToDestroy.clearCache(true)
-                (webViewToDestroy.parent as? ViewGroup)?.removeView(webViewToDestroy)
-                removeAllViews()
-
-                try {
-                    webViewToDestroy.loadUrl("about:blank")
-                } catch (e: Exception) { /* ignore */
-                }
-
-                // Grace period lets in-flight render/JS work settle before
-                // the native destroy
-                mainHandler?.postDelayed({
-                    try {
-                        webViewToDestroy.destroy()
-                    } catch (e: Exception) {
-                        Log.e(TAG, "WebView final destroy failed", e)
-                    }
-                }, 600)
-            } catch (e: Exception) {
-                Log.e(TAG, "WebView cleanup error", e)
-            }
-        }
-    }
-
-    // ---------------------------------------------------------------------
-    // Helpers
-    // ---------------------------------------------------------------------
-
-    private fun findHostFragment(): androidx.fragment.app.Fragment? {
-        return try {
-            androidx.fragment.app.FragmentManager.findFragment(this)
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun findActivity(context: Context): Activity? {
-        var current: Context? = context
-        while (current is ContextWrapper) {
-            if (current is Activity) return current
-            current = current.baseContext
-        }
-        return null
-    }
-
-    private fun findLifecycleOwner(context: Context): LifecycleOwner? {
-        var current: Context? = context
-        while (current is ContextWrapper) {
-            if (current is LifecycleOwner) return current
-            current = current.baseContext
-        }
-        return null
-    }
-
-    /**
-     * Holds only the bridge, never the creating AdView: the session's WebView
-     * outlives its first host, and clicks must keep flowing after adoption.
-     * URLs are opened via the WebView's own (swappable) context.
-     */
-    private class AdWebViewClient(private val bridge: JsBridge) : WebViewClient() {
-        override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-            openInBrowser(view.context, url)
-            bridge.recordClickListener()
-            return true
-        }
-
-        override fun shouldOverrideUrlLoading(
-            view: WebView,
-            request: WebResourceRequest
-        ): Boolean {
-            val url = request.url.toString()
-            openInBrowser(view.context, url)
-            bridge.recordClickListener()
-            return true
-        }
-
-        override fun onPageFinished(view: WebView, url: String) {
-            super.onPageFinished(view, url)
-            Log.i(TAG, "✅ WebView page finished loading: $url")
-        }
-
-        override fun onLoadResource(view: WebView, url: String) {
-            super.onLoadResource(view, url)
-            Log.d(TAG, "📦 Loading resource: $url")
-        }
-    }
-
-    private class AdWebChromeClient : WebChromeClient() {
-        override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
-            val logLevel = consoleMessage.messageLevel().name
-            val message = consoleMessage.message()
-            val source = consoleMessage.sourceId()
-            val line = consoleMessage.lineNumber()
-
-            val fullLog = String.format("[%s] %s (%s:%d)", logLevel, message, source, line)
-            when (consoleMessage.messageLevel()) {
-                MessageLevel.ERROR -> Log.e(TAG, "JS Error: $fullLog")
-                MessageLevel.WARNING -> Log.w(TAG, "JS Warning: $fullLog")
-                else -> Log.d(TAG, "🔵 JS Log: $fullLog")
-            }
-            return true
-        }
-    }
-
-    private fun dpToPx(dp: Int): Int {
-        return (dp * resources.displayMetrics.density).toInt()
-    }
-
-    private fun pxToDp(px: Int): Int {
-        return (px / resources.displayMetrics.density).toInt()
     }
 }

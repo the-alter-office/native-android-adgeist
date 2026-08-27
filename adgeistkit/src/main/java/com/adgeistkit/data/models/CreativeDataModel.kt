@@ -1,5 +1,6 @@
 package com.adgeistkit.data.models
 
+import com.adgeistkit.benchmark.FetchTimings
 import com.google.gson.annotations.SerializedName
 
 sealed interface AdResponseData
@@ -60,7 +61,6 @@ data class DisplayOptions(
     @SerializedName("allowedFormats") val allowedFormats: List<String>?,
     @SerializedName("dimensions") val dimensions: Dimensions?,
     @SerializedName("isResponsive") val isResponsive: Boolean?,
-    @SerializedName("responsiveType") val responsiveType: String?,
     @SerializedName("styleOptions") val styleOptions: StyleOptions?
 )
 
@@ -91,7 +91,8 @@ data class AdVisibilityError(
 data class AdData(
     val data: AdResponseData?,
     val error: AdVisibilityError?,
-    val statusCode: Int?
+    val statusCode: Int?,
+    val timings: FetchTimings? = null
 ) {
     val isSuccess: Boolean
         get() = error == null && data != null

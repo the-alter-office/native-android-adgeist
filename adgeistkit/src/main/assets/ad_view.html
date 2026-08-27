@@ -36,6 +36,14 @@
     <div id='ad-content'></div>
     <script>{{ADCARD_JS}}</script>
     <script>
+        function postBenchmark(phase) {
+            try {
+                if (window.Android) {
+                    Android.postMessage(JSON.stringify({type:'BENCHMARK', message:phase}));
+                }
+            } catch (e) {}
+        }
+
         function initAd() {
             if (typeof AdCard === 'undefined') {
                 console.error('❌ AdCard library not loaded');
@@ -49,7 +57,8 @@
                 document.getElementById('ad-content').addEventListener('click', function(e) {
                     console.log('👆 Ad clicked');
                 });
-                
+                postBenchmark('JS_RENDER');
+
                 function checkOverflow() {
                     try {
                         const adgeistCard = document.getElementById('adgeist-card');
@@ -107,11 +116,16 @@
         
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function() {
-                setTimeout(initAd, 100);
+                postBenchmark('JS_DOM');
+                initAd();
             });
         } else {
-            setTimeout(initAd, 100);
+            postBenchmark('JS_DOM');
+            initAd();
         }
+    </script>
+    <script>
+        Android.postMessage(JSON.stringify({type:'BENCHMARK', message:'JS_BOOT'}));
     </script>
 </body>
 </html>
