@@ -349,7 +349,7 @@ open class BaseAdView : ViewGroup {
                 urls.add(companion.thumbnailUrl)
             }
         }
-        CreativeMediaCache.prefetch(context, urls)
+        // CreativeMediaCache.prefetch(context, urls)
     }
 
     private fun renderAdWithAdCard(creativeJsonData: String) {

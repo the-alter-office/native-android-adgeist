@@ -115,26 +115,26 @@ internal class AdRenderBenchmark {
 
         Log.i(TAG, """
             🎬 Ad Render Cycle (Unit: $adUnitId, cached: $fromCache):
-            - Queue Wait:                ${t.queueWaitMs}ms
-            ─ Device ID:                 ${t.deviceIdMs}ms
-            ─ Request Build:             ${t.requestBuildMs}ms
-            ─ Network RTT:               ${t.networkRttMs}ms
-            ─ Body Read:                 ${t.bodyReadMs}ms
-            ─ Response Parse:            ${t.responseParseMs}ms
-            ─ Total Ad Fetch:            ${fetchTime}ms
+            - Queue Wait:                       ${t.queueWaitMs}ms
+            ─ Device ID:                        ${t.deviceIdMs}ms
+            ─ Request Build:                    ${t.requestBuildMs}ms
+            ─ Network RTT:                      ${t.networkRttMs}ms
+            ─ Body Read:                        ${t.bodyReadMs}ms
+            ─ Response Parse:                   ${t.responseParseMs}ms
+            ─ Total Ad Fetch:                   ${fetchTime}ms
 
-            - Payload Prep + Layout:     ${prepTime}ms
+            - Payload Prep + Layout:            ${prepTime}ms
 
-            - WebView Alloc:             ${webViewAllocTime}ms
-            - WebView Init:              ${webViewInitTime}ms
-            - HTML Asset Read:           ${htmlAssetReadTime}ms
+            - WebView Alloc:                    ${webViewAllocTime}ms
+            - WebView Init:                     ${webViewInitTime}ms
+            - HTML Asset Read:                  ${htmlAssetReadTime}ms
 
-            - JS Boot + Lib Eval:        ${jsBootTime}ms
-            - DOMContentLoaded:          ${jsDomTime}ms
-            - JS Render (DOM Build):     ${jsRenderTime}ms
-            - Media Decode + Paint:      ${paintTime}ms
+            - JS Boot + Lib Eval:               ${jsBootTime}ms
+            - DOMContentLoaded:                 ${jsDomTime}ms
+            - Ad DOM Build from Adcard class:   ${jsRenderTime}ms
+            - Render First Frame:               ${paintTime}ms
             ------------------------------------
-            - Total Time to First Frame: ${totalTime}ms
+            - Total Time to First Frame:        ${totalTime}ms
         """.trimIndent())
     }
 }
