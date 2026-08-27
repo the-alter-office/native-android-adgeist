@@ -45,7 +45,6 @@
         }
 
         function initAd() {
-            postBenchmark('JS_INIT');
             if (typeof AdCard === 'undefined') {
                 console.error('❌ AdCard library not loaded');
                 return;
@@ -118,12 +117,15 @@
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function() {
                 postBenchmark('JS_DOM');
-                setTimeout(initAd, 100);
+                initAd();
             });
         } else {
             postBenchmark('JS_DOM');
-            setTimeout(initAd, 100);
+            initAd();
         }
+    </script>
+    <script>
+        Android.postMessage(JSON.stringify({type:'BENCHMARK', message:'JS_BOOT'}));
     </script>
 </body>
 </html>

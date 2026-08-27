@@ -368,8 +368,7 @@ open class BaseAdView : ViewGroup {
         val adWebView = created.webView
         webView = adWebView
 
-        val htmlContent =
-            AdCardHtml.build(context.assets, creativeJsonData) + AdRenderBenchmark.jsReadyScript
+        val htmlContent = AdCardHtml.build(context.assets, creativeJsonData)
         benchmark.onHtmlRead()
 
         adWebView.loadDataWithBaseURL(

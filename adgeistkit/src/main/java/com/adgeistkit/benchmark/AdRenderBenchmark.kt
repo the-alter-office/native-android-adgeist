@@ -11,24 +11,17 @@ internal class AdRenderBenchmark {
         const val MESSAGE_TYPE = "BENCHMARK"
         private const val MESSAGE_JS_BOOT = "JS_BOOT"
         private const val MESSAGE_JS_DOM = "JS_DOM"
-        private const val MESSAGE_JS_INIT = "JS_INIT"
         private const val MESSAGE_JS_RENDER = "JS_RENDER"
-
-        /** Appended to the ad HTML so the WebView reports when its JS runtime is alive. */
-        val jsReadyScript: String =
-            "<script>Android.postMessage(JSON.stringify(" +
-                "{type:'$MESSAGE_TYPE', message:'$MESSAGE_JS_BOOT'}));</script>"
 
         fun jsPhaseOf(message: String): JsPhase? = when (message) {
             MESSAGE_JS_BOOT -> JsPhase.BOOT
             MESSAGE_JS_DOM -> JsPhase.DOM
-            MESSAGE_JS_INIT -> JsPhase.INIT
             MESSAGE_JS_RENDER -> JsPhase.RENDER
             else -> null
         }
     }
 
-    enum class JsPhase { BOOT, DOM, INIT, RENDER }
+    enum class JsPhase { BOOT, DOM, RENDER }
 
     private var loadStart: Long = 0
     private var fetchStart: Long = 0
@@ -41,7 +34,6 @@ internal class AdRenderBenchmark {
     private var addViewEnd: Long = 0
     @Volatile private var jsBoot: Long = 0
     @Volatile private var jsDom: Long = 0
-    @Volatile private var jsInit: Long = 0
     @Volatile private var jsRender: Long = 0
     @Volatile private var firstFrame: Long = 0
     @Volatile private var firstFrameReported: Boolean = false
@@ -59,7 +51,6 @@ internal class AdRenderBenchmark {
         addViewEnd = 0
         jsBoot = 0
         jsDom = 0
-        jsInit = 0
         jsRender = 0
         firstFrame = 0
         firstFrameReported = false
@@ -91,7 +82,6 @@ internal class AdRenderBenchmark {
         when (phase) {
             JsPhase.BOOT -> jsBoot = now
             JsPhase.DOM -> jsDom = now
-            JsPhase.INIT -> jsInit = now
             JsPhase.RENDER -> jsRender = now
         }
     }
@@ -107,8 +97,7 @@ internal class AdRenderBenchmark {
     fun log(adUnitId: String) {
         if (jsBoot == 0L) jsBoot = addViewEnd
         if (jsDom == 0L) jsDom = jsBoot
-        if (jsInit == 0L) jsInit = jsDom
-        if (jsRender == 0L) jsRender = jsInit
+        if (jsRender == 0L) jsRender = jsDom
 
         val fetchTime = if (fromCache) 0 else fetchEnd - fetchStart
         val prepFrom = if (fromCache) loadStart else fetchEnd
@@ -118,8 +107,7 @@ internal class AdRenderBenchmark {
         val htmlAssetReadTime = htmlReadEnd - webViewInitEnd
         val jsBootTime = jsBoot - addViewEnd
         val jsDomTime = jsDom - jsBoot
-        val jsInitDelayTime = jsInit - jsDom
-        val jsRenderTime = jsRender - jsInit
+        val jsRenderTime = jsRender - jsDom
         val paintTime = firstFrame - jsRender
         val totalTime = firstFrame - loadStart
 
@@ -143,7 +131,6 @@ internal class AdRenderBenchmark {
 
             - JS Boot + Lib Eval:        ${jsBootTime}ms
             - DOMContentLoaded:          ${jsDomTime}ms
-            - JS Init Delay:             ${jsInitDelayTime}ms
             - JS Render (DOM Build):     ${jsRenderTime}ms
             - Media Decode + Paint:      ${paintTime}ms
             ------------------------------------
