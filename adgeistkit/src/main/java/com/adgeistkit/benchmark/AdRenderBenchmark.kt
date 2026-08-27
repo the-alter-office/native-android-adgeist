@@ -2,11 +2,14 @@ package com.adgeistkit.benchmark
 
 import android.os.SystemClock
 import android.util.Log
+import com.adgeistkit.AdgeistCore
+import com.adgeistkit.data.network.PostHogClient
 
 internal class AdRenderBenchmark {
 
     companion object {
         private const val TAG = "AdBenchmark"
+        private const val EVENT_NAME = "ad_render_benchmark"
 
         const val MESSAGE_TYPE = "BENCHMARK"
         private const val MESSAGE_JS_BOOT = "JS_BOOT"
@@ -136,5 +139,31 @@ internal class AdRenderBenchmark {
             ------------------------------------
             - Total Time to First Frame:        ${totalTime}ms
         """.trimIndent())
+
+        if (!AdgeistCore.isInitialized() || AdgeistCore.getInstance().isHostAppDebuggable) return
+
+        PostHogClient.capture(
+            EVENT_NAME,
+            mapOf(
+                "ad_unit_id" to adUnitId,
+                "from_cache" to fromCache,
+                "queue_wait_ms" to t.queueWaitMs,
+                "device_id_ms" to t.deviceIdMs,
+                "request_build_ms" to t.requestBuildMs,
+                "network_rtt_ms" to t.networkRttMs,
+                "body_read_ms" to t.bodyReadMs,
+                "response_parse_ms" to t.responseParseMs,
+                "ad_fetch_ms" to fetchTime,
+                "payload_prep_ms" to prepTime,
+                "webview_alloc_ms" to webViewAllocTime,
+                "webview_init_ms" to webViewInitTime,
+                "html_asset_read_ms" to htmlAssetReadTime,
+                "js_boot_ms" to jsBootTime,
+                "dom_content_loaded_ms" to jsDomTime,
+                "ad_dom_build_ms" to jsRenderTime,
+                "first_frame_paint_ms" to paintTime,
+                "total_time_to_first_frame_ms" to totalTime,
+            )
+        )
     }
 }

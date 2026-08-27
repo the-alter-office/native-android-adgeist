@@ -3,6 +3,7 @@ package com.adgeistkit
 import android.util.Log
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Handler
@@ -103,6 +104,9 @@ class AdgeistCore private constructor(
     val packageOrBundleID = customPackageOrBundleID ?: context.packageName
     val adgeistAppID = customAdgeistAppID ?: getMetaValue("com.adgeistkit.ads.ADGEIST_APP_ID") ?: ""
     val version = customVersioning ?: "ANDROID-${com.adgeistkit.BuildConfig.VERSION_NAME}"
+
+    internal val isHostAppDebuggable: Boolean =
+        (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
     private var prefs: SharedPreferences? = null
 
