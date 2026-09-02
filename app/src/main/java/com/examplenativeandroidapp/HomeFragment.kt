@@ -21,7 +21,6 @@ import androidx.fragment.app.activityViewModels
 import com.adgeistkit.AdgeistCore
 import com.adgeistkit.ads.AdListener
 import com.adgeistkit.ads.AdSize
-import com.adgeistkit.ads.AdType
 import com.adgeistkit.ads.AdView
 import com.adgeistkit.request.AdRequest
 import com.examplenativeandroidapp.ui.viewmodel.HomeViewModel
@@ -210,7 +209,6 @@ class HomeFragment : Fragment() {
         clearAdContainer()
         performAdLoad(
             adspaceId = "6a8fe8dd5b4f4fd5b006dc9f",
-            adSpaceType = AdType.COMPANION,
             isResponsive = true,
             width = 360,
             height = 360,
@@ -219,7 +217,6 @@ class HomeFragment : Fragment() {
         )
         // performAdLoad(
         //     adspaceId = "6a4b7c9a50946c5aa2fda929",
-        //     adSpaceType = AdType.BANNER,
         //     isResponsive = false,
         //     width = 360,
         //     height = 360,
@@ -231,26 +228,18 @@ class HomeFragment : Fragment() {
     /** Manual mode: everything comes from the input fields. */
     private fun loadAdFromInputs() {
         val adspaceId = adspaceIdInput.text.toString().trim()
-        val typeText = adspaceTypeInput.text.toString().trim()
         val isResponsive = responsiveAdSwitch.isChecked
         val width = widthInput.text.toString().toIntOrNull() ?: 0
         val height = heightInput.text.toString().toIntOrNull() ?: 0
         val containerWidth = containerWidthInput.text.toString().toIntOrNull() ?: 0
         val containerHeight = containerHeightInput.text.toString().toIntOrNull() ?: 0
 
-        val adSpaceType = if (typeText.equals("COMPANION", ignoreCase = true)) {
-            AdType.COMPANION
-        } else {
-            AdType.BANNER
-        }
-
         clearAdContainer()
-        performAdLoad(adspaceId, adSpaceType, isResponsive, width, height, containerWidth, containerHeight)
+        performAdLoad(adspaceId, isResponsive, width, height, containerWidth, containerHeight)
     }
 
     private fun performAdLoad(
         adspaceId: String,
-        adSpaceType: AdType,
         isResponsive: Boolean,
         width: Int,
         height: Int,
@@ -275,7 +264,6 @@ class HomeFragment : Fragment() {
 
         val adView = AdView(requireContext())
         adView.adUnitId = adspaceId
-        adView.adType = adSpaceType
 
         val wrapperWidth: Int
         val wrapperHeight: Int

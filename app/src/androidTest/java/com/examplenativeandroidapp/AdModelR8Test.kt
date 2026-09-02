@@ -3,6 +3,7 @@ package com.examplenativeandroidapp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.adgeistkit.data.models.AdErrorResponse
+import com.adgeistkit.data.models.AdSpaceType
 import com.adgeistkit.data.models.FixedAdResponse
 import com.google.gson.Gson
 import org.junit.Assert.assertEquals
@@ -48,6 +49,8 @@ class AdModelR8Test {
         assertEquals("Acme Corp", response.advertiser?.name)
         assertFalse("metaData must be populated", response.metaData.isBlank())
 
+        assertEquals(AdSpaceType.BANNER, response.adSpaceType)
+
         // Nested list + object graph — these break first under field renaming.
         assertTrue("creativesV1 must be populated", response.creativesV1.isNotEmpty())
         val creative = response.creativesV1.first()
@@ -76,12 +79,12 @@ class AdModelR8Test {
         assertEquals("#000000", style?.fontColor)
         assertEquals("Roboto", style?.fontFamily)
         assertEquals(true, response.displayOptions?.isResponsive)
-        assertEquals(listOf("banner", "display"), response.displayOptions?.allowedFormats)
-
-        val impressions = response.impressionRequirements
-        assertNotNull("impressionRequirements must be bound", impressions)
-        assertEquals(listOf("viewable"), impressions?.impressionType)
-        assertEquals(1, impressions?.minViewDurationSeconds)
+        assertEquals("Square", response.displayOptions?.responsiveType)
+        assertEquals(
+            listOf("jpg", "jpeg", "png", "gif", "mp4"),
+            response.displayOptions?.primaryFormats
+        )
+        assertEquals(listOf("jpg", "png"), response.displayOptions?.companionFormats)
 
         val companions = response.creativesV1.first().companions
         assertNotNull("companions must be bound", companions)

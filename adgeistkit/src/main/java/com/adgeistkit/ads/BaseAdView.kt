@@ -16,7 +16,6 @@ import com.adgeistkit.R
 import com.adgeistkit.request.AdRequest
 import com.adgeistkit.data.models.FixedAdResponse
 import kotlin.math.max
-import com.adgeistkit.ads.cache.CreativeMediaCache
 import com.adgeistkit.ads.host.findAdViewModel
 import com.adgeistkit.ads.host.pxToDp
 import com.adgeistkit.ads.host.releaseImeSession
@@ -28,6 +27,7 @@ import com.adgeistkit.ads.tracking.AdTrackingState
 import com.adgeistkit.ads.viewmodel.AdViewModel
 import com.adgeistkit.ads.viewmodel.RetainedAd
 import com.adgeistkit.benchmark.AdRenderBenchmark
+import com.adgeistkit.data.models.AdSpaceType
 import com.adgeistkit.data.network.FetchCreative
 
 open class BaseAdView : ViewGroup {
@@ -40,7 +40,6 @@ open class BaseAdView : ViewGroup {
 
     var adSize: AdSize? = null
     var adUnitId: String = ""
-    var adType: AdType = AdType.BANNER
     var adIsResponsive: Boolean = false
 
     /**
@@ -194,7 +193,6 @@ open class BaseAdView : ViewGroup {
                 val payload = AdCreativePayload.build(
                     response = retained.response,
                     adUnitId = adUnitId,
-                    adType = adType,
                     adIsResponsive = adIsResponsive,
                     adSize = adSize,
                     measuredWidthDp = pxToDp(measuredWidth),
@@ -208,7 +206,7 @@ open class BaseAdView : ViewGroup {
 
                     is AdCreativePayload.Result.Success -> {
                         metaData = payload.metaData
-                        renderAdWithAdCard(payload.creativeJson)
+                        renderAdWithAdCard(payload.creativeJson, retained.response.adSpaceType)
                     }
                 }
             }
@@ -285,9 +283,7 @@ open class BaseAdView : ViewGroup {
 
         benchmark.onFetchStart()
 
-        fetchCreative.fetchCreative(
-            adUnitId, "FIXED"
-        ) { result ->
+        fetchCreative.fetchCreative(adUnitId) { result ->
             benchmark.onFetchEnd(result.timings)
 
             mainHandler?.post {
@@ -307,7 +303,6 @@ open class BaseAdView : ViewGroup {
                     val payload = AdCreativePayload.build(
                         response = campaignDetails,
                         adUnitId = adUnitId,
-                        adType = adType,
                         adIsResponsive = adIsResponsive,
                         adSize = adSize,
                         measuredWidthDp = pxToDp(measuredWidth),
@@ -326,7 +321,7 @@ open class BaseAdView : ViewGroup {
                             tracking = retainedAd.tracking
                             adViewModel?.retain(adUnitId, retainedAd)
 
-                            renderAdWithAdCard(payload.creativeJson)
+                            renderAdWithAdCard(payload.creativeJson, campaignDetails.adSpaceType)
                         }
                     }
                 } catch (err: Exception) {
@@ -352,7 +347,7 @@ open class BaseAdView : ViewGroup {
         // CreativeMediaCache.prefetch(context, urls)
     }
 
-    private fun renderAdWithAdCard(creativeJsonData: String) {
+    private fun renderAdWithAdCard(creativeJsonData: String, adSpaceType: AdSpaceType) {
         if (isDestroyed) return
 
         benchmark.onRenderStart()
@@ -383,7 +378,7 @@ open class BaseAdView : ViewGroup {
         benchmark.onViewAdded()
 
         // Companion ads stay hidden until the overflow check completes
-        if (adType == AdType.COMPANION) {
+        if (adSpaceType == AdSpaceType.COMPANION) {
             adWebView.visibility = View.INVISIBLE
         }
     }

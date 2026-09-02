@@ -10,16 +10,15 @@ data class FixedAdResponse(
     @SerializedName("metaData") val metaData: String,
     @SerializedName("id") val id: String,
     @SerializedName("generatedAt") val generatedAt: String?,
-    @SerializedName("signature") val signature: String?,
     @SerializedName("campaignId") val campaignId: String?,
     @SerializedName("advertiser") val advertiser: Advertiser?,
     @SerializedName("type") val type: String?,
+    @SerializedName("adSpaceType") val adSpaceType: AdSpaceType,
     @SerializedName("loadType") val loadType: String?,
     @SerializedName("campaignValidity") val campaignValidity: CampaignValidity?,
     @SerializedName("creativesV1") val creativesV1: List<CreativeV1>,
     @SerializedName("displayOptions") val displayOptions: DisplayOptions?,
-    @SerializedName("frontendCacheDurationSeconds") val frontendCacheDurationSeconds: Int?,
-    @SerializedName("impressionRequirements") val impressionRequirements: ImpressionRequirements?
+    @SerializedName("frontendCacheDurationSeconds") val frontendCacheDurationSeconds: Int?
 ) : AdResponseData
 
 data class Advertiser(
@@ -49,18 +48,12 @@ data class MediaItem(
     @SerializedName("thumbnailUrl") val thumbnailUrl: String?
 )
 
-data class MongoIdWrapper(
-    @SerializedName("\$oid") val `$oid`: String?
-)
-
-data class MongoDateWrapper(
-    @SerializedName("\$date") val `$date`: Long?
-)
-
 data class DisplayOptions(
-    @SerializedName("allowedFormats") val allowedFormats: List<String>?,
+    @SerializedName("primaryFormats") val primaryFormats: List<String>?,
+    @SerializedName("companionFormats") val companionFormats: List<String>?,
     @SerializedName("dimensions") val dimensions: Dimensions?,
     @SerializedName("isResponsive") val isResponsive: Boolean?,
+    @SerializedName("responsiveType") val responsiveType: String?,
     @SerializedName("styleOptions") val styleOptions: StyleOptions?
 )
 
@@ -72,11 +65,6 @@ data class Dimensions(
 data class StyleOptions(
     @SerializedName("fontColor") val fontColor: String?,
     @SerializedName("fontFamily") val fontFamily: String?
-)
-
-data class ImpressionRequirements(
-    @SerializedName("impressionType") val impressionType: List<String>?,
-    @SerializedName("minViewDurationSeconds") val minViewDurationSeconds: Int?
 )
 
 data class AdErrorResponse(

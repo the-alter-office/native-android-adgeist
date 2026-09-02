@@ -34,12 +34,10 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
     private val adgeistAppID = adgeistCore.adgeistAppID
 
     private val deviceIdentifier = adgeistCore.deviceIdentifier
-    private val networkSignals = adgeistCore.networkSignals
     private val targetingInfo = adgeistCore.targetingInfo
 
     fun fetchCreative(
         adUnitID: String,
-        buyType: String,
         callback: (AdData) -> Unit
     ) {
         val tEntry = SystemClock.elapsedRealtime()
@@ -52,12 +50,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
             val deviceId = deviceIdentifier.getDeviceIdentifier()
             val tDeviceId = SystemClock.elapsedRealtime()
 
-            val userIP = networkSignals.getLocalIpAddress()
-                ?: networkSignals.getWifiIpAddress()
-                ?: "unknown"
-
             val url = "$bidRequestBackendDomain/v2/dsp/ad"
-
 
             val requestBuilder = FetchCreativeRequest.FetchCreativeRequestBuilder(
                 adSpaceId = adUnitID,
@@ -71,43 +64,27 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                 }
             }
 
-            if (buyType == "FIXED") {
-                val utcFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
-                utcFormat.timeZone = TimeZone.getTimeZone("UTC")
-                val currentTimestamp = utcFormat.format(Date())
+            val utcFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+            utcFormat.timeZone = TimeZone.getTimeZone("UTC")
+            val currentTimestamp = utcFormat.format(Date())
                 
-                requestBuilder
-                    .setPlatform("ANDROID")
-                    .setDeviceId(deviceId ?: "")
-                    .setTimeZone(TimeZone.getDefault().id)
-                    .setRequestedAt(currentTimestamp)
-                    .setSdkVersion(adgeistCore.version)
-            } else {
-                requestBuilder.setAppDto("itwcrm", "com.itwcrm")
-            }
+            requestBuilder
+                .setPlatform("ANDROID")
+                .setDeviceId(deviceId ?: "")
+                .setTimeZone(TimeZone.getDefault().id)
+                .setRequestedAt(currentTimestamp)
+                .setSdkVersion(adgeistCore.version)
 
             val fetchCreativeRequest = requestBuilder.build()
             val requestPayload = fetchCreativeRequest.toJson().toString()
             val requestBody = requestPayload.toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
 
-            val request = if (buyType == "FIXED") {
-                Request.Builder()
-                    .url(url)
-                    .post(requestBody)
-                    .header("Content-Type", "application/json")
-                    .header("Origin",packageID)
-                    .build()
-            } else {
-                Request.Builder()
-                    .url(url)
-                    .post(requestBody)
-                    .header("Content-Type", "application/json")
-                    .header("Origin", packageID)
-                    .header("x-user-id", deviceId ?: "")
-                    .header("x-platform", "mobile_app")
-                    .header("x-forwarded-for", userIP)
-                    .build()
-            }
+            val request = Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .header("Content-Type", "application/json")
+                .header("Origin",packageID)
+                .build()
 
             val tEnqueue = SystemClock.elapsedRealtime()
 
@@ -155,7 +132,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                     }
 
                     try {
-                        val parsed = parseCreativeData(jsonString, buyType)
+                        val parsed = parseCreativeData(jsonString)
                         
                         if (parsed == null) {
                             fail("Failed to parse creative data")
@@ -197,7 +174,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
         }
     }
 
-    private fun parseCreativeData(json: String, buyType: String): AdResponseData? {
+    private fun parseCreativeData(json: String): AdResponseData? {
         return Gson().fromJson(json, FixedAdResponse::class.java)
     }
 }

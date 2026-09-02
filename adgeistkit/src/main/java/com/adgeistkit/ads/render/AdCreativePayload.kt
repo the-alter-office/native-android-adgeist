@@ -2,7 +2,6 @@ package com.adgeistkit.ads.render
 
 import com.adgeistkit.data.models.FixedAdResponse
 import com.google.gson.Gson
-import com.adgeistkit.ads.AdType
 import com.adgeistkit.ads.AdSize
 
 internal object AdCreativePayload {
@@ -18,7 +17,6 @@ internal object AdCreativePayload {
     fun build(
         response: FixedAdResponse,
         adUnitId: String,
-        adType: AdType,
         adIsResponsive: Boolean,
         adSize: AdSize?,
         measuredWidthDp: Int,
@@ -65,7 +63,7 @@ internal object AdCreativePayload {
         }
 
         val properties = mutableMapOf<String, Any?>(
-            "adspaceType" to adType.value,
+            "adspaceType" to response.adSpaceType.value,
             "adElementId" to "adgeist_ads_iframe_$adUnitId",
             "name" to (response.advertiser?.name ?: DEFAULT_ADVERTISER_NAME),
             "isResponsive" to (options?.isResponsive ?: false),

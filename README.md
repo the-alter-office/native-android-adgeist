@@ -203,20 +203,9 @@ adView.adUnitId = "YOUR_AD_UNIT_ID"
 
 Replace `YOUR_AD_UNIT_ID` with the ad unit ID you created in the Adgeist dashboard.
 
-**Ad Type:**
-
-```kotlin
-adView.adType = AdType.BANNER  // or AdType.DISPLAY, AdType.COMPANION
-```
-
-Replace with the ad type you created in the Adgeist dashboard:
-- `AdType.BANNER` - Small rectangular banner ads
-- `AdType.DISPLAY` - Standard display ads  
-- `AdType.COMPANION` - Companion ads (requires minimum 320x320 dimensions)
-
 #### Create an Ad Request
 
-Once the `AdView` is configured with its properties (`adUnitId`, `adType`, etc.), create an ad request using the builder pattern:
+Once the `AdView` is configured with its properties (`adUnitId`, `setAdDimension`), create an ad request using the builder pattern:
 
 ```kotlin
 val adRequest = AdRequest.Builder().build()
@@ -255,7 +244,6 @@ import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
 import com.adgeistkit.AdgeistCore
 import com.adgeistkit.ads.AdSize
-import com.adgeistkit.ads.AdType
 import com.adgeistkit.ads.AdView
 import com.adgeistkit.request.AdRequest
 
@@ -273,7 +261,6 @@ class MainActivity : AppCompatActivity() {
         // Create AdView
         val newAdView = AdView(this).apply {
             adUnitId = "YOUR_AD_UNIT_ID"
-            adType = AdType.BANNER
             setAdDimension(AdSize(320, 50))
         }
         adView = newAdView
@@ -303,7 +290,6 @@ For an ad that fills its parent container instead of a fixed size, skip `setAdDi
 ```kotlin
 val adView = AdView(this).apply {
     adUnitId = "YOUR_AD_UNIT_ID"
-    adType = AdType.BANNER
     adIsResponsive = true
 }
 
