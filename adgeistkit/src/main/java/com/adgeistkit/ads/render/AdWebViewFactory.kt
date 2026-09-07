@@ -95,23 +95,6 @@ internal object AdWebViewFactory {
             return true
         }
 
-        /**
-         * Serves creative media from the device cache. Called on a WebView resource
-         * thread, never the main thread, so blocking on the cache here is safe.
-         * Returning null hands the request back to the WebView.
-         */
-        // override fun shouldInterceptRequest(
-        //     view: WebView,
-        //     request: WebResourceRequest
-        // ): WebResourceResponse? {
-        //     // The WebView outlives its first host, so only the application context is safe
-        //     val cached = CreativeResourceInterceptor.intercept(
-        //         view.context.applicationContext,
-        //         request
-        //     )
-        //     return cached ?: super.shouldInterceptRequest(view, request)
-        // }
-
         override fun onPageFinished(view: WebView, url: String) {
             super.onPageFinished(view, url)
             Log.i(TAG, "✅ WebView page finished loading: $url")

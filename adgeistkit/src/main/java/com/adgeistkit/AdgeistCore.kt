@@ -7,7 +7,6 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
-import com.adgeistkit.ads.cache.CreativeMediaCache
 import com.adgeistkit.ads.render.AdWebViewFactory
 import com.adgeistkit.targeting.TargetingSignals
 import com.adgeistkit.targeting.device.DeviceIdentifier
@@ -207,10 +206,6 @@ class AdgeistCore private constructor(
 
             val fullEvent = event.copy(eventProperties = parameters)
         }
-    }
-
-    fun clearCreativeMediaCache() {
-        ioScope.launch { CreativeMediaCache.clear(context) }
     }
 
     fun hasPhoneStatePermission(): Boolean {

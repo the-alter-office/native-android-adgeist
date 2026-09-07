@@ -186,7 +186,6 @@ open class BaseAdView : ViewGroup {
         }
 
         tracking = retained.tracking
-        prefetchCreativeMedia(retained.response)
 
         mainHandler?.post {
             isDestroyed = false
@@ -319,7 +318,6 @@ open class BaseAdView : ViewGroup {
 
                 try {
                     val campaignDetails = result.data as FixedAdResponse
-                    prefetchCreativeMedia(campaignDetails)
 
                     val payload = AdCreativePayload.build(
                         response = campaignDetails,
@@ -353,21 +351,6 @@ open class BaseAdView : ViewGroup {
                 }
             }
         }
-    }
-
-    private fun prefetchCreativeMedia(response: FixedAdResponse) {
-        val urls = mutableListOf<String?>()
-        response.creativesV1.firstOrNull()?.let { creative ->
-            creative.primary?.let { media ->
-                urls.add(media.fileUrl)
-                urls.add(media.thumbnailUrl)
-            }
-            creative.companions?.forEach { companion ->
-                urls.add(companion.fileUrl)
-                urls.add(companion.thumbnailUrl)
-            }
-        }
-        // CreativeMediaCache.prefetch(context, urls)
     }
 
     private fun preloadShell() {
