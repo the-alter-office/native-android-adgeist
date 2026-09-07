@@ -41,6 +41,14 @@ class JsBridge(
         adActivity?.captureClick()
     }
 
+    fun onShellPageFinished() {
+        baseAdView.onShellPageFinished()
+    }
+
+    fun onRenderProcessGone(didCrash: Boolean) {
+        baseAdView.onRenderProcessGone(didCrash)
+    }
+
     fun destroyListeners() {
         adActivity?.destroy()
         adActivity = null
@@ -57,6 +65,10 @@ class JsBridge(
 
             if (AdRenderBenchmark.MESSAGE_TYPE == type) {
                 AdRenderBenchmark.jsPhaseOf(msg)?.let { baseAdView.markJsPhase(it) }
+            }
+
+            if ("SHELL_READY" == type) {
+                baseAdView.post { baseAdView.onShellReady() }
             }
 
             if ("RENDER_STATUS" == type && "Success" == msg) {

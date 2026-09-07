@@ -19,9 +19,9 @@ import kotlin.math.max
 import com.adgeistkit.ads.host.findAdViewModel
 import com.adgeistkit.ads.host.pxToDp
 import com.adgeistkit.ads.host.releaseImeSession
-import com.adgeistkit.ads.render.AdCardHtml
 import com.adgeistkit.ads.render.AdCreativePayload
 import com.adgeistkit.ads.render.AdWebViewFactory
+import com.adgeistkit.ads.render.AdShellPreloader
 import com.adgeistkit.ads.render.AdWebViewTeardown
 import com.adgeistkit.ads.tracking.AdTrackingState
 import com.adgeistkit.ads.viewmodel.AdViewModel
@@ -81,6 +81,11 @@ open class BaseAdView : ViewGroup {
     private var pendingLoadRequest: AdRequest? = null
 
     private val benchmark = AdRenderBenchmark()
+    private val shellPreloader = AdShellPreloader(
+        benchmark,
+        Handler(Looper.getMainLooper()),
+        ::failShellLoad
+    )
 
     protected constructor(context: Context, adViewType: Int) : super(context) {
         initialize(context, null)
@@ -152,6 +157,8 @@ open class BaseAdView : ViewGroup {
     }
 
     private fun performLoad() {
+        benchmark.onLoadDispatched()
+
         adViewModel?.retained(adUnitId)?.let { retained ->
             restoreRetained(retained)
             return
@@ -166,6 +173,7 @@ open class BaseAdView : ViewGroup {
         mainHandler?.post {
             isDestroyed = false
             startAdLoad()
+            preloadShell()
         }
     }
 
@@ -181,14 +189,17 @@ open class BaseAdView : ViewGroup {
         prefetchCreativeMedia(retained.response)
 
         mainHandler?.post {
+            isDestroyed = false
+            preloadShell()
+
             doOnLayout {
                 if (!isAttachedToWindow) {
                     isLoading = false
+                    safelyDestroyWebView()
                     return@doOnLayout
                 }
 
                 isLoading = false
-                isDestroyed = false
 
                 val payload = AdCreativePayload.build(
                     response = retained.response,
@@ -201,6 +212,7 @@ open class BaseAdView : ViewGroup {
 
                 when (payload) {
                     is AdCreativePayload.Result.Failure -> {
+                        safelyDestroyWebView()
                         listener?.onAdFailedToLoad(payload.message)
                     }
 
@@ -244,12 +256,20 @@ open class BaseAdView : ViewGroup {
         }
     }
 
+    private fun failShellLoad(message: String) {
+        if (isDestroyed) return
+
+        safelyDestroyWebView()
+        listener?.onAdFailedToLoad(message)
+    }
+
     private fun safelyDestroyWebView() {
         if (isDestroyed) return
         isDestroyed = true
 
         val webViewToDestroy = webView
         webView = null
+        shellPreloader.resetForNewLoad()
         jsInterface?.destroyListeners()
         jsInterface = null
 
@@ -292,6 +312,7 @@ open class BaseAdView : ViewGroup {
 
                 if (!result.isSuccess) {
                     Log.e(TAG, "API error: ${result.errorMessage}, statusCode: ${result.statusCode}")
+                    safelyDestroyWebView()
                     listener?.onAdFailedToLoad(result.errorMessage)
                     return@post
                 }
@@ -311,6 +332,7 @@ open class BaseAdView : ViewGroup {
 
                     when (payload) {
                         is AdCreativePayload.Result.Failure -> {
+                            safelyDestroyWebView()
                             listener?.onAdFailedToLoad(payload.message)
                         }
 
@@ -326,6 +348,7 @@ open class BaseAdView : ViewGroup {
                     }
                 } catch (err: Exception) {
                     Log.e(TAG, "Parsing error: ${err.message}", err)
+                    safelyDestroyWebView()
                     listener?.onAdFailedToLoad(err.message ?: "Error")
                 }
             }
@@ -347,40 +370,66 @@ open class BaseAdView : ViewGroup {
         // CreativeMediaCache.prefetch(context, urls)
     }
 
-    private fun renderAdWithAdCard(creativeJsonData: String, adSpaceType: AdSpaceType) {
+    private fun preloadShell() {
         if (isDestroyed) return
 
-        benchmark.onRenderStart()
+        benchmark.onPreloadStart()
         removeAllViews()
+
+        shellPreloader.resetForNewLoad()
 
         val bridge = JsBridge(this, context)
         jsInterface = bridge
-        listener?.onAdOpened()
 
         val created = AdWebViewFactory.create(context, bridge)
-        benchmark.onWebViewReady(created.allocEndAt)
+        benchmark.onWebViewCreated(created.allocEndAt)
 
         val adWebView = created.webView
         webView = adWebView
 
-        val htmlContent = AdCardHtml.build(context.assets, creativeJsonData)
-        benchmark.onHtmlRead()
+        if (!shellPreloader.loadShellIntoWebView(adWebView, context.assets)) return
+    }
 
-        adWebView.loadDataWithBaseURL(
-            "https://adgeist.ai",
-            htmlContent,
-            "text/html",
-            "UTF-8",
-            null
-        )
+    internal fun onShellReady() {
+        if (isDestroyed) return
+
+        shellPreloader.markShellReadyAndReleaseCreative()?.let { renderCreative(it) }
+    }
+
+    internal fun onShellPageFinished() {
+        if (isDestroyed) return
+
+        shellPreloader.onShellPageFinished()
+    }
+
+    internal fun onRenderProcessGone(didCrash: Boolean) {
+        if (isDestroyed) return
+
+        shellPreloader.onRendererProcessLost(didCrash)
+    }
+
+    private fun renderAdWithAdCard(creativeJsonData: String, adSpaceType: AdSpaceType) {
+        if (isDestroyed) return
+
+        if (shellPreloader.submitCreativeForRender(creativeJsonData, adSpaceType)) {
+            renderCreative(creativeJsonData)
+        }
+    }
+
+    private fun renderCreative(creativeJsonData: String) {
+        val adWebView = webView ?: return
+
+        benchmark.onRenderStart()
+        listener?.onAdOpened()
 
         addView(adWebView, AdWebViewFactory.matchParentLayoutParams())
-        benchmark.onViewAdded()
 
         // Companion ads stay hidden until the overflow check completes
-        if (adSpaceType == AdSpaceType.COMPANION) {
+        if (shellPreloader.submittedAdSpaceType == AdSpaceType.COMPANION) {
             adWebView.visibility = View.INVISIBLE
         }
+
+        shellPreloader.injectCreativeIntoShell(adWebView, creativeJsonData)
     }
 
     // ---- Measurement and layout ----

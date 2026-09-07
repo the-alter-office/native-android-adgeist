@@ -44,13 +44,21 @@
             } catch (e) {}
         }
 
-        function initAd() {
+        function signalShellReady() {
+            try {
+                if (window.Android) {
+                    Android.postMessage(JSON.stringify({type:'SHELL_READY'}));
+                }
+            } catch (e) {}
+        }
+
+        function initAd(creativeJson) {
             if (typeof AdCard === 'undefined') {
                 console.error('❌ AdCard library not loaded');
                 return;
             }
             try {
-                const creativeData = JSON.parse("{{CREATIVE_DATA}}");
+                const creativeData = JSON.parse(creativeJson);
                 const adCard = new AdCard(creativeData);
                 const html = adCard.renderHtml();
                 document.getElementById('ad-content').innerHTML = html;
@@ -75,9 +83,6 @@
                         const widthOverflow = cardWidth > viewWidth;
                         const heightOverflow = cardHeight > viewHeight;
                         const hasOverflow = (widthOverflow || heightOverflow);
-                        
-                        console.log('Overflow check - View:', viewWidth + 'x' + viewHeight, 'Card:', cardWidth + 'x' + cardHeight, 'Overflow:', hasOverflow);
-                        
                         if (hasOverflow) {
                             Android.reportOverflow(cardWidth, cardHeight, viewWidth, viewHeight);
                         } else {
@@ -110,18 +115,19 @@
                 }
             } catch (error) {
                 console.error('❌ Error rendering ad:', error.message);
-                console.error('Stack trace:', error.stack);
             }
         }
-        
+
+        window.initAd = initAd;
+
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function() {
                 postBenchmark('JS_DOM');
-                initAd();
+                signalShellReady();
             });
         } else {
             postBenchmark('JS_DOM');
-            initAd();
+            signalShellReady();
         }
     </script>
     <script>

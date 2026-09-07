@@ -145,7 +145,6 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                         fail(e.message ?: "Failed to parse ad response")
                     }
                 }
-
             })
         }
     }

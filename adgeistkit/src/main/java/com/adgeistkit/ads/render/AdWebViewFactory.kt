@@ -9,11 +9,13 @@ import android.os.SystemClock
 import android.util.Log
 import android.view.ViewGroup
 import android.webkit.ConsoleMessage
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.ConsoleMessage.MessageLevel
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.annotation.RequiresApi
 import com.adgeistkit.ads.JsBridge
 
 internal object AdWebViewFactory {
@@ -113,6 +115,13 @@ internal object AdWebViewFactory {
         override fun onPageFinished(view: WebView, url: String) {
             super.onPageFinished(view, url)
             Log.i(TAG, "✅ WebView page finished loading: $url")
+            bridge.onShellPageFinished()
+        }
+
+        @RequiresApi(Build.VERSION_CODES.O)
+        override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+            bridge.onRenderProcessGone(detail.didCrash())
+            return true
         }
 
         override fun onLoadResource(view: WebView, url: String) {
