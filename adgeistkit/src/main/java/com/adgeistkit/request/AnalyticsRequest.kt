@@ -10,14 +10,12 @@ class AnalyticsRequest private constructor(analyticsRequest: AnalyticsRequestBui
     private val type: String?
     private val visibilityRatio: Float
     private val scrollDepth: Float
-    private val viewTime: Long
     private val timeToVisible: Long
 
     init {
         this.type = analyticsRequest.type
         this.visibilityRatio = analyticsRequest.visibilityRatio
         this.scrollDepth = analyticsRequest.scrollDepth
-        this.viewTime = analyticsRequest.viewTime
         this.timeToVisible = analyticsRequest.timeToVisible
     }
 
@@ -28,20 +26,17 @@ class AnalyticsRequest private constructor(analyticsRequest: AnalyticsRequestBui
         var type: String? = null
         var visibilityRatio: Float = 0f
         var scrollDepth: Float = 0f
-        var viewTime: Long = 0
         var timeToVisible: Long = 0
 
         fun trackViewableImpression(
             timeToVisible: Long,
             scrollDepth: Float,
-            visibilityRatio: Float,
-            viewTime: Long
+            visibilityRatio: Float
         ): AnalyticsRequestBuilder {
             this.type = "VIEW"
             this.timeToVisible = timeToVisible
             this.scrollDepth = scrollDepth
             this.visibilityRatio = visibilityRatio
-            this.viewTime = viewTime
             return this
         }
 
@@ -67,7 +62,6 @@ class AnalyticsRequest private constructor(analyticsRequest: AnalyticsRequestBui
                     json.put("timeToVisible", timeToVisible)
                     json.put("scrollDepth", scrollDepth.toDouble())
                     json.put("visibilityRatio", visibilityRatio.toDouble())
-                    json.put("viewTime", viewTime)
                 }
 
                 "CLICK" -> {}

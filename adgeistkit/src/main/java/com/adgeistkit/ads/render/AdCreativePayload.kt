@@ -14,6 +14,8 @@ internal object AdCreativePayload {
 
     private const val DEFAULT_ADVERTISER_NAME = "-"
 
+    private val gson = Gson()
+
     fun build(
         response: FixedAdResponse,
         adUnitId: String,
@@ -75,6 +77,6 @@ internal object AdCreativePayload {
             "media" to media,
         )
 
-        return Result.Success(Gson().toJson(properties), response.metaData)
+        return Result.Success(gson.toJson(properties), response.metaData)
     }
 }

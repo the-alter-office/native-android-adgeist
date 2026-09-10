@@ -1,7 +1,7 @@
 package com.adgeistkit.data.network
 
 import android.os.SystemClock
-import android.util.Log
+import com.adgeistkit.logD
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Request
@@ -31,12 +31,12 @@ internal object ConnectionWarmer {
 
         NetworkModule.httpClient.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                Log.d(TAG, "Warm-up failed: ${e.message}")
+                logD(TAG) { "Warm-up failed: ${e.message}" }
             }
 
             override fun onResponse(call: Call, response: Response) {
                 response.close()
-                Log.d(TAG, "Warm-up complete (${response.code})")
+                logD(TAG) { "Warm-up complete (${response.code})" }
             }
         })
     }

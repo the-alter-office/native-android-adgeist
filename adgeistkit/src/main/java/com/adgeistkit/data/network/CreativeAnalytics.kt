@@ -19,7 +19,6 @@ class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
     private val adgeistAppID = adgeistCore.adgeistAppID
 
     private val deviceIdentifier = adgeistCore.deviceIdentifier
-    private val networkSignals = adgeistCore.networkSignals
 
     fun sendTrackingDataV2(analyticsRequest: AnalyticsRequest){
         scope.launch {

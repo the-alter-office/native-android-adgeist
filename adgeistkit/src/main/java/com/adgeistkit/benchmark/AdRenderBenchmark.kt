@@ -1,8 +1,8 @@
 package com.adgeistkit.benchmark
 
 import android.os.SystemClock
-import android.util.Log
 import com.adgeistkit.AdgeistCore
+import com.adgeistkit.logI
 import com.adgeistkit.data.network.PostHogClient
 
 internal class AdRenderBenchmark {
@@ -149,7 +149,7 @@ internal class AdRenderBenchmark {
 
         val t = fetchTimings ?: FetchTimings.EMPTY
 
-        Log.i(TAG, """
+        logI(TAG) { """
             🎬 Ad Render Cycle (Unit: $adUnitId, cached: $fromCache):
 
             ⏱ Timestamps (ms after loadAd, '-' = never happened)
@@ -202,7 +202,7 @@ internal class AdRenderBenchmark {
             - Media Load + Paint:               ${mediaPaintMs}ms
             ------------------------------------
             - Total Time To First Frame:        ${totalMs}ms
-        """.trimIndent())
+        """.trimIndent() }
 
         if (!AdgeistCore.isInitialized() || AdgeistCore.getInstance().isHostAppDebuggable) return
 

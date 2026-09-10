@@ -1,8 +1,8 @@
 package com.adgeistkit.data.network
 
 import android.os.SystemClock
-import android.util.Log
 import com.adgeistkit.AdgeistCore
+import com.adgeistkit.logD
 import com.adgeistkit.benchmark.FetchTimings
 import com.adgeistkit.request.FetchCreativeRequest
 import com.adgeistkit.data.models.FixedAdResponse
@@ -24,6 +24,17 @@ import java.util.TimeZone
 class FetchCreative(private val adgeistCore: AdgeistCore) {
     companion object {
         private const val TAG = "FetchCreative"
+
+        private val gson = Gson()
+
+        private val utcFormat = object : ThreadLocal<SimpleDateFormat>() {
+            override fun initialValue(): SimpleDateFormat =
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+                    timeZone = TimeZone.getTimeZone("UTC")
+                }
+        }
+
+        private fun utcTimestamp(): String = utcFormat.get()!!.format(Date())
     }
 
     private val scope = adgeistCore.ioScope
@@ -64,9 +75,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
                 }
             }
 
-            val utcFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
-            utcFormat.timeZone = TimeZone.getTimeZone("UTC")
-            val currentTimestamp = utcFormat.format(Date())
+            val currentTimestamp = utcTimestamp()
                 
             requestBuilder
                 .setPlatform("ANDROID")
@@ -102,7 +111,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
 
             NetworkModule.httpClient.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    Log.d(TAG, "Request Failed: ${bidRequestBackendDomain} - ${e.message}")
+                    logD(TAG) { "Request Failed: ${bidRequestBackendDomain} - ${e.message}" }
                     callback(createErrorProp(e.message ?: "Failed to connect to server", timings = timings()))
                 }
 
@@ -121,7 +130,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
 
                     if (!response.isSuccessful) {                        
                         val errorMessage = try {
-                            val errorResponse = Gson().fromJson(jsonString, AdErrorResponse::class.java)
+                            val errorResponse = gson.fromJson(jsonString, AdErrorResponse::class.java)
                             errorResponse.Error
                         } catch (e: Exception) {
                             response.message.ifEmpty { "Request failed" }
@@ -174,6 +183,6 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
     }
 
     private fun parseCreativeData(json: String): AdResponseData? {
-        return Gson().fromJson(json, FixedAdResponse::class.java)
+        return gson.fromJson(json, FixedAdResponse::class.java)
     }
 }

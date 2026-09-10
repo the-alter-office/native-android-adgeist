@@ -17,6 +17,8 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.annotation.RequiresApi
 import com.adgeistkit.ads.JsBridge
+import com.adgeistkit.logD
+import com.adgeistkit.logI
 
 internal object AdWebViewFactory {
 
@@ -27,15 +29,20 @@ internal object AdWebViewFactory {
         val allocEndAt: Long,
     )
 
+    private var warmed: WebView? = null
+
     fun warmup(context: Context) {
-        try {
+        if (warmed != null) return
+
+        warmed = try {
             WebView(context.applicationContext)
         } catch (_: Exception) {
+            null
         }
     }
 
     fun create(context: Context, bridge: JsBridge): Created {
-        val webView = WebView(context)
+        val webView = warmed?.also { warmed = null } ?: WebView(context)
         val allocEndAt = SystemClock.elapsedRealtime()
 
         webView.setBackgroundColor(Color.TRANSPARENT)
@@ -97,7 +104,7 @@ internal object AdWebViewFactory {
 
         override fun onPageFinished(view: WebView, url: String) {
             super.onPageFinished(view, url)
-            Log.i(TAG, "✅ WebView page finished loading: $url")
+            logI(TAG) { "✅ WebView page finished loading: $url" }
             bridge.onShellPageFinished()
         }
 
@@ -109,7 +116,7 @@ internal object AdWebViewFactory {
 
         override fun onLoadResource(view: WebView, url: String) {
             super.onLoadResource(view, url)
-            Log.d(TAG, "📦 Loading resource: $url")
+            logD(TAG) { "📦 Loading resource: $url" }
         }
     }
 
@@ -124,7 +131,7 @@ internal object AdWebViewFactory {
             when (consoleMessage.messageLevel()) {
                 MessageLevel.ERROR -> Log.e(TAG, "JS Error: $fullLog")
                 MessageLevel.WARNING -> Log.w(TAG, "JS Warning: $fullLog")
-                else -> Log.d(TAG, "🔵 JS Log: $fullLog")
+                else -> logD(TAG) { "🔵 JS Log: $fullLog" }
             }
             return true
         }

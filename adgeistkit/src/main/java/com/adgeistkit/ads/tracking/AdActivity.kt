@@ -38,14 +38,18 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
 
     private val postCreativeAnalytics = getInstance().postCreativeAnalytics()
     private val renderStartTime = SystemClock.elapsedRealtime()
-    private val mediaType = "VIDEO"
     private val handler = Handler(Looper.getMainLooper())
+
+    private val isVideo: Boolean
+        get() = "video" == baseAdView.mediaType
 
     // ---- Viewability state ----
 
+    private val visibleRect = Rect()
     private var currentVisibilityRatio = 0f
     private var isVisible = false
     private var viewStartTime: Long = 0
+    private var accumulatedVisibleMs: Long = 0
     private var hasImpression = false
 
     // ---- Video playback state ----
@@ -72,7 +76,7 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
         endViewInterval()
         stopVisibilityCheck()
         detachListeners()
-        if ("video" == mediaType && !hasEnded) {
+        if (isVideo && !hasEnded) {
             onVideoPause()
         }
         // Force a visibility transition on resume so timers restart correctly
@@ -131,8 +135,7 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
     // ---- Viewability ----
 
     private fun checkVisibility() {
-        val rect = Rect()
-        val isVisible = baseAdView.getGlobalVisibleRect(rect)
+        val isVisible = baseAdView.getGlobalVisibleRect(visibleRect)
 
         if (!isVisible) {
             handleVisibilityChange(false)
@@ -146,7 +149,7 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
         }
 
         currentVisibilityRatio =
-            (rect.width() * rect.height()) / (totalWidth * totalHeight).toFloat()
+            (visibleRect.width() * visibleRect.height()) / (totalWidth * totalHeight).toFloat()
         handleVisibilityChange(currentVisibilityRatio >= VISIBILITY_THRESHOLD)
     }
 
@@ -159,14 +162,14 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
                 viewStartTime = SystemClock.elapsedRealtime()
                 startVisibilityCheck()
             }
-            if ("video" == mediaType && !hasEnded) {
+            if (isVideo && !hasEnded) {
                 webView?.onResume()
                 onVideoPlay()
             }
         } else if (!isVisible && wasVisible) {
             endViewInterval()
             stopVisibilityCheck()
-            if ("video" == mediaType && !hasEnded) {
+            if (isVideo && !hasEnded) {
                 webView?.onPause()
                 onVideoPause()
             }
@@ -180,36 +183,35 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
             override fun run() {
                 // Stop if this check was cancelled (stopVisibilityCheck nulls the field)
                 if (visibilityCheckRunnable !== this) return
+                if (!isVisible || viewStartTime <= 0 || tracking.impressionSent) return
 
-                if (isVisible && viewStartTime > 0 && !tracking.impressionSent) {
-                    val timeInView = SystemClock.elapsedRealtime() - viewStartTime
-                    if (timeInView >= MIN_VIEW_TIME) {
-                        tracking.impressionSent = true
-                        baseAdView.listener?.onAdImpression()
-
-                        val scrollDepth: Float = scrollDepth()
-                        val timeToVisible = SystemClock.elapsedRealtime() - renderStartTime
-                        val analyticsRequest: AnalyticsRequest =
-                            AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData)
-                                .trackViewableImpression(
-                                    timeToVisible,
-                                    scrollDepth,
-                                    currentVisibilityRatio,
-                                    timeInView
-                                )
-                                .build()
-                        postCreativeAnalytics.sendTrackingDataV2(analyticsRequest)
-
-                        stopVisibilityCheck()
-                        return
-                    }
+                val timeInView = SystemClock.elapsedRealtime() - viewStartTime
+                if (timeInView < MIN_VIEW_TIME) {
+                    handler.postDelayed(this, MIN_VIEW_TIME - timeInView)
+                    return
                 }
-                handler.postDelayed(this, 100)
+
+                tracking.impressionSent = true
+                baseAdView.listener?.onAdImpression()
+
+                val scrollDepth: Float = scrollDepth()
+                val timeToVisible = SystemClock.elapsedRealtime() - renderStartTime
+                val analyticsRequest: AnalyticsRequest =
+                    AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData)
+                        .trackViewableImpression(
+                            timeToVisible,
+                            scrollDepth,
+                            currentVisibilityRatio
+                        )
+                        .build()
+                postCreativeAnalytics.sendTrackingDataV2(analyticsRequest)
+
+                stopVisibilityCheck()
             }
         }
 
         visibilityCheckRunnable = runnable
-        handler.post(runnable)
+        handler.postDelayed(runnable, MIN_VIEW_TIME)
     }
 
     private fun stopVisibilityCheck() {
@@ -217,9 +219,10 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
         visibilityCheckRunnable = null
     }
 
-    /** Closes the current visible interval; the reported viewTime is measured separately. */
+    /** Closes the current visible interval, adding its duration to [accumulatedVisibleMs]. */
     private fun endViewInterval() {
         if (viewStartTime > 0) {
+            accumulatedVisibleMs += SystemClock.elapsedRealtime() - viewStartTime
             viewStartTime = 0
             stopVisibilityCheck()
         }
@@ -229,14 +232,14 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
         if (!hasFocus) {
             endViewInterval()
             stopVisibilityCheck()
-            if ("video" == mediaType && !hasEnded) {
+            if (isVideo && !hasEnded) {
                 webView?.onPause()
                 onVideoPause()
             }
             isVisible = false
         } else {
             checkVisibility()
-            if (isVisible && "video" == mediaType && !hasEnded) {
+            if (isVisible && isVideo && !hasEnded) {
                 webView?.onResume()
                 onVideoPlay()
             }
@@ -279,14 +282,14 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
     }
 
     fun onVideoEnd() {
-        if (!hasEnded && "video" == mediaType) {
+        if (!hasEnded && isVideo) {
             hasEnded = true
             endPlaybackInterval()
         }
     }
 
     private fun endPlaybackInterval() {
-        if (playbackStartTime > 0 && "video" == mediaType) {
+        if (playbackStartTime > 0 && isVideo) {
             playbackStartTime = 0
         }
     }

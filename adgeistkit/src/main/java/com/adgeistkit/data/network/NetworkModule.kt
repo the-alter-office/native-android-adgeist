@@ -3,7 +3,6 @@ package com.adgeistkit.data.network
 import com.adgeistkit.BuildConfig
 import com.adgeistkit.benchmark.NetworkTimingListener
 import okhttp3.ConnectionPool
-import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
@@ -22,7 +21,6 @@ internal object NetworkModule {
             .readTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(10, TimeUnit.SECONDS)
             .connectionPool(ConnectionPool(5, 5, TimeUnit.MINUTES))
-            .dispatcher(Dispatcher().apply { maxRequestsPerHost = 5 })
             .dns(dns)
             .addInterceptor(DnsInvalidatingInterceptor(dns))
             .apply {

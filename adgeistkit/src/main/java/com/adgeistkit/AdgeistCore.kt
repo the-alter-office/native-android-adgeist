@@ -11,7 +11,6 @@ import com.adgeistkit.ads.render.AdWebViewFactory
 import com.adgeistkit.targeting.TargetingSignals
 import com.adgeistkit.targeting.device.DeviceIdentifier
 import com.adgeistkit.targeting.device.DeviceSignals
-import com.adgeistkit.targeting.device.NetworkSignals
 import com.adgeistkit.data.models.Event
 import com.adgeistkit.data.models.UserDetails
 import com.adgeistkit.data.network.AnalyticsRetryQueue
@@ -39,7 +38,6 @@ class AdgeistCore private constructor(
         internal const val PREFS_NAME = "AdgeistPrefs"
 
         @Volatile private var instance: AdgeistCore? = null
-        private val lock = Any()
 
         @JvmStatic
         @JvmOverloads
@@ -59,7 +57,7 @@ class AdgeistCore private constructor(
                         customVersioning,
                     ).also {
                         instance = it
-                        Log.i(TAG, "AdgeistCore initialized successfully")
+                        logI(TAG) { "AdgeistCore initialized successfully" }
 
                         if (it.adgeistAppID.isEmpty()) {
                             Log.w(TAG, "WARNING: adgeistAppID is empty. Set com.adgeistkit.ads.ADGEIST_APP_ID in AndroidManifest.xml")
@@ -76,7 +74,7 @@ class AdgeistCore private constructor(
 
         @JvmStatic
         fun destroy() {
-            synchronized(lock) {
+            synchronized(this) {
                 instance?.let {
                     it.ioScope.cancel()
                     AnalyticsRetryQueue.shutdown(it.context)
@@ -109,6 +107,8 @@ class AdgeistCore private constructor(
     private var prefs: SharedPreferences? = null
 
     private val KEY_CONSENT = "adgeist_consent"
+
+    @Volatile
     private var consentGiven: Boolean = false
 
     /**
@@ -124,12 +124,14 @@ class AdgeistCore private constructor(
 
     val deviceSignals = DeviceSignals(context)
     val deviceIdentifier = DeviceIdentifier(context)
-    val networkSignals = NetworkSignals(context)
     var targetingInfo: Map<String, Any?>? = null
 
+    @Volatile
     private var userDetails: UserDetails? = null
 
     init {
+        AdgeistLog.enabled = isHostAppDebuggable
+
         try {
             prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             consentGiven = prefs?.getBoolean(KEY_CONSENT, false) ?: false
@@ -166,7 +168,6 @@ class AdgeistCore private constructor(
         }
     }
 
-    @Synchronized
     fun setUserDetails(details: UserDetails) {
         userDetails = details
     }
@@ -193,17 +194,18 @@ class AdgeistCore private constructor(
         return CreativeAnalytics(AdgeistCore.getInstance())
     }
 
+    @ExperimentalAdgeistApi
     fun logEvent(event: Event) {
         ioScope.launch {
             val localUserDetails = userDetails
             val parameters = mutableMapOf<String, Any>()
 
             event.eventProperties?.forEach { (key, value) -> if (value != null) parameters[key] = value }
-            
             if (localUserDetails != null) {
                 parameters["userDetails"] = localUserDetails
             }
 
+            @Suppress("UNUSED_VARIABLE")
             val fullEvent = event.copy(eventProperties = parameters)
         }
     }

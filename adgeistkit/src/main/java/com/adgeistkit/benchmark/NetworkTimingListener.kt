@@ -1,6 +1,7 @@
 package com.adgeistkit.benchmark
 
 import android.util.Log
+import com.adgeistkit.logD
 import okhttp3.Call
 import okhttp3.Connection
 import okhttp3.EventListener
@@ -32,7 +33,7 @@ internal class NetworkTimingListener : EventListener() {
     }
 
     override fun dnsEnd(call: Call, domainName: String, inetAddressList: List<InetAddress>) {
-        Log.d(TAG, "DNS $domainName: ${msSince(dnsStart)}ms")
+        logD(TAG) { "DNS $domainName: ${msSince(dnsStart)}ms" }
     }
 
     override fun connectStart(call: Call, inetSocketAddress: InetSocketAddress, proxy: Proxy) {
@@ -44,7 +45,7 @@ internal class NetworkTimingListener : EventListener() {
     }
 
     override fun secureConnectEnd(call: Call, handshake: Handshake?) {
-        Log.d(TAG, "TLS handshake: ${msSince(tlsStart)}ms (${handshake?.tlsVersion})")
+        logD(TAG) { "TLS handshake: ${msSince(tlsStart)}ms (${handshake?.tlsVersion})" }
     }
 
     override fun connectEnd(
@@ -55,11 +56,10 @@ internal class NetworkTimingListener : EventListener() {
     ) {
         val totalMs = msSince(connectStart)
         val tcpMs = if (tlsStart != 0L) (tlsStart - connectStart) / 1_000_000 else totalMs
-        Log.d(
-            TAG,
+        logD(TAG) {
             "TCP ${inetSocketAddress.address?.hostAddress}: ${tcpMs}ms | " +
                 "TCP+TLS: ${totalMs}ms | $protocol"
-        )
+        }
     }
 
     override fun connectFailed(
@@ -74,7 +74,7 @@ internal class NetworkTimingListener : EventListener() {
 
     override fun connectionAcquired(call: Call, connection: Connection) {
         if (connectStart == 0L) {
-            Log.d(TAG, "Connection reused from pool - no DNS/TCP/TLS cost")
+            logD(TAG) { "Connection reused from pool - no DNS/TCP/TLS cost" }
         }
     }
 }

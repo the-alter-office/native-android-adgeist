@@ -13,6 +13,7 @@ import androidx.core.view.doOnLayout
 import androidx.lifecycle.ViewModelStoreOwner
 import com.adgeistkit.AdgeistCore.Companion.getInstance
 import com.adgeistkit.R
+import com.adgeistkit.logD
 import com.adgeistkit.request.AdRequest
 import com.adgeistkit.data.models.FixedAdResponse
 import kotlin.math.max
@@ -59,6 +60,9 @@ open class BaseAdView : ViewGroup {
     // ---- Creative metadata (read by tracking) ----
 
     var metaData: String = ""
+
+    internal var mediaType: String = ""
+        private set
 
     // ---- Collaborators ----
 
@@ -186,6 +190,7 @@ open class BaseAdView : ViewGroup {
         }
 
         tracking = retained.tracking
+        mediaType = retained.response.creativesV1.firstOrNull()?.primary?.type ?: ""
 
         mainHandler?.post {
             isDestroyed = false
@@ -277,7 +282,7 @@ open class BaseAdView : ViewGroup {
         val handler = mainHandler ?: return
         handler.post {
             AdWebViewTeardown.destroy(webViewToDestroy, handler) {
-                Log.d(TAG, "WebView destroyed")
+                logD(TAG) { "WebView destroyed" }
             }
             removeAllViews()
         }
@@ -336,10 +341,9 @@ open class BaseAdView : ViewGroup {
 
                         is AdCreativePayload.Result.Success -> {
                             metaData = payload.metaData
+                            mediaType = campaignDetails.creativesV1.firstOrNull()?.primary?.type ?: ""
 
-                            val retainedAd = RetainedAd(campaignDetails)
-                            tracking = retainedAd.tracking
-                            adViewModel?.retain(adUnitId, retainedAd)
+                            adViewModel?.retain(adUnitId, RetainedAd(campaignDetails, tracking))
 
                             renderAdWithAdCard(payload.creativeJson, campaignDetails.adSpaceType)
                         }
