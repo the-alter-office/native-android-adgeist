@@ -81,7 +81,7 @@ class FetchCreativeRequest private constructor(builder: FetchCreativeRequestBuil
 
             platform?.let { json.put("platform", it) }
             deviceId?.let { json.put("deviceId", it) }
-            json.put("adspaceId", adSpaceId)
+            json.put("adSpaceId", adSpaceId)
             json.put("companyId", companyId)
             timeZone?.let { json.put("timeZone", it) }
             requestedAt?.let { json.put("requestedAt", it) }
