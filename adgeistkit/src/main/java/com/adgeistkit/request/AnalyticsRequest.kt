@@ -2,7 +2,7 @@ package com.adgeistkit.request
 
 import org.json.JSONObject
 
-class AnalyticsRequest private constructor(analyticsRequest: AnalyticsRequestBuilder) {
+public class AnalyticsRequest private constructor(analyticsRequest: AnalyticsRequestBuilder) {
     //Required
     private val metaData = analyticsRequest.metaData
 
@@ -19,16 +19,16 @@ class AnalyticsRequest private constructor(analyticsRequest: AnalyticsRequestBui
         this.timeToVisible = analyticsRequest.timeToVisible
     }
 
-    class AnalyticsRequestBuilder(//Required
+    public class AnalyticsRequestBuilder(//Required
         internal val metaData: String
     ) {
         //Optional
-        var type: String? = null
-        var visibilityRatio: Float = 0f
-        var scrollDepth: Float = 0f
-        var timeToVisible: Long = 0
+        public var type: String? = null
+        public var visibilityRatio: Float = 0f
+        public var scrollDepth: Float = 0f
+        public var timeToVisible: Long = 0
 
-        fun trackViewableImpression(
+        public fun trackViewableImpression(
             timeToVisible: Long,
             scrollDepth: Float,
             visibilityRatio: Float
@@ -40,18 +40,18 @@ class AnalyticsRequest private constructor(analyticsRequest: AnalyticsRequestBui
             return this
         }
 
-        fun trackClick(): AnalyticsRequestBuilder {
+        public fun trackClick(): AnalyticsRequestBuilder {
             this.type = "CLICK"
             return this
         }
 
 
-        fun build(): AnalyticsRequest {
+        public fun build(): AnalyticsRequest {
             return AnalyticsRequest(this)
         }
     }
 
-    fun toJson(): JSONObject {
+    public fun toJson(): JSONObject {
         val json = JSONObject()
         try {
             json.put("metaData", metaData)

@@ -1,8 +1,8 @@
 package com.adgeistkit.request
 
-class AdRequest private constructor(builder: Builder) {
-    class Builder {
-        fun build(): AdRequest {
+public class AdRequest private constructor(builder: Builder) {
+    public class Builder {
+        public fun build(): AdRequest {
             return AdRequest(this)
         }
     }

@@ -1,5 +1,6 @@
 package com.examplenativeandroidapp
 
+import android.content.Context
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -7,7 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.adgeistkit.AdgeistCore
 import com.adgeistkit.ads.AdView
-import com.adgeistkit.ads.JsBridge
+import com.adgeistkit.ads.BaseAdView
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
@@ -21,13 +22,19 @@ import org.junit.runner.RunWith
  *
  * Creative JavaScript calls the bridge by hard-coded method name
  * (window.Android.postMessage etc. — see assets/ad_view.html and
- * adcard-beta.js), so the @JavascriptInterface method names on [JsBridge] are
+ * adcard-beta.js), so the @JavascriptInterface method names on JsBridge are
  * a wire contract. Like AdModelR8Test, this runs against the minified release
  * variant: if consumer-rules.pro stops keeping these methods, R8 renames or
  * strips them and the creative's calls silently do nothing in production.
+ *
+ * JsBridge is internal to the SDK, so it is resolved by name here — which is
+ * also how the WebView reaches it at runtime.
  */
 @RunWith(AndroidJUnit4::class)
 class JsBridgeR8Test {
+
+    private val jsBridgeClass: Class<*> =
+        Class.forName("com.adgeistkit.ads.JsBridge")
 
     /**
      * The four bridge methods must keep their exact names and their
@@ -52,7 +59,7 @@ class JsBridgeR8Test {
 
         for ((name, params) in expected) {
             val method = try {
-                JsBridge::class.java.getMethod(name, *params)
+                jsBridgeClass.getMethod(name, *params)
             } catch (e: NoSuchMethodException) {
                 throw AssertionError(
                     "JsBridge.$name was renamed or removed by R8 — " +
@@ -83,7 +90,10 @@ class JsBridgeR8Test {
             // JsBridge -> AdActivity requires the SDK singleton.
             AdgeistCore.initialize(context)
             val adView = AdView(context)
-            val bridge = JsBridge(adView, context)
+            val bridge = jsBridgeClass
+                .getDeclaredConstructor(BaseAdView::class.java, Context::class.java)
+                .apply { isAccessible = true }
+                .newInstance(adView, context)
 
             webView = WebView(context).apply {
                 settings.javaScriptEnabled = true

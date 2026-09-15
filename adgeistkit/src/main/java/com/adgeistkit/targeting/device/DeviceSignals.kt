@@ -13,7 +13,7 @@ import androidx.core.content.ContextCompat
 import android.annotation.SuppressLint
 import android.nfc.NfcAdapter
 
-class DeviceSignals(private val context: Context) {
+internal class DeviceSignals(private val context: Context) {
     companion object {
         // READ_PHONE_STATE is not declared by this SDK; telephony details are
         // collected only when the host app has declared and been granted it.

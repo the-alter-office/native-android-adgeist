@@ -25,14 +25,14 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
-class AdgeistCore private constructor(
+public class AdgeistCore private constructor(
     internal val context: Context,
-    val bidRequestBackendDomain: String,
+    internal val bidRequestBackendDomain: String,
     private val customPackageOrBundleID: String? = null,
     private val customAdgeistAppID: String? = null,
     private val customVersioning: String? = null,
 ) {
-    companion object {
+    public companion object {
         private const val TAG = "AdgeistCore"
         private const val BidRequestBackendDomain = com.adgeistkit.BuildConfig.BASE_API_URL
 
@@ -40,7 +40,7 @@ class AdgeistCore private constructor(
 
         @JvmStatic
         @JvmOverloads
-        fun initialize(context: Context,
+        public fun initialize(context: Context,
                        customBidRequestBackendDomain: String? = null,
                        customPackageOrBundleID : String? = null,
                        customAdgeistAppID : String? = null,
@@ -72,7 +72,7 @@ class AdgeistCore private constructor(
         }
 
         @JvmStatic
-        fun destroy() {
+        public fun destroy() {
             synchronized(this) {
                 instance?.let {
                     it.ioScope.cancel()
@@ -83,7 +83,7 @@ class AdgeistCore private constructor(
         }
 
         @JvmStatic
-        fun getInstance(): AdgeistCore {
+        public fun getInstance(): AdgeistCore {
             return instance ?: run {
                 Log.e(TAG, "ERROR: AdgeistCore not initialized")
                 throw IllegalStateException("AdgeistCore is not initialized. Call AdgeistCore.initialize() first.")
@@ -91,14 +91,14 @@ class AdgeistCore private constructor(
         }
 
         @JvmStatic
-        fun isInitialized(): Boolean {
+        public fun isInitialized(): Boolean {
             return instance != null
         }
     }
 
-    val packageOrBundleID = customPackageOrBundleID ?: context.packageName
-    val adgeistAppID = customAdgeistAppID ?: getMetaValue("com.adgeistkit.ads.ADGEIST_APP_ID") ?: ""
-    val version = customVersioning ?: "ANDROID-${com.adgeistkit.BuildConfig.VERSION_NAME}"
+    public val packageOrBundleID: String = customPackageOrBundleID ?: context.packageName
+    public val adgeistAppID: String = customAdgeistAppID ?: getMetaValue("com.adgeistkit.ads.ADGEIST_APP_ID") ?: ""
+    public val version: String = customVersioning ?: "ANDROID-${com.adgeistkit.BuildConfig.VERSION_NAME}"
 
     internal val isHostAppDebuggable: Boolean =
         (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
@@ -122,9 +122,9 @@ class AdgeistCore private constructor(
         }
     )
 
-    val deviceSignals = DeviceSignals(context)
-    val deviceIdentifier = DeviceIdentifier(context, preferences)
-    var targetingInfo: Map<String, Any?>? = null
+    internal val deviceSignals = DeviceSignals(context)
+    internal val deviceIdentifier = DeviceIdentifier(context, preferences)
+    internal var targetingInfo: Map<String, Any?>? = null
 
     @Volatile
     private var userDetails: UserDetails? = null
@@ -164,41 +164,41 @@ class AdgeistCore private constructor(
         }
     }
 
-    fun setUserDetails(details: UserDetails) {
+    public fun setUserDetails(details: UserDetails) {
         userDetails = details
     }
 
     @ExperimentalAdgeistApi
-    fun updateConsentStatus(consentGiven: Boolean) {
+    public fun updateConsentStatus(consentGiven: Boolean) {
         this.consentGiven = consentGiven
         preferences.setConsentGiven(consentGiven)
     }
 
     @ExperimentalAdgeistApi
-    fun getConsentStatus(): Boolean {
+    public fun getConsentStatus(): Boolean {
         return consentGiven
     }
 
     @ExperimentalAdgeistApi
-    fun setPerformanceTelemetryEnabled(enabled: Boolean) {
+    public fun setPerformanceTelemetryEnabled(enabled: Boolean) {
         performanceTelemetryEnabled = enabled
         preferences.setPerformanceTelemetryEnabled(enabled)
     }
 
-    fun isPerformanceTelemetryEnabled(): Boolean {
+    public fun isPerformanceTelemetryEnabled(): Boolean {
         return performanceTelemetryEnabled
     }
 
-    fun getCreative(): FetchCreative {
+    public fun getCreative(): FetchCreative {
         return FetchCreative(AdgeistCore.getInstance())
     }
 
-    fun postCreativeAnalytics(): CreativeAnalytics {
+    public fun postCreativeAnalytics(): CreativeAnalytics {
         return CreativeAnalytics(AdgeistCore.getInstance())
     }
 
     @ExperimentalAdgeistApi
-    fun logEvent(event: Event) {
+    public fun logEvent(event: Event) {
         ioScope.launch {
             val localUserDetails = userDetails
             val parameters = mutableMapOf<String, Any>()
@@ -213,7 +213,7 @@ class AdgeistCore private constructor(
         }
     }
 
-    fun hasPhoneStatePermission(): Boolean {
+    public fun hasPhoneStatePermission(): Boolean {
         return DeviceSignals.hasPhoneStatePermission(context)
     }
 }

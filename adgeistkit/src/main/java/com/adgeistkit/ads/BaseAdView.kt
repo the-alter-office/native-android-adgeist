@@ -31,26 +31,26 @@ import com.adgeistkit.benchmark.AdRenderBenchmark
 import com.adgeistkit.data.models.AdSpaceType
 import com.adgeistkit.data.network.FetchCreative
 
-open class BaseAdView : ViewGroup {
+public open class BaseAdView : ViewGroup {
 
-    companion object {
+    public companion object {
         private const val TAG = "BaseAdView"
     }
 
     // ---- Ad configuration ----
 
-    var adSize: AdSize? = null
-    var adUnitId: String = ""
-    var adIsResponsive: Boolean = false
+    public var adSize: AdSize? = null
+    public var adUnitId: String = ""
+    public var adIsResponsive: Boolean = false
 
     /**
      * False scopes identity and teardown to the Activity instead of the fragment,
      * for embedders whose fragments are transient wrappers (react-native-screens
      * recreates one every time a screen is covered).
      */
-    var watchFragmentLifecycle: Boolean = true
+    public var watchFragmentLifecycle: Boolean = true
 
-    var viewModelStoreOwner: ViewModelStoreOwner? = null
+    public var viewModelStoreOwner: ViewModelStoreOwner? = null
         set(value) {
             if (value === field) return
             field = value
@@ -59,14 +59,14 @@ open class BaseAdView : ViewGroup {
 
     // ---- Creative metadata (read by tracking) ----
 
-    var metaData: String = ""
+    public var metaData: String = ""
 
     internal var mediaType: String = ""
         private set
 
     // ---- Collaborators ----
 
-    var listener: AdListener? = null
+    public var listener: AdListener? = null
 
     // ---- Runtime state ----
 
@@ -127,18 +127,18 @@ open class BaseAdView : ViewGroup {
         }
     }
 
-    fun setAdListener(listener: AdListener?) {
+    public fun setAdListener(listener: AdListener?) {
         this.listener = listener
     }
 
-    fun setAdDimension(adSize: AdSize) {
+    public fun setAdDimension(adSize: AdSize) {
         requireNotNull(adSize) { "AdSize cannot be null" }
         this.adSize = adSize
         requestLayout()
     }
 
     @RequiresPermission("android.permission.INTERNET")
-    fun loadAd(adRequest: AdRequest) {
+    public fun loadAd(adRequest: AdRequest) {
         if (adUnitId.isEmpty()) {
             listener?.onAdFailedToLoad("Ad unit ID is null or empty")
             return
@@ -229,7 +229,7 @@ open class BaseAdView : ViewGroup {
         }
     }
 
-    fun destroyAd() {
+    public fun destroyAd() {
         adViewModel?.release(adUnitId)
         destroyInternal()
         removeFromParent()
@@ -252,7 +252,7 @@ open class BaseAdView : ViewGroup {
         return adViewModel != null
     }
 
-    fun removeFromParent() {
+    public fun removeFromParent() {
         try {
             (parent as? ViewGroup)?.removeView(this)
         } catch (_: Exception) {

@@ -2,7 +2,7 @@ package com.adgeistkit.request
 
 import org.json.JSONObject
 
-class FetchCreativeRequest private constructor(builder: FetchCreativeRequestBuilder) {
+internal class FetchCreativeRequest private constructor(builder: FetchCreativeRequestBuilder) {
     //Required
     private val adSpaceId = builder.adSpaceId
     private val companyId = builder.companyId

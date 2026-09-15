@@ -21,8 +21,8 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-class FetchCreative(private val adgeistCore: AdgeistCore) {
-    companion object {
+public class FetchCreative(private val adgeistCore: AdgeistCore) {
+    public companion object {
         private const val TAG = "FetchCreative"
 
         private val gson = Gson()
@@ -47,7 +47,7 @@ class FetchCreative(private val adgeistCore: AdgeistCore) {
     private val deviceIdentifier = adgeistCore.deviceIdentifier
     private val targetingInfo = adgeistCore.targetingInfo
 
-    fun fetchCreative(
+    public fun fetchCreative(
         adUnitID: String,
         callback: (AdData) -> Unit
     ) {

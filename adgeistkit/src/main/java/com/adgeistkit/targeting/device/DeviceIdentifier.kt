@@ -14,7 +14,7 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.UUID
 
-class DeviceIdentifier internal constructor(
+internal class DeviceIdentifier internal constructor(
     private val context: Context,
     private val preferences: Preferences,
 ) {

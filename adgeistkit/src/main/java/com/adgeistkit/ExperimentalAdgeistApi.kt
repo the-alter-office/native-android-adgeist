@@ -9,4 +9,4 @@ package com.adgeistkit
 )
 @Retention(AnnotationRetention.BINARY)
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY, AnnotationTarget.CLASS)
-annotation class ExperimentalAdgeistApi
+public annotation class ExperimentalAdgeistApi
