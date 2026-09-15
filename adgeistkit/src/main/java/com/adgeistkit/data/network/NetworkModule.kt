@@ -17,6 +17,7 @@ internal object NetworkModule {
 
     val httpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
+            .callTimeout(10, TimeUnit.SECONDS)
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(10, TimeUnit.SECONDS)
