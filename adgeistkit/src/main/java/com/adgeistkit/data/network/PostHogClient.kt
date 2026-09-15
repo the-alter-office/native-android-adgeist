@@ -18,6 +18,7 @@ internal object PostHogClient {
     fun capture(event: String, properties: Map<String, Any?>) {
         if (!AdgeistCore.isInitialized()) return
         val core = AdgeistCore.getInstance()
+        if (!core.isPerformanceTelemetryEnabled()) return
 
         core.ioScope.launch {
             val distinctId = runCatching { core.deviceIdentifier.getDeviceIdentifier() }

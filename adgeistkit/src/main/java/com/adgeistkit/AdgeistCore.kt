@@ -2,17 +2,18 @@ package com.adgeistkit
 
 import android.util.Log
 import android.content.Context
-import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
+import com.adgeistkit.ads.render.AdCardHtml
 import com.adgeistkit.ads.render.AdWebViewFactory
 import com.adgeistkit.targeting.TargetingSignals
 import com.adgeistkit.targeting.device.DeviceIdentifier
 import com.adgeistkit.targeting.device.DeviceSignals
 import com.adgeistkit.data.models.Event
 import com.adgeistkit.data.models.UserDetails
+import com.adgeistkit.data.local.Preferences
 import com.adgeistkit.data.network.AnalyticsRetryQueue
 import com.adgeistkit.data.network.ConnectionWarmer
 import com.adgeistkit.data.network.CreativeAnalytics
@@ -34,8 +35,6 @@ class AdgeistCore private constructor(
     companion object {
         private const val TAG = "AdgeistCore"
         private const val BidRequestBackendDomain = com.adgeistkit.BuildConfig.BASE_API_URL
-
-        internal const val PREFS_NAME = "AdgeistPrefs"
 
         @Volatile private var instance: AdgeistCore? = null
 
@@ -104,12 +103,13 @@ class AdgeistCore private constructor(
     internal val isHostAppDebuggable: Boolean =
         (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
-    private var prefs: SharedPreferences? = null
-
-    private val KEY_CONSENT = "adgeist_consent"
+    private val preferences = Preferences(context)
 
     @Volatile
     private var consentGiven: Boolean = false
+
+    @Volatile
+    private var performanceTelemetryEnabled: Boolean = true
 
     /**
      * Single scope for all SDK background work, cancelled in [destroy]. SupervisorJob keeps one
@@ -123,7 +123,7 @@ class AdgeistCore private constructor(
     )
 
     val deviceSignals = DeviceSignals(context)
-    val deviceIdentifier = DeviceIdentifier(context)
+    val deviceIdentifier = DeviceIdentifier(context, preferences)
     var targetingInfo: Map<String, Any?>? = null
 
     @Volatile
@@ -132,17 +132,12 @@ class AdgeistCore private constructor(
     init {
         AdgeistLog.enabled = isHostAppDebuggable
 
-        try {
-            prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            consentGiven = prefs?.getBoolean(KEY_CONSENT, false) ?: false
-        } catch (e: Throwable) {
-            Log.e(TAG, "Non-fatal: failed to read AdGeist preferences", e)
-        }
+        consentGiven = preferences.consentGiven()
+        performanceTelemetryEnabled = preferences.performanceTelemetryEnabled()
 
         try {
             targetingInfo = TargetingSignals(deviceSignals).getTargetingInfo()
-        } catch (e: Throwable) {
-            Log.e(TAG, "Non-fatal: failed to collect device targeting info", e)
+        } catch (_: Throwable) {
         }
 
         Handler(Looper.getMainLooper()).post {
@@ -151,6 +146,7 @@ class AdgeistCore private constructor(
 
         ioScope.launch { deviceIdentifier.getDeviceIdentifier() }
         ioScope.launch { ConnectionWarmer.warm(bidRequestBackendDomain) }
+        ioScope.launch { AdCardHtml.build(context.assets) }
     }
 
     private fun getMetaValue(key: String): String? {
@@ -172,18 +168,25 @@ class AdgeistCore private constructor(
         userDetails = details
     }
 
+    @ExperimentalAdgeistApi
     fun updateConsentStatus(consentGiven: Boolean) {
         this.consentGiven = consentGiven
-
-        try {
-            prefs?.edit()?.putBoolean(KEY_CONSENT, consentGiven)?.apply()
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to persist consent status", e)
-        }
+        preferences.setConsentGiven(consentGiven)
     }
 
+    @ExperimentalAdgeistApi
     fun getConsentStatus(): Boolean {
         return consentGiven
+    }
+
+    @ExperimentalAdgeistApi
+    fun setPerformanceTelemetryEnabled(enabled: Boolean) {
+        performanceTelemetryEnabled = enabled
+        preferences.setPerformanceTelemetryEnabled(enabled)
+    }
+
+    fun isPerformanceTelemetryEnabled(): Boolean {
+        return performanceTelemetryEnabled
     }
 
     fun getCreative(): FetchCreative {
@@ -213,5 +216,4 @@ class AdgeistCore private constructor(
     fun hasPhoneStatePermission(): Boolean {
         return DeviceSignals.hasPhoneStatePermission(context)
     }
-
 }
