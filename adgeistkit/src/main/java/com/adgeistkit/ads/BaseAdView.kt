@@ -13,7 +13,7 @@ import androidx.core.view.doOnLayout
 import androidx.lifecycle.ViewModelStoreOwner
 import com.adgeistkit.AdgeistCore.Companion.getInstance
 import com.adgeistkit.R
-import com.adgeistkit.logD
+import com.adgeistkit.utilities.logD
 import com.adgeistkit.request.AdRequest
 import com.adgeistkit.data.models.FixedAdResponse
 import kotlin.math.max

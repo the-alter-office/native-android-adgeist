@@ -1,9 +1,8 @@
-package com.adgeistkit
+package com.adgeistkit.utilities
 
 import android.util.Log
 
 internal object AdgeistLog {
-
     @Volatile
     var enabled: Boolean = false
 }

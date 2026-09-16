@@ -24,6 +24,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import com.adgeistkit.utilities.AdgeistInternalApi
+import com.adgeistkit.utilities.AdgeistLog
+import com.adgeistkit.utilities.CustomConfig
+import com.adgeistkit.utilities.ExperimentalAdgeistApi
+import com.adgeistkit.utilities.logI
 
 public class AdgeistCore private constructor(
     internal val context: Context,
@@ -39,23 +44,24 @@ public class AdgeistCore private constructor(
         @Volatile private var instance: AdgeistCore? = null
 
         @JvmStatic
-        @JvmOverloads
-        public fun initialize(context: Context,
-                       customBidRequestBackendDomain: String? = null,
-                       customPackageOrBundleID : String? = null,
-                       customAdgeistAppID : String? = null,
-                       customVersioning: String? = null): AdgeistCore?
+        @OptIn(AdgeistInternalApi::class)
+        public fun initialize(context: Context): AdgeistCore? = initialize(context, null)
+
+        @JvmStatic
+        @AdgeistInternalApi
+        public fun initialize(context: Context, customConfig: CustomConfig?): AdgeistCore?
         {
             return instance ?: synchronized(this) {
                 instance ?: try {
                     AdgeistCore(
                         context.applicationContext,
-                        customBidRequestBackendDomain ?: BidRequestBackendDomain,
-                        customPackageOrBundleID,
-                        customAdgeistAppID,
-                        customVersioning,
+                        customConfig?.backendDomain ?: BidRequestBackendDomain,
+                        customConfig?.packageOrBundleId,
+                        customConfig?.adgeistAppId,
+                        customConfig?.versioning,
                     ).also {
                         instance = it
+
                         logI(TAG) { "AdgeistCore initialized successfully" }
 
                         if (it.adgeistAppID.isEmpty()) {

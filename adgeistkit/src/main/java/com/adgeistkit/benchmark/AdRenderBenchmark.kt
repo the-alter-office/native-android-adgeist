@@ -2,7 +2,7 @@ package com.adgeistkit.benchmark
 
 import android.os.SystemClock
 import com.adgeistkit.AdgeistCore
-import com.adgeistkit.logI
+import com.adgeistkit.utilities.logI
 import com.adgeistkit.data.network.PostHogClient
 
 internal class AdRenderBenchmark {

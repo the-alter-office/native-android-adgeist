@@ -17,8 +17,8 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.annotation.RequiresApi
 import com.adgeistkit.ads.JsBridge
-import com.adgeistkit.logD
-import com.adgeistkit.logI
+import com.adgeistkit.utilities.logD
+import com.adgeistkit.utilities.logI
 
 internal object AdWebViewFactory {
 

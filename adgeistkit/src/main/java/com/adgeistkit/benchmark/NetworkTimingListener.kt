@@ -1,7 +1,7 @@
 package com.adgeistkit.benchmark
 
 import android.util.Log
-import com.adgeistkit.logD
+import com.adgeistkit.utilities.logD
 import okhttp3.Call
 import okhttp3.Connection
 import okhttp3.EventListener

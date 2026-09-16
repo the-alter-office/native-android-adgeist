@@ -19,6 +19,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.adgeistkit.AdgeistCore
+import com.adgeistkit.utilities.AdgeistInternalApi
+import com.adgeistkit.utilities.CustomConfig
 import com.adgeistkit.ads.AdListener
 import com.adgeistkit.ads.AdSize
 import com.adgeistkit.ads.AdView
@@ -184,6 +186,7 @@ class HomeFragment : Fragment() {
         }
     }
 
+    @OptIn(AdgeistInternalApi::class)
     private fun configureSDK() {
         val packageId = packageIdInput.text.toString().trim()
         val adgeistAppId = adgeistAppIdInput.text.toString().trim()
@@ -194,7 +197,14 @@ class HomeFragment : Fragment() {
         }
 
         AdgeistCore.destroy()
-        AdgeistCore.initialize(requireContext().applicationContext, defaultBidRequestBackendDomain, packageId, adgeistAppId)
+        AdgeistCore.initialize(
+            requireContext().applicationContext,
+            CustomConfig(
+                backendDomain = defaultBidRequestBackendDomain,
+                packageOrBundleId = packageId,
+                adgeistAppId = adgeistAppId,
+            )
+        )
 
         showAlertDialog("Success", "SDK configured successfully with:\nPackage ID: $packageId\nApp ID: $adgeistAppId")
         Log.d(TAG, "SDK reinitialized with Package ID: $packageId, App ID: $adgeistAppId")

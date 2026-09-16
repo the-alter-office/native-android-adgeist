@@ -1,7 +1,7 @@
 package com.adgeistkit.data.network
 
 import android.os.SystemClock
-import com.adgeistkit.logD
+import com.adgeistkit.utilities.logD
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Request

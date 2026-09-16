@@ -2,7 +2,7 @@ package com.adgeistkit.data.network
 
 import android.os.SystemClock
 import com.adgeistkit.AdgeistCore
-import com.adgeistkit.logD
+import com.adgeistkit.utilities.logD
 import com.adgeistkit.benchmark.FetchTimings
 import com.adgeistkit.request.FetchCreativeRequest
 import com.adgeistkit.data.models.FixedAdResponse
