@@ -67,7 +67,7 @@ public class AnalyticsRequest private constructor(analyticsRequest: AnalyticsReq
                 "CLICK" -> {}
                 else -> {}
             }
-        } catch (ignored: Exception) {
+        } catch (_: Exception) {
         }
         return json
     }

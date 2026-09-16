@@ -1,5 +1,6 @@
 package com.adgeistkit.ads.render
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -20,6 +21,7 @@ import com.adgeistkit.ads.JsBridge
 import com.adgeistkit.utilities.logD
 import com.adgeistkit.utilities.logI
 
+@SuppressLint("StaticFieldLeak")
 internal object AdWebViewFactory {
 
     private const val TAG = "AdWebView"
@@ -51,7 +53,7 @@ internal object AdWebViewFactory {
         webView.settings.loadWithOverviewMode = true
         webView.settings.useWideViewPort = true
 
-        if (com.adgeistkit.BuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+        if (com.adgeistkit.BuildConfig.DEBUG) {
             WebView.setWebContentsDebuggingEnabled(true)
         }
 
