@@ -4,7 +4,6 @@ import android.graphics.Rect
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver.OnScrollChangedListener
 import android.view.ViewTreeObserver.OnWindowFocusChangeListener
@@ -28,7 +27,6 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
     private val tracking: AdTrackingState = baseAdView.tracking
 
     companion object {
-        private const val TAG = "Ad Activity"
         private const val VISIBILITY_THRESHOLD = 0.5
         private const val MIN_VIEW_TIME = 1000L
         private const val CLICK_DEBOUNCE_MS = 1000L
@@ -51,6 +49,7 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
     private var viewStartTime: Long = 0
     private var accumulatedVisibleMs: Long = 0
     private var hasImpression = false
+    private var hasRendered = false
 
     // ---- Video playback state ----
 
@@ -177,6 +176,7 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
     }
 
     private fun startVisibilityCheck() {
+        if (!hasRendered) return
         if (visibilityCheckRunnable != null || tracking.impressionSent) return
 
         val runnable = object : Runnable {
@@ -249,9 +249,17 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
     // ---- Events ----
 
     fun captureImpression() {
-        if (!hasImpression) {
-            baseAdView.listener?.onAdLoaded()
-            hasImpression = true
+        handler.post {
+            if (!hasImpression) {
+                baseAdView.listener?.onAdLoaded()
+                hasImpression = true
+            }
+
+            if (hasRendered) return@post
+            hasRendered = true
+            isVisible = false
+            viewStartTime = 0
+            checkVisibility()
         }
     }
 

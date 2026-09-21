@@ -18,4 +18,7 @@ public abstract class AdListener {
 
     public open fun onAdOpened() {
     }
+
+    public open fun onAdWarning(message: String) {
+    }
 }

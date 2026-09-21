@@ -62,44 +62,10 @@
             android:textSize="18sp"
             android:textStyle="bold" />
 
-        <!-- Auto Load (default ids) vs Manual Load (enter ids) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="start"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:layout_marginEnd="8dp"
-                android:text="Auto Load (default IDs)"
-                android:textSize="16sp" />
-
-            <androidx.appcompat.widget.SwitchCompat
-                android:id="@+id/autoLoadSwitch"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:checked="true" />
-        </LinearLayout>
-
-        <!-- Manual load inputs, visible only when Auto Load is off -->
-        <LinearLayout
-            android:id="@+id/manualLoadSection"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone">
-
-            <EditText
-                android:id="@+id/adspaceTypeInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:hint="Adspace Type (BANNER or COMPANION)"
-                android:inputType="text" />
+            android:orientation="vertical">
 
             <EditText
                 android:id="@+id/adspaceIdInput"

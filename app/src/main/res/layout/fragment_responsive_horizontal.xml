@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="20dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="4. Responsive - horizontal"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="adIsResponsive = true, setAdDimension(AdSize.height(50)).\n\nThe ad is the bottom row, which is match_parent wide and wrap_content tall. So:\n\nwidth - MeasureSpec.EXACTLY, taken from the view tree\nheight - MeasureSpec.AT_MOST, taken from AdSize.height(50)\n\nBefore per-axis measurement the AT_MOST height was read as 'exactly this much' and this banner expanded to fill every remaining pixel of the screen."
+                android:textSize="13sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="SDK callbacks"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/logPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="#11000000"
+                android:padding="12dp"
+                android:textSize="12sp"
+                android:typeface="monospace" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <FrameLayout
+        android:id="@+id/horizontalAdContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="#22000000" />
+
+</LinearLayout>

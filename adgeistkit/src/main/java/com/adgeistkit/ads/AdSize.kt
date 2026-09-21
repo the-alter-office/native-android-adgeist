@@ -3,6 +3,15 @@ package com.adgeistkit.ads
 import android.content.Context
 
 public class AdSize(public val width: Int, public val height: Int) {
+
+    public companion object {
+        @JvmStatic
+        public fun width(width: Int): AdSize = AdSize(width, 0)
+
+        @JvmStatic
+        public fun height(height: Int): AdSize = AdSize(0, height)
+    }
+
     public fun getWidthInPixels(context: Context): Int {
         if (width == 0) return 0
         val density = context.resources.displayMetrics.density

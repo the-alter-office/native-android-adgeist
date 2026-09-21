@@ -24,6 +24,9 @@ internal object AdCreativePayload {
         measuredWidthDp: Int,
         measuredHeightDp: Int,
     ): Result {
+        val creative = response.creativesV1[0]
+        val options = response.displayOptions
+
         if (response.creativesV1.isEmpty()) {
             return Result.Failure("Empty creative")
         }
@@ -39,12 +42,14 @@ internal object AdCreativePayload {
                     "adSize not set. Call setAdDimension() or set adIsResponsive = true before loadAd()"
                 )
             }
-            width = adSize.width
-            height = adSize.height
+            if(options != null && options.dimensions != null){
+                width = options.dimensions.width ?: 0
+                height = options.dimensions.height ?: 0
+            }else{
+                width = adSize.width
+                height = adSize.height
+            }
         }
-
-        val creative = response.creativesV1[0]
-        val options = response.displayOptions
 
         val media = mutableListOf<Map<String, String?>>()
         media.add(
