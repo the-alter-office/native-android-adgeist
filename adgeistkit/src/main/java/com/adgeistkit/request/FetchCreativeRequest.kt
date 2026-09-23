@@ -2,7 +2,7 @@ package com.adgeistkit.request
 
 import org.json.JSONObject
 
-class FetchCreativeRequest private constructor(builder: FetchCreativeRequestBuilder) {
+internal class FetchCreativeRequest private constructor(builder: FetchCreativeRequestBuilder) {
     //Required
     private val adSpaceId = builder.adSpaceId
     private val companyId = builder.companyId
@@ -14,7 +14,6 @@ class FetchCreativeRequest private constructor(builder: FetchCreativeRequestBuil
     private val requestedAt: String?
     private val sdkVersion: String?
     private val device: Map<String, Any>?
-    private val appDto: Map<String, String>?
 
     init {
         this.platform = builder.platform
@@ -23,7 +22,6 @@ class FetchCreativeRequest private constructor(builder: FetchCreativeRequestBuil
         this.requestedAt = builder.requestedAt
         this.sdkVersion = builder.sdkVersion
         this.device = builder.device
-        this.appDto = builder.appDto
     }
 
     class FetchCreativeRequestBuilder(
@@ -38,7 +36,6 @@ class FetchCreativeRequest private constructor(builder: FetchCreativeRequestBuil
         var requestedAt: String? = null
         var sdkVersion: String? = null
         var device: Map<String, Any>? = null
-        var appDto: Map<String, String>? = null
 
         fun setPlatform(platform: String): FetchCreativeRequestBuilder {
             this.platform = platform
@@ -70,14 +67,6 @@ class FetchCreativeRequest private constructor(builder: FetchCreativeRequestBuil
             return this
         }
 
-        fun setAppDto(appName: String, appBundle: String): FetchCreativeRequestBuilder {
-            this.appDto = mapOf(
-                "name" to appName,
-                "bundle" to appBundle
-            )
-            return this
-        }
-
         fun build(): FetchCreativeRequest {
             return FetchCreativeRequest(this)
         }
@@ -92,16 +81,12 @@ class FetchCreativeRequest private constructor(builder: FetchCreativeRequestBuil
 
             platform?.let { json.put("platform", it) }
             deviceId?.let { json.put("deviceId", it) }
-            json.put("adspaceId", adSpaceId)
+            json.put("adSpaceId", adSpaceId)
             json.put("companyId", companyId)
             timeZone?.let { json.put("timeZone", it) }
             requestedAt?.let { json.put("requestedAt", it) }
             sdkVersion?.let { json.put("sdkVersion", it) }
-            
-            appDto?.let {
-                json.put("appDto", JSONObject(it))
-            }
-        } catch (ignored: Exception) {
+        } catch (_: Exception) {
         }
         return json
     }

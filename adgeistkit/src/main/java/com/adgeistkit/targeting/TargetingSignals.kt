@@ -2,7 +2,7 @@ package com.adgeistkit.targeting
 
 import com.adgeistkit.targeting.device.DeviceSignals
 
-class TargetingSignals(private val deviceSignals: DeviceSignals) {
+internal class TargetingSignals(private val deviceSignals: DeviceSignals) {
     fun getTargetingInfo(): Map<String, Any?> {
         val deviceTargetingMetrics = deviceSignals.getAllDeviceInfo()
 

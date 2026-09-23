@@ -2,7 +2,6 @@ package com.adgeistkit.ads.render
 
 import com.adgeistkit.data.models.FixedAdResponse
 import com.google.gson.Gson
-import com.adgeistkit.ads.AdType
 import com.adgeistkit.ads.AdSize
 
 internal object AdCreativePayload {
@@ -15,15 +14,19 @@ internal object AdCreativePayload {
 
     private const val DEFAULT_ADVERTISER_NAME = "-"
 
+    private val gson = Gson()
+
     fun build(
         response: FixedAdResponse,
         adUnitId: String,
-        adType: AdType,
         adIsResponsive: Boolean,
         adSize: AdSize?,
         measuredWidthDp: Int,
         measuredHeightDp: Int,
     ): Result {
+        val creative = response.creativesV1[0]
+        val options = response.displayOptions
+
         if (response.creativesV1.isEmpty()) {
             return Result.Failure("Empty creative")
         }
@@ -39,12 +42,14 @@ internal object AdCreativePayload {
                     "adSize not set. Call setAdDimension() or set adIsResponsive = true before loadAd()"
                 )
             }
-            width = adSize.width
-            height = adSize.height
+            if(options != null && options.dimensions != null){
+                width = options.dimensions.width ?: 0
+                height = options.dimensions.height ?: 0
+            }else{
+                width = adSize.width
+                height = adSize.height
+            }
         }
-
-        val creative = response.creativesV1[0]
-        val options = response.displayOptions
 
         val media = mutableListOf<Map<String, String?>>()
         media.add(
@@ -65,7 +70,7 @@ internal object AdCreativePayload {
         }
 
         val properties = mutableMapOf<String, Any?>(
-            "adspaceType" to adType.value,
+            "adspaceType" to response.adSpaceType.value,
             "adElementId" to "adgeist_ads_iframe_$adUnitId",
             "name" to (response.advertiser?.name ?: DEFAULT_ADVERTISER_NAME),
             "isResponsive" to (options?.isResponsive ?: false),
@@ -77,6 +82,6 @@ internal object AdCreativePayload {
             "media" to media,
         )
 
-        return Result.Success(Gson().toJson(properties), response.metaData)
+        return Result.Success(gson.toJson(properties), response.metaData)
     }
 }

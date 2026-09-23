@@ -2,7 +2,7 @@ package com.adgeistkit.targeting.device
 
 import android.content.Context
 import android.util.Log
-import com.adgeistkit.AdgeistCore
+import com.adgeistkit.data.local.Preferences
 import com.google.android.gms.ads.identifier.AdvertisingIdClient
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException
 import com.google.android.gms.common.GooglePlayServicesRepairableException
@@ -14,12 +14,13 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.UUID
 
-class DeviceIdentifier(private val context: Context) {
+internal class DeviceIdentifier internal constructor(
+    private val context: Context,
+    private val preferences: Preferences,
+) {
     companion object {
         private const val TAG = "DeviceIdentifier"
         private const val ZEROED_AD_ID = "00000000-0000-0000-0000-000000000000"
-
-        private const val KEY_FALLBACK_ID = "adgeist_fallback_device_id"
 
         private val fallbackLock = Any()
 
@@ -65,18 +66,14 @@ class DeviceIdentifier(private val context: Context) {
     private suspend fun getOrCreateFallbackId(): String? {
         return try {
             withContext(Dispatchers.IO) {
-                val prefs = context.getSharedPreferences(
-                    AdgeistCore.PREFS_NAME,
-                    Context.MODE_PRIVATE
-                )
                 // Concurrent ad fetches on a fresh install would otherwise persist two IDs.
                 synchronized(fallbackLock) {
-                    val existing = prefs.getString(KEY_FALLBACK_ID, null)
+                    val existing = preferences.fallbackDeviceId()
                     if (isWellFormedId(existing)) {
                         existing
                     } else {
                         UUID.randomUUID().toString().also {
-                            prefs.edit().putString(KEY_FALLBACK_ID, it).apply()
+                            preferences.setFallbackDeviceId(it)
                         }
                     }
                 }

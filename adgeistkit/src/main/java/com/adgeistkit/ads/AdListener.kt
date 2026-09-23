@@ -1,21 +1,30 @@
 package com.adgeistkit.ads
 
-abstract class AdListener {
-    open fun onAdClicked() {
+import com.adgeistkit.utilities.AdgeistEmbedderApi
+
+public abstract class AdListener {
+    public open fun onAdClicked() {
     }
 
-    open fun onAdClosed() {
+    public open fun onAdClosed() {
     }
 
-    open fun onAdFailedToLoad(var1: String) {
+    public open fun onAdFailedToLoad(var1: String) {
     }
 
-    open fun onAdImpression() {
+    public open fun onAdImpression() {
     }
 
-    open fun onAdLoaded() {
+    public open fun onAdLoaded() {
     }
 
-    open fun onAdOpened() {
+    public open fun onAdOpened() {
+    }
+
+    public open fun onAdWarning(message: String) {
+    }
+
+    @AdgeistEmbedderApi
+    public open fun onAdSizeResolved(adSize: AdSize) {
     }
 }

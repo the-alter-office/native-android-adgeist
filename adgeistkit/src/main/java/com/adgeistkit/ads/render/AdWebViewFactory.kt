@@ -1,5 +1,6 @@
 package com.adgeistkit.ads.render
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -9,13 +10,18 @@ import android.os.SystemClock
 import android.util.Log
 import android.view.ViewGroup
 import android.webkit.ConsoleMessage
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.ConsoleMessage.MessageLevel
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.annotation.RequiresApi
 import com.adgeistkit.ads.JsBridge
+import com.adgeistkit.utilities.logD
+import com.adgeistkit.utilities.logI
 
+@SuppressLint("StaticFieldLeak")
 internal object AdWebViewFactory {
 
     private const val TAG = "AdWebView"
@@ -25,15 +31,20 @@ internal object AdWebViewFactory {
         val allocEndAt: Long,
     )
 
+    private var warmed: WebView? = null
+
     fun warmup(context: Context) {
-        try {
+        if (warmed != null) return
+
+        warmed = try {
             WebView(context.applicationContext)
         } catch (_: Exception) {
+            null
         }
     }
 
     fun create(context: Context, bridge: JsBridge): Created {
-        val webView = WebView(context)
+        val webView = warmed?.also { warmed = null } ?: WebView(context)
         val allocEndAt = SystemClock.elapsedRealtime()
 
         webView.setBackgroundColor(Color.TRANSPARENT)
@@ -42,7 +53,7 @@ internal object AdWebViewFactory {
         webView.settings.loadWithOverviewMode = true
         webView.settings.useWideViewPort = true
 
-        if (com.adgeistkit.BuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+        if (com.adgeistkit.BuildConfig.DEBUG) {
             WebView.setWebContentsDebuggingEnabled(true)
         }
 
@@ -93,31 +104,21 @@ internal object AdWebViewFactory {
             return true
         }
 
-        /**
-         * Serves creative media from the device cache. Called on a WebView resource
-         * thread, never the main thread, so blocking on the cache here is safe.
-         * Returning null hands the request back to the WebView.
-         */
-        // override fun shouldInterceptRequest(
-        //     view: WebView,
-        //     request: WebResourceRequest
-        // ): WebResourceResponse? {
-        //     // The WebView outlives its first host, so only the application context is safe
-        //     val cached = CreativeResourceInterceptor.intercept(
-        //         view.context.applicationContext,
-        //         request
-        //     )
-        //     return cached ?: super.shouldInterceptRequest(view, request)
-        // }
-
         override fun onPageFinished(view: WebView, url: String) {
             super.onPageFinished(view, url)
-            Log.i(TAG, "✅ WebView page finished loading: $url")
+            logI(TAG) { "✅ WebView page finished loading: $url" }
+            bridge.onShellPageFinished()
+        }
+
+        @RequiresApi(Build.VERSION_CODES.O)
+        override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+            bridge.onRenderProcessGone(detail.didCrash())
+            return true
         }
 
         override fun onLoadResource(view: WebView, url: String) {
             super.onLoadResource(view, url)
-            Log.d(TAG, "📦 Loading resource: $url")
+            logD(TAG) { "📦 Loading resource: $url" }
         }
     }
 
@@ -132,7 +133,7 @@ internal object AdWebViewFactory {
             when (consoleMessage.messageLevel()) {
                 MessageLevel.ERROR -> Log.e(TAG, "JS Error: $fullLog")
                 MessageLevel.WARNING -> Log.w(TAG, "JS Warning: $fullLog")
-                else -> Log.d(TAG, "🔵 JS Log: $fullLog")
+                else -> logD(TAG) { "🔵 JS Log: $fullLog" }
             }
             return true
         }

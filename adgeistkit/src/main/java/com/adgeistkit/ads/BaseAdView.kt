@@ -13,44 +13,50 @@ import androidx.core.view.doOnLayout
 import androidx.lifecycle.ViewModelStoreOwner
 import com.adgeistkit.AdgeistCore.Companion.getInstance
 import com.adgeistkit.R
+import com.adgeistkit.utilities.AdgeistEmbedderApi
+import com.adgeistkit.utilities.logD
 import com.adgeistkit.request.AdRequest
 import com.adgeistkit.data.models.FixedAdResponse
-import kotlin.math.max
-import com.adgeistkit.ads.cache.CreativeMediaCache
+import com.adgeistkit.ads.host.findActivity
 import com.adgeistkit.ads.host.findAdViewModel
 import com.adgeistkit.ads.host.pxToDp
 import com.adgeistkit.ads.host.releaseImeSession
-import com.adgeistkit.ads.render.AdCardHtml
+import com.adgeistkit.ads.measure.AdSizeResolver
 import com.adgeistkit.ads.render.AdCreativePayload
 import com.adgeistkit.ads.render.AdWebViewFactory
+import com.adgeistkit.ads.render.AdShellPreloader
 import com.adgeistkit.ads.render.AdWebViewTeardown
 import com.adgeistkit.ads.tracking.AdTrackingState
 import com.adgeistkit.ads.viewmodel.AdViewModel
 import com.adgeistkit.ads.viewmodel.RetainedAd
 import com.adgeistkit.benchmark.AdRenderBenchmark
+import com.adgeistkit.data.models.AdSpaceType
 import com.adgeistkit.data.network.FetchCreative
 
-open class BaseAdView : ViewGroup {
+public open class BaseAdView : ViewGroup {
 
-    companion object {
+    public companion object {
         private const val TAG = "BaseAdView"
     }
 
     // ---- Ad configuration ----
 
-    var adSize: AdSize? = null
-    var adUnitId: String = ""
-    var adType: AdType = AdType.BANNER
-    var adIsResponsive: Boolean = false
+    public var adUnitId: String = ""
+    public var adSize: AdSize? = null
+    public var reserveSpace: Boolean = true
+    public var adIsResponsive: Boolean = false
 
     /**
      * False scopes identity and teardown to the Activity instead of the fragment,
      * for embedders whose fragments are transient wrappers (react-native-screens
      * recreates one every time a screen is covered).
      */
-    var watchFragmentLifecycle: Boolean = true
+    public var watchFragmentLifecycle: Boolean = true
 
-    var viewModelStoreOwner: ViewModelStoreOwner? = null
+    @AdgeistEmbedderApi
+    public var isFrameworkHosted: Boolean = false
+
+    public var viewModelStoreOwner: ViewModelStoreOwner? = null
         set(value) {
             if (value === field) return
             field = value
@@ -59,11 +65,14 @@ open class BaseAdView : ViewGroup {
 
     // ---- Creative metadata (read by tracking) ----
 
-    var metaData: String = ""
+    public var metaData: String = ""
+
+    internal var mediaType: String = ""
+        private set
 
     // ---- Collaborators ----
 
-    var listener: AdListener? = null
+    public var listener: AdListener? = null
 
     // ---- Runtime state ----
 
@@ -73,6 +82,8 @@ open class BaseAdView : ViewGroup {
     private var isDestroyed = false
     private var mainHandler: Handler? = null
 
+    private var serverAdSize: AdSize? = null
+    private var responsiveAxisWarningSent = false
     private var adViewModel: AdViewModel? = null
     internal var tracking: AdTrackingState = AdTrackingState()
         private set
@@ -82,6 +93,11 @@ open class BaseAdView : ViewGroup {
     private var pendingLoadRequest: AdRequest? = null
 
     private val benchmark = AdRenderBenchmark()
+    private val shellPreloader = AdShellPreloader(
+        benchmark,
+        Handler(Looper.getMainLooper()),
+        ::failShellLoad
+    )
 
     protected constructor(context: Context, adViewType: Int) : super(context) {
         initialize(context, null)
@@ -119,20 +135,20 @@ open class BaseAdView : ViewGroup {
         }
     }
 
-    fun setAdListener(listener: AdListener?) {
+    public fun setAdListener(listener: AdListener?) {
         this.listener = listener
     }
 
-    fun setAdDimension(adSize: AdSize) {
+    public fun setAdDimension(adSize: AdSize) {
         requireNotNull(adSize) { "AdSize cannot be null" }
         this.adSize = adSize
         requestLayout()
     }
 
     @RequiresPermission("android.permission.INTERNET")
-    fun loadAd(adRequest: AdRequest) {
+    public fun loadAd(adRequest: AdRequest) {
         if (adUnitId.isEmpty()) {
-            listener?.onAdFailedToLoad("Ad unit ID is null or empty")
+            notifyAdFailedToLoad("Ad unit ID is null or empty")
             return
         }
 
@@ -153,6 +169,8 @@ open class BaseAdView : ViewGroup {
     }
 
     private fun performLoad() {
+        benchmark.onLoadDispatched()
+
         adViewModel?.retained(adUnitId)?.let { retained ->
             restoreRetained(retained)
             return
@@ -167,6 +185,7 @@ open class BaseAdView : ViewGroup {
         mainHandler?.post {
             isDestroyed = false
             startAdLoad()
+            preloadShell()
         }
     }
 
@@ -179,22 +198,24 @@ open class BaseAdView : ViewGroup {
         }
 
         tracking = retained.tracking
-        prefetchCreativeMedia(retained.response)
+        mediaType = retained.response.creativesV1.firstOrNull()?.primary?.type ?: ""
 
         mainHandler?.post {
+            isDestroyed = false
+            preloadShell()
+
             doOnLayout {
                 if (!isAttachedToWindow) {
                     isLoading = false
+                    safelyDestroyWebView()
                     return@doOnLayout
                 }
 
                 isLoading = false
-                isDestroyed = false
 
                 val payload = AdCreativePayload.build(
                     response = retained.response,
                     adUnitId = adUnitId,
-                    adType = adType,
                     adIsResponsive = adIsResponsive,
                     adSize = adSize,
                     measuredWidthDp = pxToDp(measuredWidth),
@@ -203,19 +224,21 @@ open class BaseAdView : ViewGroup {
 
                 when (payload) {
                     is AdCreativePayload.Result.Failure -> {
-                        listener?.onAdFailedToLoad(payload.message)
+                        safelyDestroyWebView()
+                        notifyAdFailedToLoad(payload.message)
                     }
 
                     is AdCreativePayload.Result.Success -> {
                         metaData = payload.metaData
-                        renderAdWithAdCard(payload.creativeJson)
+                        applyServerAdSize(retained.response)
+                        renderAdWithAdCard(payload.creativeJson, retained.response.adSpaceType)
                     }
                 }
             }
         }
     }
 
-    fun destroyAd() {
+    public fun destroyAd() {
         adViewModel?.release(adUnitId)
         destroyInternal()
         removeFromParent()
@@ -238,12 +261,56 @@ open class BaseAdView : ViewGroup {
         return adViewModel != null
     }
 
-    fun removeFromParent() {
+    @OptIn(AdgeistEmbedderApi::class)
+    public fun removeFromParent() {
+        if (isFrameworkHosted) return
+
         try {
             (parent as? ViewGroup)?.removeView(this)
         } catch (_: Exception) {
             //
         }
+    }
+
+    @OptIn(AdgeistEmbedderApi::class)
+    private fun applyServerAdSize(response: FixedAdResponse) {
+        if (adIsResponsive) return
+
+        val dimensions = response.displayOptions?.dimensions ?: return
+        val serverWidth = dimensions.width ?: return
+        val serverHeight = dimensions.height ?: return
+        if (serverWidth <= 0 || serverHeight <= 0) return
+
+        val resolved = AdSize(serverWidth, serverHeight)
+        if (serverAdSize == resolved) return
+
+        val requested = adSize
+        serverAdSize = resolved
+        requestLayout()
+        listener?.onAdSizeResolved(resolved)
+
+        if (requested == null || requested == resolved) return
+
+        listener?.onAdWarning(
+            "Ad unit '$adUnitId': the requested size $requested does not match the creative " +
+                "size $resolved returned for this ad unit. The AdView has been resized to " +
+                "$resolved. Set the ad unit's size to $resolved to avoid a layout shift."
+        )
+    }
+
+    private fun notifyAdFailedToLoad(message: String) {
+        listener?.onAdFailedToLoad(message)
+
+        if (reserveSpace) return
+
+        mainHandler?.post { removeFromParent() }
+    }
+
+    private fun failShellLoad(message: String) {
+        if (isDestroyed) return
+
+        safelyDestroyWebView()
+        notifyAdFailedToLoad(message)
     }
 
     private fun safelyDestroyWebView() {
@@ -252,6 +319,7 @@ open class BaseAdView : ViewGroup {
 
         val webViewToDestroy = webView
         webView = null
+        shellPreloader.resetForNewLoad()
         jsInterface?.destroyListeners()
         jsInterface = null
 
@@ -260,7 +328,7 @@ open class BaseAdView : ViewGroup {
         val handler = mainHandler ?: return
         handler.post {
             AdWebViewTeardown.destroy(webViewToDestroy, handler) {
-                Log.d(TAG, "WebView destroyed")
+                logD(TAG) { "WebView destroyed" }
             }
             removeAllViews()
         }
@@ -285,9 +353,7 @@ open class BaseAdView : ViewGroup {
 
         benchmark.onFetchStart()
 
-        fetchCreative.fetchCreative(
-            adUnitId, "FIXED"
-        ) { result ->
+        fetchCreative.fetchCreative(adUnitId) { result ->
             benchmark.onFetchEnd(result.timings)
 
             mainHandler?.post {
@@ -295,19 +361,17 @@ open class BaseAdView : ViewGroup {
                 if (isDestroyed) return@post
 
                 if (!result.isSuccess) {
-                    Log.e(TAG, "API error: ${result.errorMessage}, statusCode: ${result.statusCode}")
-                    listener?.onAdFailedToLoad(result.errorMessage)
+                    safelyDestroyWebView()
+                    notifyAdFailedToLoad(result.errorMessage)
                     return@post
                 }
 
                 try {
                     val campaignDetails = result.data as FixedAdResponse
-                    prefetchCreativeMedia(campaignDetails)
 
                     val payload = AdCreativePayload.build(
                         response = campaignDetails,
                         adUnitId = adUnitId,
-                        adType = adType,
                         adIsResponsive = adIsResponsive,
                         adSize = adSize,
                         measuredWidthDp = pxToDp(measuredWidth),
@@ -316,117 +380,124 @@ open class BaseAdView : ViewGroup {
 
                     when (payload) {
                         is AdCreativePayload.Result.Failure -> {
-                            listener?.onAdFailedToLoad(payload.message)
+                            safelyDestroyWebView()
+                            notifyAdFailedToLoad(payload.message)
                         }
 
                         is AdCreativePayload.Result.Success -> {
                             metaData = payload.metaData
+                            mediaType = campaignDetails.creativesV1.firstOrNull()?.primary?.type ?: ""
 
-                            val retainedAd = RetainedAd(campaignDetails)
-                            tracking = retainedAd.tracking
-                            adViewModel?.retain(adUnitId, retainedAd)
+                            adViewModel?.retain(adUnitId, RetainedAd(campaignDetails, tracking))
 
-                            renderAdWithAdCard(payload.creativeJson)
+                            applyServerAdSize(campaignDetails)
+                            renderAdWithAdCard(payload.creativeJson, campaignDetails.adSpaceType)
                         }
                     }
                 } catch (err: Exception) {
                     Log.e(TAG, "Parsing error: ${err.message}", err)
-                    listener?.onAdFailedToLoad(err.message ?: "Error")
+                    safelyDestroyWebView()
+                    notifyAdFailedToLoad(err.message ?: "Error")
                 }
             }
         }
     }
 
-    private fun prefetchCreativeMedia(response: FixedAdResponse) {
-        val urls = mutableListOf<String?>()
-        response.creativesV1.firstOrNull()?.let { creative ->
-            creative.primary?.let { media ->
-                urls.add(media.fileUrl)
-                urls.add(media.thumbnailUrl)
-            }
-            creative.companions?.forEach { companion ->
-                urls.add(companion.fileUrl)
-                urls.add(companion.thumbnailUrl)
-            }
-        }
-        // CreativeMediaCache.prefetch(context, urls)
-    }
-
-    private fun renderAdWithAdCard(creativeJsonData: String) {
+    private fun preloadShell() {
         if (isDestroyed) return
 
-        benchmark.onRenderStart()
+        benchmark.onPreloadStart()
         removeAllViews()
+
+        shellPreloader.resetForNewLoad()
 
         val bridge = JsBridge(this, context)
         jsInterface = bridge
-        listener?.onAdOpened()
 
         val created = AdWebViewFactory.create(context, bridge)
-        benchmark.onWebViewReady(created.allocEndAt)
+        benchmark.onWebViewCreated(created.allocEndAt)
 
         val adWebView = created.webView
         webView = adWebView
 
-        val htmlContent = AdCardHtml.build(context.assets, creativeJsonData)
-        benchmark.onHtmlRead()
+        if (!shellPreloader.loadShellIntoWebView(adWebView, context.assets)) return
+    }
 
-        adWebView.loadDataWithBaseURL(
-            "https://adgeist.ai",
-            htmlContent,
-            "text/html",
-            "UTF-8",
-            null
-        )
+    internal fun onShellReady() {
+        if (isDestroyed) return
 
-        addView(adWebView, AdWebViewFactory.matchParentLayoutParams())
-        benchmark.onViewAdded()
+        shellPreloader.markShellReadyAndReleaseCreative()?.let { renderCreative(it) }
+    }
 
-        // Companion ads stay hidden until the overflow check completes
-        if (adType == AdType.COMPANION) {
-            adWebView.visibility = View.INVISIBLE
+    internal fun onShellPageFinished() {
+        if (isDestroyed) return
+
+        shellPreloader.onShellPageFinished()
+    }
+
+    internal fun onRenderProcessGone(didCrash: Boolean) {
+        if (isDestroyed) return
+
+        shellPreloader.onRendererProcessLost(didCrash)
+    }
+
+    private fun renderAdWithAdCard(creativeJsonData: String, adSpaceType: AdSpaceType) {
+        if (isDestroyed) return
+
+        if (shellPreloader.submitCreativeForRender(creativeJsonData, adSpaceType)) {
+            renderCreative(creativeJsonData)
         }
     }
 
+    private fun renderCreative(creativeJsonData: String) {
+        val adWebView = webView ?: return
+
+        benchmark.onRenderStart()
+        listener?.onAdOpened()
+
+        addView(adWebView, AdWebViewFactory.matchParentLayoutParams())
+
+        // Companion ads stay hidden until the overflow check completes
+        if (shellPreloader.submittedAdSpaceType == AdSpaceType.COMPANION) {
+            adWebView.visibility = View.INVISIBLE
+        }
+
+        shellPreloader.injectCreativeIntoShell(adWebView, creativeJsonData)
+    }
+
     // ---- Measurement and layout ----
+    private fun warnIfResponsiveAxisUndetermined(measurement: AdSizeResolver.Result) {
+        if (responsiveAxisWarningSent) return
+
+        val message = AdSizeResolver.undeterminedAxisWarning(
+            adUnitId = adUnitId,
+            widthUndetermined = measurement.widthUndetermined,
+            heightUndetermined = measurement.heightUndetermined
+        ) ?: return
+
+        responsiveAxisWarningSent = true
+        mainHandler?.post { listener?.onAdWarning(message) }
+    }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val widthSize = MeasureSpec.getSize(widthMeasureSpec)
-        val heightSize = MeasureSpec.getSize(heightMeasureSpec)
+        val size = serverAdSize ?: adSize
+        val measurement = AdSizeResolver.resolve(
+            widthMeasureSpec = widthMeasureSpec,
+            heightMeasureSpec = heightMeasureSpec,
+            adIsResponsive = adIsResponsive,
+            declaredWidthPx = size?.getWidthInPixels(context) ?: 0,
+            declaredHeightPx = size?.getHeightInPixels(context) ?: 0,
+            minWidthPx = suggestedMinimumWidth,
+            minHeightPx = suggestedMinimumHeight
+        )
 
-        var width: Int
-        var height: Int
-
-        // 1. Calculate desired dimensions based on ad settings
-        val size = adSize
         if (adIsResponsive) {
-            width = widthSize
-            height = heightSize
-        } else if (size != null) {
-            width = size.getWidthInPixels(context)
-            height = size.getHeightInPixels(context)
-        } else {
-            width = 0
-            height = 0
+            warnIfResponsiveAxisUndetermined(measurement)
         }
 
-        // 2. Respect minimum sizes (from XML or background)
-        width = max(width.toDouble(), suggestedMinimumWidth.toDouble()).toInt()
-        height = max(height.toDouble(), suggestedMinimumHeight.toDouble()).toInt()
+        AdSizeResolver.measureChild(this, measurement.widthPx, measurement.heightPx)
 
-        // 3. Resolve against parent constraints
-        val resolvedWidth = resolveSize(width, widthMeasureSpec)
-        val resolvedHeight = resolveSize(height, heightMeasureSpec)
-
-        // 4. Force the child (WebView) to fill this view's resolved size
-        val child = getChildAt(0)
-        if (child != null && child.visibility != GONE) {
-            val childWidthSpec = MeasureSpec.makeMeasureSpec(resolvedWidth, MeasureSpec.EXACTLY)
-            val childHeightSpec = MeasureSpec.makeMeasureSpec(resolvedHeight, MeasureSpec.EXACTLY)
-            child.measure(childWidthSpec, childHeightSpec)
-        }
-
-        setMeasuredDimension(resolvedWidth, resolvedHeight)
+        setMeasuredDimension(measurement.widthPx, measurement.heightPx)
     }
 
     /** Centers the WebView child within this container. */
@@ -515,8 +586,23 @@ open class BaseAdView : ViewGroup {
                 //
             }
         }
+        
+        val hostDecorView = context.findActivity()?.window?.decorView
+
         super.onDetachedFromWindow()
         mainHandler?.post {
+            // Repairs the host window's layout pass, which detaching a rendered ad WebView
+            // can wedge: every view from here up to the DecorView is left flagged as
+            // "layout already requested" while ViewRootImpl has no pass scheduled.
+            // requestLayout() only walks up while the parent is unflagged, so a later
+            // sibling - the next screen the host shows - stops at the first flagged
+            // ancestor, never reaches ViewRootImpl, and measures 0x0 forever.
+            // The DecorView's parent IS ViewRootImpl, so asking there skips the flagged
+            // chain and schedules the pass that clears it. Posted so it lands after the
+            // host finishes swapping this view out; running it inline would repair
+            // nothing, because the damage is not done yet.
+            hostDecorView?.requestLayout()
+
             if (isAttachedToWindow) return@post
 
             destroyInternal()

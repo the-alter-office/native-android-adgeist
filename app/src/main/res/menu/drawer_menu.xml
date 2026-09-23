@@ -5,10 +5,19 @@
             android:id="@+id/nav_home"
             android:title="Home (Ads)" />
         <item
-            android:id="@+id/nav_screen_two"
-            android:title="Screen Two" />
+            android:id="@+id/nav_fixed"
+            android:title="1. Non-responsive" />
         <item
-            android:id="@+id/nav_screen_three"
-            android:title="Screen Three" />
+            android:id="@+id/nav_responsive_both"
+            android:title="2. Responsive - Both Axes" />
+        <item
+            android:id="@+id/nav_responsive_vertical"
+            android:title="3. Responsive - Vertical" />
+        <item
+            android:id="@+id/nav_responsive_horizontal"
+            android:title="4. Responsive - Horizontal" />
+        <item
+            android:id="@+id/nav_responsive_scroll"
+            android:title="5. Responsive - ScrollView" />
     </group>
 </menu>

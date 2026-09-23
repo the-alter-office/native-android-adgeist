@@ -2,7 +2,7 @@ name: Artifact Deployment
 
 on:
   push:
-    branches: ["main", "qa"]
+    branches: ["main", "qa", "prod"]
 
 permissions:
   contents: write
@@ -31,26 +31,36 @@ jobs:
         id: variant
         run: |
           BRANCH="${{ github.ref_name }}"
+
           if [ "$BRANCH" = "main" ]; then
             VARIANT="betaRelease"
+            SUFFIX="beta"
           elif [ "$BRANCH" = "qa" ]; then
             VARIANT="qaRelease"
-          else
+            SUFFIX="qa"
+          elif [ "$BRANCH" = "prod" ]; then
             VARIANT="prodRelease"
+            SUFFIX=""
           fi
+
+          if [ -z "$VARIANT" ]; then
+            echo "::error::No publish variant mapped for branch '$BRANCH'. Add it here and to the push trigger."
+            exit 1
+          fi
+
           echo "publish_variant=$VARIANT" >> $GITHUB_OUTPUT
+          echo "version_suffix=$SUFFIX" >> $GITHUB_OUTPUT
           echo "Publishing variant: $VARIANT for branch: $BRANCH"
 
       - name: Extract version from gradle.properties
         id: version
         run: |
           VERSION_NAME=$(grep "^VERSION_NAME=" gradle.properties | cut -d'=' -f2 | tr -d ' ')
-          VERSION_SUFFIX=$(grep "^VERSION_SUFFIX=" gradle.properties | cut -d'=' -f2 | tr -d ' ')
+          VERSION_SUFFIX="${{ steps.variant.outputs.version_suffix }}"
 
+          VERSION="$VERSION_NAME"
           if [ -n "$VERSION_SUFFIX" ]; then
             VERSION="${VERSION_NAME}-${VERSION_SUFFIX}"
-          else
-            VERSION="$VERSION_NAME"
           fi
 
           echo "library_version=$VERSION" >> $GITHUB_OUTPUT

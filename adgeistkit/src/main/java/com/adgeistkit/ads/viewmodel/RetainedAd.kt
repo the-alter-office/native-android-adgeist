@@ -10,5 +10,5 @@ import com.adgeistkit.data.models.FixedAdResponse
  */
 internal class RetainedAd(
     val response: FixedAdResponse,
-    val tracking: AdTrackingState = AdTrackingState(),
+    val tracking: AdTrackingState,
 )

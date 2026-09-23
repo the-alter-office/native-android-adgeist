@@ -2,20 +2,18 @@ package com.adgeistkit
 
 import android.util.Log
 import android.content.Context
-import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Handler
 import android.os.Looper
-import com.adgeistkit.ads.cache.CreativeMediaCache
+import com.adgeistkit.ads.render.AdCardHtml
 import com.adgeistkit.ads.render.AdWebViewFactory
 import com.adgeistkit.targeting.TargetingSignals
 import com.adgeistkit.targeting.device.DeviceIdentifier
 import com.adgeistkit.targeting.device.DeviceSignals
-import com.adgeistkit.targeting.device.NetworkSignals
 import com.adgeistkit.data.models.Event
 import com.adgeistkit.data.models.UserDetails
+import com.adgeistkit.data.local.Preferences
 import com.adgeistkit.data.network.AnalyticsRetryQueue
 import com.adgeistkit.data.network.ConnectionWarmer
 import com.adgeistkit.data.network.CreativeAnalytics
@@ -26,42 +24,45 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import com.adgeistkit.utilities.AdgeistInternalApi
+import com.adgeistkit.utilities.AdgeistLog
+import com.adgeistkit.utilities.CustomConfig
+import com.adgeistkit.utilities.ExperimentalAdgeistApi
+import com.adgeistkit.utilities.logI
 
-class AdgeistCore private constructor(
+public class AdgeistCore private constructor(
     internal val context: Context,
-    val bidRequestBackendDomain: String,
+    internal val bidRequestBackendDomain: String,
     private val customPackageOrBundleID: String? = null,
     private val customAdgeistAppID: String? = null,
     private val customVersioning: String? = null,
 ) {
-    companion object {
+    public companion object {
         private const val TAG = "AdgeistCore"
         private const val BidRequestBackendDomain = com.adgeistkit.BuildConfig.BASE_API_URL
 
-        internal const val PREFS_NAME = "AdgeistPrefs"
-
         @Volatile private var instance: AdgeistCore? = null
-        private val lock = Any()
 
         @JvmStatic
-        @JvmOverloads
-        fun initialize(context: Context,
-                       customBidRequestBackendDomain: String? = null,
-                       customPackageOrBundleID : String? = null,
-                       customAdgeistAppID : String? = null,
-                       customVersioning: String? = null): AdgeistCore?
+        @OptIn(AdgeistInternalApi::class)
+        public fun initialize(context: Context): AdgeistCore? = initialize(context, null)
+
+        @JvmStatic
+        @AdgeistInternalApi
+        public fun initialize(context: Context, customConfig: CustomConfig?): AdgeistCore?
         {
             return instance ?: synchronized(this) {
                 instance ?: try {
                     AdgeistCore(
                         context.applicationContext,
-                        customBidRequestBackendDomain ?: BidRequestBackendDomain,
-                        customPackageOrBundleID,
-                        customAdgeistAppID,
-                        customVersioning,
+                        customConfig?.backendDomain ?: BidRequestBackendDomain,
+                        customConfig?.packageOrBundleId,
+                        customConfig?.adgeistAppId,
+                        customConfig?.versioning,
                     ).also {
                         instance = it
-                        Log.i(TAG, "AdgeistCore initialized successfully")
+
+                        logI(TAG) { "AdgeistCore initialized successfully" }
 
                         if (it.adgeistAppID.isEmpty()) {
                             Log.w(TAG, "WARNING: adgeistAppID is empty. Set com.adgeistkit.ads.ADGEIST_APP_ID in AndroidManifest.xml")
@@ -77,8 +78,8 @@ class AdgeistCore private constructor(
         }
 
         @JvmStatic
-        fun destroy() {
-            synchronized(lock) {
+        public fun destroy() {
+            synchronized(this) {
                 instance?.let {
                     it.ioScope.cancel()
                     AnalyticsRetryQueue.shutdown(it.context)
@@ -88,7 +89,7 @@ class AdgeistCore private constructor(
         }
 
         @JvmStatic
-        fun getInstance(): AdgeistCore {
+        public fun getInstance(): AdgeistCore {
             return instance ?: run {
                 Log.e(TAG, "ERROR: AdgeistCore not initialized")
                 throw IllegalStateException("AdgeistCore is not initialized. Call AdgeistCore.initialize() first.")
@@ -96,22 +97,25 @@ class AdgeistCore private constructor(
         }
 
         @JvmStatic
-        fun isInitialized(): Boolean {
+        public fun isInitialized(): Boolean {
             return instance != null
         }
     }
 
-    val packageOrBundleID = customPackageOrBundleID ?: context.packageName
-    val adgeistAppID = customAdgeistAppID ?: getMetaValue("com.adgeistkit.ads.ADGEIST_APP_ID") ?: ""
-    val version = customVersioning ?: "ANDROID-${com.adgeistkit.BuildConfig.VERSION_NAME}"
+    public val packageOrBundleID: String = customPackageOrBundleID ?: context.packageName
+    public val adgeistAppID: String = customAdgeistAppID ?: getMetaValue("com.adgeistkit.ads.ADGEIST_APP_ID") ?: ""
+    public val version: String = customVersioning ?: "ANDROID-${com.adgeistkit.BuildConfig.VERSION_NAME}"
 
     internal val isHostAppDebuggable: Boolean =
         (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
-    private var prefs: SharedPreferences? = null
+    private val preferences = Preferences(context)
 
-    private val KEY_CONSENT = "adgeist_consent"
+    @Volatile
     private var consentGiven: Boolean = false
+
+    @Volatile
+    private var performanceTelemetryEnabled: Boolean = true
 
     /**
      * Single scope for all SDK background work, cancelled in [destroy]. SupervisorJob keeps one
@@ -124,25 +128,22 @@ class AdgeistCore private constructor(
         }
     )
 
-    val deviceSignals = DeviceSignals(context)
-    val deviceIdentifier = DeviceIdentifier(context)
-    val networkSignals = NetworkSignals(context)
-    var targetingInfo: Map<String, Any?>? = null
+    internal val deviceSignals = DeviceSignals(context)
+    internal val deviceIdentifier = DeviceIdentifier(context, preferences)
+    internal var targetingInfo: Map<String, Any?>? = null
 
+    @Volatile
     private var userDetails: UserDetails? = null
 
     init {
-        try {
-            prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            consentGiven = prefs?.getBoolean(KEY_CONSENT, false) ?: false
-        } catch (e: Throwable) {
-            Log.e(TAG, "Non-fatal: failed to read AdGeist preferences", e)
-        }
+        AdgeistLog.enabled = isHostAppDebuggable
+
+        consentGiven = preferences.consentGiven()
+        performanceTelemetryEnabled = preferences.performanceTelemetryEnabled()
 
         try {
             targetingInfo = TargetingSignals(deviceSignals).getTargetingInfo()
-        } catch (e: Throwable) {
-            Log.e(TAG, "Non-fatal: failed to collect device targeting info", e)
+        } catch (_: Throwable) {
         }
 
         Handler(Looper.getMainLooper()).post {
@@ -151,6 +152,7 @@ class AdgeistCore private constructor(
 
         ioScope.launch { deviceIdentifier.getDeviceIdentifier() }
         ioScope.launch { ConnectionWarmer.warm(bidRequestBackendDomain) }
+        ioScope.launch { AdCardHtml.build(context.assets) }
     }
 
     private fun getMetaValue(key: String): String? {
@@ -168,54 +170,56 @@ class AdgeistCore private constructor(
         }
     }
 
-    @Synchronized
-    fun setUserDetails(details: UserDetails) {
+    public fun setUserDetails(details: UserDetails) {
         userDetails = details
     }
 
-    fun updateConsentStatus(consentGiven: Boolean) {
+    @ExperimentalAdgeistApi
+    public fun updateConsentStatus(consentGiven: Boolean) {
         this.consentGiven = consentGiven
-
-        try {
-            prefs?.edit()?.putBoolean(KEY_CONSENT, consentGiven)?.apply()
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to persist consent status", e)
-        }
+        preferences.setConsentGiven(consentGiven)
     }
 
-    fun getConsentStatus(): Boolean {
+    @ExperimentalAdgeistApi
+    public fun getConsentStatus(): Boolean {
         return consentGiven
     }
 
-    fun getCreative(): FetchCreative {
+    @ExperimentalAdgeistApi
+    public fun setPerformanceTelemetryEnabled(enabled: Boolean) {
+        performanceTelemetryEnabled = enabled
+        preferences.setPerformanceTelemetryEnabled(enabled)
+    }
+
+    public fun isPerformanceTelemetryEnabled(): Boolean {
+        return performanceTelemetryEnabled
+    }
+
+    public fun getCreative(): FetchCreative {
         return FetchCreative(AdgeistCore.getInstance())
     }
 
-    fun postCreativeAnalytics(): CreativeAnalytics {
+    public fun postCreativeAnalytics(): CreativeAnalytics {
         return CreativeAnalytics(AdgeistCore.getInstance())
     }
 
-    fun logEvent(event: Event) {
+    @ExperimentalAdgeistApi
+    public fun logEvent(event: Event) {
         ioScope.launch {
             val localUserDetails = userDetails
             val parameters = mutableMapOf<String, Any>()
 
             event.eventProperties?.forEach { (key, value) -> if (value != null) parameters[key] = value }
-            
             if (localUserDetails != null) {
                 parameters["userDetails"] = localUserDetails
             }
 
+            @Suppress("UNUSED_VARIABLE")
             val fullEvent = event.copy(eventProperties = parameters)
         }
     }
 
-    fun clearCreativeMediaCache() {
-        ioScope.launch { CreativeMediaCache.clear(context) }
-    }
-
-    fun hasPhoneStatePermission(): Boolean {
+    public fun hasPhoneStatePermission(): Boolean {
         return DeviceSignals.hasPhoneStatePermission(context)
     }
-
 }

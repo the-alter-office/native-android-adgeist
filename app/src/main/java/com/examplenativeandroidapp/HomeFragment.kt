@@ -19,9 +19,10 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.adgeistkit.AdgeistCore
+import com.adgeistkit.utilities.AdgeistInternalApi
+import com.adgeistkit.utilities.CustomConfig
 import com.adgeistkit.ads.AdListener
 import com.adgeistkit.ads.AdSize
-import com.adgeistkit.ads.AdType
 import com.adgeistkit.ads.AdView
 import com.adgeistkit.request.AdRequest
 import com.examplenativeandroidapp.ui.viewmodel.HomeViewModel
@@ -39,10 +40,7 @@ class HomeFragment : Fragment() {
     private lateinit var configureBtn: Button
 
     // Ad loading section
-    private lateinit var autoLoadSwitch: SwitchCompat
-    private lateinit var manualLoadSection: LinearLayout
     private lateinit var adspaceIdInput: EditText
-    private lateinit var adspaceTypeInput: EditText
     private lateinit var widthInput: EditText
     private lateinit var heightInput: EditText
     private lateinit var generateAdBtn: Button
@@ -101,18 +99,7 @@ class HomeFragment : Fragment() {
             configureSDK()
         }
 
-        val autoLoad = viewModel.isAutoLoadEnabled.value
-        autoLoadSwitch.isChecked = autoLoad
-
-        applyLoadMode(autoLoad)
-
-        autoLoadSwitch.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setAutoLoadEnabled(isChecked)
-            applyLoadMode(isChecked)
-            if (isChecked) {
-                viewModel.generateAd()
-            }
-        }
+        prefillInputs()
 
         generateAdBtn.setOnClickListener {
             viewModel.generateAd()
@@ -136,11 +123,7 @@ class HomeFragment : Fragment() {
                         destroyAllAds()
                         return@collect
                     }
-                    if (viewModel.isAutoLoadEnabled.value) {
-                        loadAdWithDefaults()
-                    } else {
-                        loadAdFromInputs()
-                    }
+                    loadAdFromInputs()
                 }
             }
         }
@@ -159,10 +142,7 @@ class HomeFragment : Fragment() {
         adgeistAppIdInput = view.findViewById(R.id.adgeistAppIdInput)
         configureBtn = view.findViewById(R.id.configureBtn)
 
-        autoLoadSwitch = view.findViewById(R.id.autoLoadSwitch)
-        manualLoadSection = view.findViewById(R.id.manualLoadSection)
         adspaceIdInput = view.findViewById(R.id.adspaceIdInput)
-        adspaceTypeInput = view.findViewById(R.id.adspaceTypeInput)
         widthInput = view.findViewById(R.id.widthInput)
         heightInput = view.findViewById(R.id.heightInput)
         generateAdBtn = view.findViewById(R.id.generateAdBtn)
@@ -175,16 +155,12 @@ class HomeFragment : Fragment() {
         containerHeightInput = view.findViewById(R.id.containerHeightInput)
     }
 
-    private fun applyLoadMode(autoLoad: Boolean) {
-        manualLoadSection.visibility = if (autoLoad) View.GONE else View.VISIBLE
-        if (!autoLoad) {
-            if (adspaceIdInput.text.isEmpty()) adspaceIdInput.setText("")
-            if (adspaceTypeInput.text.isEmpty()) adspaceTypeInput.setText("BANNER")
-            if (widthInput.text.isEmpty()) widthInput.setText("320")
-            if (heightInput.text.isEmpty()) heightInput.setText("320")
-        }
+    private fun prefillInputs() {
+        if (widthInput.text.isEmpty()) widthInput.setText("320")
+        if (heightInput.text.isEmpty()) heightInput.setText("320")
     }
 
+    @OptIn(AdgeistInternalApi::class)
     private fun configureSDK() {
         val packageId = packageIdInput.text.toString().trim()
         val adgeistAppId = adgeistAppIdInput.text.toString().trim()
@@ -195,7 +171,14 @@ class HomeFragment : Fragment() {
         }
 
         AdgeistCore.destroy()
-        AdgeistCore.initialize(requireContext().applicationContext, defaultBidRequestBackendDomain, packageId, adgeistAppId)
+        AdgeistCore.initialize(
+            requireContext().applicationContext,
+            CustomConfig(
+                backendDomain = defaultBidRequestBackendDomain,
+                packageOrBundleId = packageId,
+                adgeistAppId = adgeistAppId,
+            )
+        )
 
         showAlertDialog("Success", "SDK configured successfully with:\nPackage ID: $packageId\nApp ID: $adgeistAppId")
         Log.d(TAG, "SDK reinitialized with Package ID: $packageId, App ID: $adgeistAppId")
@@ -205,52 +188,21 @@ class HomeFragment : Fragment() {
     // Ad loading
     // ---------------------------------------------------------------------
 
-    /** Auto mode: two fixed ads with default ids, stacked vertically. */
-    private fun loadAdWithDefaults() {
-        clearAdContainer()
-        performAdLoad(
-            adspaceId = "6a8fe8dd5b4f4fd5b006dc9f",
-            adSpaceType = AdType.COMPANION,
-            isResponsive = true,
-            width = 360,
-            height = 360,
-            containerWidth = 360,
-            containerHeight = 360
-        )
-        // performAdLoad(
-        //     adspaceId = "6a4b7c9a50946c5aa2fda929",
-        //     adSpaceType = AdType.BANNER,
-        //     isResponsive = false,
-        //     width = 360,
-        //     height = 360,
-        //     containerWidth = 360,
-        //     containerHeight = 360
-        // )
-    }
-
-    /** Manual mode: everything comes from the input fields. */
+    /** Everything comes from the input fields. */
     private fun loadAdFromInputs() {
         val adspaceId = adspaceIdInput.text.toString().trim()
-        val typeText = adspaceTypeInput.text.toString().trim()
         val isResponsive = responsiveAdSwitch.isChecked
         val width = widthInput.text.toString().toIntOrNull() ?: 0
         val height = heightInput.text.toString().toIntOrNull() ?: 0
         val containerWidth = containerWidthInput.text.toString().toIntOrNull() ?: 0
         val containerHeight = containerHeightInput.text.toString().toIntOrNull() ?: 0
 
-        val adSpaceType = if (typeText.equals("COMPANION", ignoreCase = true)) {
-            AdType.COMPANION
-        } else {
-            AdType.BANNER
-        }
-
         clearAdContainer()
-        performAdLoad(adspaceId, adSpaceType, isResponsive, width, height, containerWidth, containerHeight)
+        performAdLoad(adspaceId, isResponsive, width, height, containerWidth, containerHeight)
     }
 
     private fun performAdLoad(
         adspaceId: String,
-        adSpaceType: AdType,
         isResponsive: Boolean,
         width: Int,
         height: Int,
@@ -275,7 +227,6 @@ class HomeFragment : Fragment() {
 
         val adView = AdView(requireContext())
         adView.adUnitId = adspaceId
-        adView.adType = adSpaceType
 
         val wrapperWidth: Int
         val wrapperHeight: Int
@@ -287,8 +238,9 @@ class HomeFragment : Fragment() {
             Log.d(TAG, "Loading RESPONSIVE ad '$adspaceId' in ${containerWidth}dp x ${containerHeight}dp")
         } else {
             adView.setAdDimension(AdSize(width, height))
-            wrapperWidth = dpToPx(width)
-            wrapperHeight = dpToPx(height)
+            adView.reserveSpace = false
+            wrapperWidth = dpToPx(360)
+            wrapperHeight = dpToPx(360)
             Log.d(TAG, "Loading FIXED ad '$adspaceId': ${width}dp x ${height}dp")
         }
 
@@ -317,7 +269,7 @@ class HomeFragment : Fragment() {
                 Log.e("AdView", "Ad Failed to Load ('${adView.adUnitId}'): $error")
                 if (isAdded) {
                     showAlertDialog("Ad Load Failed", "Reason: $error")
-                    removeAd(adView)
+//                    removeAd(adView)
                 }
             }
 
@@ -331,6 +283,10 @@ class HomeFragment : Fragment() {
 
             override fun onAdClosed() {
                 Log.d("AdView", "Ad Closed")
+            }
+
+            override fun onAdWarning(message: String) {
+                Log.w("AdView", message)
             }
         })
 
@@ -377,13 +333,6 @@ class HomeFragment : Fragment() {
     // ---------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------
-
-    private fun clearInputFields() {
-        adspaceIdInput.text.clear()
-        adspaceTypeInput.text.clear()
-        widthInput.text.clear()
-        heightInput.text.clear()
-    }
 
     private fun dpToPx(dp: Int): Int {
         return (dp * resources.displayMetrics.density).toInt()

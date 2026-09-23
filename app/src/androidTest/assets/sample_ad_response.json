@@ -3,15 +3,18 @@
   "metaData": "{\"reqId\":\"abc-123\"}",
   "id": "creative_6789",
   "generatedAt": "2026-07-01T10:00:00Z",
-  "signature": "sig_deadbeef",
   "campaignId": "campaign_42",
+  "campaignGroupId": "campaign_group_7",
+  "adspaceId": "adspace_99",
+  "publisherCompanyId": "publisher_5",
   "advertiser": {
     "id": "adv_1",
     "name": "Acme Corp",
     "logoUrl": "https://cdn.example.com/acme/logo.png"
   },
-  "type": "BANNER",
-  "loadType": "eager",
+  "type": "FIXED",
+  "adSpaceType": "banner",
+  "loadType": "QUICK",
   "campaignValidity": {
     "startTime": "2026-07-01T00:00:00Z",
     "endTime": "2026-12-31T23:59:59Z"
@@ -20,13 +23,23 @@
     {
       "title": "Buy Acme Widgets",
       "description": "The best widgets around.",
+      "ctaShortCode": "aB3xY9zQ1p",
       "ctaUrl": "https://example.com/widgets",
+      "createdAt": {
+        "$date": 1787637469537
+      },
+      "updatedAt": {
+        "$date": 1787637483939
+      },
       "primary": {
         "type": "image",
         "fileName": "banner.png",
         "fileSize": 20480,
         "fileUrl": "https://cdn.example.com/acme/banner.png",
-        "thumbnailUrl": "https://cdn.example.com/acme/banner_thumb.png"
+        "thumbnailUrl": "https://cdn.example.com/acme/banner_thumb.png",
+        "moderation": {
+          "$oid": "6a8d2eebab6be59c5cdb3c85"
+        }
       },
       "companions": [
         {
@@ -40,20 +53,19 @@
     }
   ],
   "displayOptions": {
-    "allowedFormats": ["banner", "display"],
+    "primaryFormats": ["jpg", "jpeg", "png", "gif", "mp4"],
+    "companionFormats": ["jpg", "png"],
     "dimensions": {
       "height": 250,
       "width": 300
     },
     "isResponsive": true,
+    "responsiveType": "Square",
     "styleOptions": {
       "fontColor": "#000000",
       "fontFamily": "Roboto"
     }
   },
   "frontendCacheDurationSeconds": 3600,
-  "impressionRequirements": {
-    "impressionType": ["viewable"],
-    "minViewDurationSeconds": 1
-  }
+  "maxBid": 0
 }

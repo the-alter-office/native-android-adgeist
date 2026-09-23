@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="20dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="5. Responsive inside a ScrollView"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="A ScrollView measures its child's height with MeasureSpec.UNSPECIFIED, whose size is 0. A wrap_content row inside it inherits that, so the AdView is told nothing at all about its height.\n\nThis is the silent failure: the ad fetches and renders fine, but measures 0 tall and is never visible."
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Ad A - AdSize.height(250), renders correctly"
+            android:textStyle="bold" />
+
+        <FrameLayout
+            android:id="@+id/scrollAdGoodContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="#2200AA00" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Ad B - no AdSize, measures 0 and warns"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Nothing can determine this ad's height: the parent supplies no fixed height and no AdSize supplies one. The red box below stays empty and onAdWarning fires."
+            android:textSize="13sp" />
+
+        <FrameLayout
+            android:id="@+id/scrollAdBadContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="#22FF0000" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="SDK callbacks"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/logPanel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="#11000000"
+            android:padding="12dp"
+            android:textSize="12sp"
+            android:typeface="monospace" />
+
+    </LinearLayout>
+</ScrollView>

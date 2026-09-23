@@ -1,5 +1,6 @@
 package com.adgeistkit.ads.render
 
+import com.adgeistkit.data.models.AdSpaceType
 import com.adgeistkit.data.models.Advertiser
 import com.adgeistkit.data.models.CreativeV1
 import com.adgeistkit.data.models.DisplayOptions
@@ -11,7 +12,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import com.adgeistkit.ads.AdSize
-import com.adgeistkit.ads.AdType
 
 /**
  * Covers the ad-server response -> ad-page payload mapping. Pure JVM: the
@@ -45,27 +45,26 @@ class AdCreativePayloadTest {
         displayOptions: DisplayOptions? = null,
         advertiser: Advertiser? = Advertiser(id = "a1", name = "Acme", logoUrl = null),
         metaData: String = "meta-token",
+        adSpaceType: AdSpaceType = AdSpaceType.BANNER,
     ) = FixedAdResponse(
         expiresAt = null,
         metaData = metaData,
         id = "response-id",
         generatedAt = null,
-        signature = null,
         campaignId = null,
         advertiser = advertiser,
         type = "FIXED",
+        adSpaceType = adSpaceType,
         loadType = null,
         campaignValidity = null,
         creativesV1 = creatives,
         displayOptions = displayOptions,
         frontendCacheDurationSeconds = null,
-        impressionRequirements = null,
     )
 
     private fun build(
         response: FixedAdResponse = response(),
         adUnitId: String = "unit-1",
-        adType: AdType = AdType.BANNER,
         adIsResponsive: Boolean = false,
         adSize: AdSize? = AdSize(320, 250),
         measuredWidthDp: Int = 0,
@@ -73,7 +72,6 @@ class AdCreativePayloadTest {
     ) = AdCreativePayload.build(
         response = response,
         adUnitId = adUnitId,
-        adType = adType,
         adIsResponsive = adIsResponsive,
         adSize = adSize,
         measuredWidthDp = measuredWidthDp,
@@ -208,9 +206,19 @@ class AdCreativePayloadTest {
     }
 
     @Test
-    fun `adspaceType carries the ad type wire value`() {
-        assertEquals("companion", successJson(build(adType = AdType.COMPANION))["adspaceType"])
-        assertEquals("banner", successJson(build(adType = AdType.BANNER))["adspaceType"])
+    fun `adspaceType carries the wire value the server sent`() {
+        assertEquals(
+            "companion",
+            successJson(build(response = response(adSpaceType = AdSpaceType.COMPANION)))["adspaceType"]
+        )
+        assertEquals(
+            "display",
+            successJson(build(response = response(adSpaceType = AdSpaceType.DISPLAY)))["adspaceType"]
+        )
+        assertEquals(
+            "banner",
+            successJson(build(response = response(adSpaceType = AdSpaceType.BANNER)))["adspaceType"]
+        )
     }
 
     @Test
@@ -239,9 +247,11 @@ class AdCreativePayloadTest {
     @Test
     fun `display options are carried through when present`() {
         val options = DisplayOptions(
-            allowedFormats = null,
+            primaryFormats = null,
+            companionFormats = null,
             dimensions = null,
             isResponsive = true,
+            responsiveType = null,
             styleOptions = null,
         )
 

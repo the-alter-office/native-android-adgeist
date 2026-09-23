@@ -2,7 +2,7 @@ package com.adgeistkit.data.models
 
 import com.google.gson.annotations.SerializedName
 
-data class Event(
+public data class Event(
     @SerializedName("event_type") val eventType: String,
     @SerializedName("event_properties") val eventProperties: Map<String, Any?>? = null
 )

@@ -1,6 +1,6 @@
 package com.adgeistkit.benchmark
 
-data class FetchTimings(
+public data class FetchTimings(
     val queueWaitMs: Long,
     val deviceIdMs: Long,
     val requestBuildMs: Long,
@@ -8,7 +8,7 @@ data class FetchTimings(
     val bodyReadMs: Long,
     val responseParseMs: Long,
 ) {
-    companion object {
-        val EMPTY = FetchTimings(0, 0, 0, 0, 0, 0)
+    public companion object {
+        public val EMPTY: FetchTimings = FetchTimings(0, 0, 0, 0, 0, 0)
     }
 }

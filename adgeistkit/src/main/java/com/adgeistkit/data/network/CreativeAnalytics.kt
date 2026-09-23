@@ -8,7 +8,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 
-class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
+public class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
 
     private val scope = adgeistCore.ioScope
     private val client = NetworkModule.httpClient
@@ -19,9 +19,8 @@ class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
     private val adgeistAppID = adgeistCore.adgeistAppID
 
     private val deviceIdentifier = adgeistCore.deviceIdentifier
-    private val networkSignals = adgeistCore.networkSignals
 
-    fun sendTrackingDataV2(analyticsRequest: AnalyticsRequest){
+    public fun sendTrackingDataV2(analyticsRequest: AnalyticsRequest){
         scope.launch {
             val url = "$bidRequestBackendDomain/v2/ssp/impression";
 

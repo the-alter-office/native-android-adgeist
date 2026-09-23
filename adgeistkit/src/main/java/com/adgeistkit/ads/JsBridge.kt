@@ -11,12 +11,12 @@ import com.adgeistkit.benchmark.AdRenderBenchmark
  * JS <-> native bridge registered on the ad WebView as the "Android" object, and
  * owner of the ad's tracker.
  */
-class JsBridge(
+internal class JsBridge(
     private var baseAdView: BaseAdView,
     @Suppress("UNUSED_PARAMETER") context: Context,
 ) {
 
-    companion object {
+    public companion object {
         private const val TAG = "Javascript Bridge"
     }
 
@@ -24,24 +24,32 @@ class JsBridge(
 
     // ---- Host lifecycle (called by BaseAdView) ----
 
-    fun onHostDetached() {
+    public fun onHostDetached() {
         adActivity?.pause()
     }
 
-    fun onHostAttached() {
+    public fun onHostAttached() {
         adActivity?.resume()
     }
 
-    fun rebind(newHost: BaseAdView) {
+    public fun rebind(newHost: BaseAdView) {
         baseAdView = newHost
         adActivity?.rebind(newHost)
     }
 
-    fun recordClickListener() {
+    public fun recordClickListener() {
         adActivity?.captureClick()
     }
 
-    fun destroyListeners() {
+    public fun onShellPageFinished() {
+        baseAdView.onShellPageFinished()
+    }
+
+    public fun onRenderProcessGone(didCrash: Boolean) {
+        baseAdView.onRenderProcessGone(didCrash)
+    }
+
+    public fun destroyListeners() {
         adActivity?.destroy()
         adActivity = null
     }
@@ -49,7 +57,7 @@ class JsBridge(
     // ---- Calls from the ad page ----
 
     @JavascriptInterface
-    fun postMessage(json: String) {
+    public fun postMessage(json: String) {
         try {
             val obj = JSONObject(json)
             val type = obj.optString("type")
@@ -57,6 +65,10 @@ class JsBridge(
 
             if (AdRenderBenchmark.MESSAGE_TYPE == type) {
                 AdRenderBenchmark.jsPhaseOf(msg)?.let { baseAdView.markJsPhase(it) }
+            }
+
+            if ("SHELL_READY" == type) {
+                baseAdView.post { baseAdView.onShellReady() }
             }
 
             if ("RENDER_STATUS" == type && "Success" == msg) {
@@ -69,7 +81,7 @@ class JsBridge(
     }
 
     @JavascriptInterface
-    fun postVideoStatus(json: String) {
+    public fun postVideoStatus(json: String) {
         try {
             val obj = JSONObject(json)
             when (obj.optString("type")) {
@@ -83,7 +95,7 @@ class JsBridge(
     }
 
     @JavascriptInterface
-    fun reportOverflow(contentWidth: Int, contentHeight: Int, viewWidth: Int, viewHeight: Int) {
+    public fun reportOverflow(contentWidth: Int, contentHeight: Int, viewWidth: Int, viewHeight: Int) {
         Log.e(TAG, "Ad overflow: content ${contentWidth}x${contentHeight} > view ${viewWidth}x${viewHeight}")
         baseAdView.post {
             baseAdView.listener?.onAdFailedToLoad(
@@ -96,7 +108,7 @@ class JsBridge(
     }
 
     @JavascriptInterface
-    fun showAd() {
+    public fun showAd() {
         baseAdView.post {
             baseAdView.webView?.visibility = android.view.View.VISIBLE
         }
