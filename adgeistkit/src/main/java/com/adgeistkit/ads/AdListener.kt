@@ -1,5 +1,7 @@
 package com.adgeistkit.ads
 
+import com.adgeistkit.utilities.AdgeistEmbedderApi
+
 public abstract class AdListener {
     public open fun onAdClicked() {
     }
@@ -20,5 +22,9 @@ public abstract class AdListener {
     }
 
     public open fun onAdWarning(message: String) {
+    }
+
+    @AdgeistEmbedderApi
+    public open fun onAdSizeResolved(adSize: AdSize) {
     }
 }

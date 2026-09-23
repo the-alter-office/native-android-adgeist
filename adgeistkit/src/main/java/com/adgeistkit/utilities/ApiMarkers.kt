@@ -16,3 +16,13 @@ public annotation class ExperimentalAdgeistApi
 @Retention(AnnotationRetention.BINARY)
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY, AnnotationTarget.CLASS)
 public annotation class AdgeistInternalApi
+
+@RequiresOptIn(
+    message = "For frameworks built on top of this SDK, such as React Native, that own the " +
+        "layout, view hierarchy or lifecycle the AdView otherwise manages itself. Publishers " +
+        "integrating the SDK directly never need it.",
+    level = RequiresOptIn.Level.ERROR,
+)
+@Retention(AnnotationRetention.BINARY)
+@Target(AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY, AnnotationTarget.CLASS)
+public annotation class AdgeistEmbedderApi

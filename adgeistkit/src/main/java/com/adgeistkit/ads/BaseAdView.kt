@@ -13,6 +13,7 @@ import androidx.core.view.doOnLayout
 import androidx.lifecycle.ViewModelStoreOwner
 import com.adgeistkit.AdgeistCore.Companion.getInstance
 import com.adgeistkit.R
+import com.adgeistkit.utilities.AdgeistEmbedderApi
 import com.adgeistkit.utilities.logD
 import com.adgeistkit.request.AdRequest
 import com.adgeistkit.data.models.FixedAdResponse
@@ -51,6 +52,9 @@ public open class BaseAdView : ViewGroup {
      * recreates one every time a screen is covered).
      */
     public var watchFragmentLifecycle: Boolean = true
+
+    @AdgeistEmbedderApi
+    public var isFrameworkHosted: Boolean = false
 
     public var viewModelStoreOwner: ViewModelStoreOwner? = null
         set(value) {
@@ -257,7 +261,10 @@ public open class BaseAdView : ViewGroup {
         return adViewModel != null
     }
 
+    @OptIn(AdgeistEmbedderApi::class)
     public fun removeFromParent() {
+        if (isFrameworkHosted) return
+
         try {
             (parent as? ViewGroup)?.removeView(this)
         } catch (_: Exception) {
@@ -265,6 +272,7 @@ public open class BaseAdView : ViewGroup {
         }
     }
 
+    @OptIn(AdgeistEmbedderApi::class)
     private fun applyServerAdSize(response: FixedAdResponse) {
         if (adIsResponsive) return
 
@@ -279,6 +287,7 @@ public open class BaseAdView : ViewGroup {
         val requested = adSize
         serverAdSize = resolved
         requestLayout()
+        listener?.onAdSizeResolved(resolved)
 
         if (requested == null || requested == resolved) return
 
