@@ -3,6 +3,8 @@ package com.adgeistkit.targeting.device
 import android.content.Context
 import android.util.Log
 import com.adgeistkit.data.local.Preferences
+import com.adgeistkit.constants.General
+import com.adgeistkit.constants.Logs
 import com.google.android.gms.ads.identifier.AdvertisingIdClient
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException
 import com.google.android.gms.common.GooglePlayServicesRepairableException
@@ -20,12 +22,11 @@ internal class DeviceIdentifier internal constructor(
 ) {
     companion object {
         private const val TAG = "DeviceIdentifier"
-        private const val ZEROED_AD_ID = "00000000-0000-0000-0000-000000000000"
 
         private val fallbackLock = Any()
 
         internal fun isUsableAdId(id: String?, limitAdTracking: Boolean): Boolean =
-            !limitAdTracking && !id.isNullOrBlank() && id != ZEROED_AD_ID
+            !limitAdTracking && !id.isNullOrBlank() && id != General.Analytics.ZEROED_AD_ID
 
         internal fun isWellFormedId(id: String?): Boolean {
             if (id.isNullOrBlank()) return false
@@ -49,16 +50,16 @@ internal class DeviceIdentifier internal constructor(
                 info.id.takeIf { isUsableAdId(it, info.isLimitAdTrackingEnabled) }
             }
         } catch (e: IOException) {
-            Log.w(TAG, "Failed to get Advertising ID: ${e.message}")
+            Log.w(TAG, Logs.Warning.advertisingIdFailed(e.message))
             null
         } catch (e: GooglePlayServicesNotAvailableException) {
-            Log.w(TAG, "Failed to get Advertising ID: ${e.message}")
+            Log.w(TAG, Logs.Warning.advertisingIdFailed(e.message))
             null
         } catch (e: GooglePlayServicesRepairableException) {
-            Log.w(TAG, "Failed to get Advertising ID: ${e.message}")
+            Log.w(TAG, Logs.Warning.advertisingIdFailed(e.message))
             null
         } catch (e: IllegalStateException) {
-            Log.w(TAG, "Failed to get Advertising ID: ${e.message}")
+            Log.w(TAG, Logs.Warning.advertisingIdFailed(e.message))
             null
         }
     }
@@ -80,7 +81,7 @@ internal class DeviceIdentifier internal constructor(
             }
         } catch (e: Exception) {
             if (e is CancellationException) throw e
-            Log.w(TAG, "Failed to read or create fallback device ID: ${e.message}")
+            Log.w(TAG, Logs.Warning.fallbackDeviceIdFailed(e.message))
             null
         }
     }
@@ -105,7 +106,7 @@ internal class DeviceIdentifier internal constructor(
             }
         } catch (e: Exception) {
             if (e is CancellationException) throw e
-            Log.w(TAG, "Failed to resolve device identifier: ${e.message}")
+            Log.w(TAG, Logs.Warning.deviceIdentifierFailed(e.message))
             null
         }
     }

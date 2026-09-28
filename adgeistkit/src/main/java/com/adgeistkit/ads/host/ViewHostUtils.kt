@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.lifecycle.findViewTreeViewModelStoreOwner
 import com.adgeistkit.ads.viewmodel.AdViewModel
+import com.adgeistkit.constants.Logs
 
 private const val TAG = "ViewHostUtils"
 
@@ -42,7 +43,7 @@ internal fun View.findAdViewModel(
     return try {
         AdViewModel.of(owner)
     } catch (e: Exception) {
-        Log.w(TAG, "Could not reach the screen's ViewModel; this ad will not be retained", e)
+        Log.w(TAG, Logs.Warning.VIEW_MODEL_UNREACHABLE, e)
         null
     }
 }
@@ -74,13 +75,7 @@ private fun warnActivityScope() {
     if (warnedActivityScope) return
     warnedActivityScope = true
 
-    Log.w(
-        TAG,
-        "Retaining this ad against the Activity's ViewModelStore - no per-screen scope was " +
-            "found. Two placements of the same ad unit on different screens will share one " +
-            "retained ad. Set AdView.viewModelStoreOwner to the screen's owner " +
-            "(LocalViewModelStoreOwner.current under Compose) to scope it correctly."
-    )
+    Log.w(TAG, Logs.Warning.ACTIVITY_SCOPE_RETENTION)
 }
 
 internal fun View.pxToDp(px: Int): Int = (px / resources.displayMetrics.density).toInt()
@@ -109,7 +104,7 @@ internal fun View.releaseImeSession(handler: Handler?) {
                 imm.hideSoftInputFromWindow(activity.window.decorView.windowToken, 0)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error releasing IME session: ${e.message}", e)
+            Log.e(TAG, Logs.Error.imeReleaseFailed(e.message), e)
         }
     }
 }

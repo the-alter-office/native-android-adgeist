@@ -1,11 +1,15 @@
 package com.adgeistkit.utilities
 
 public class CustomConfig @JvmOverloads constructor(
-    public val backendDomain: String? = null,
-    public val packageOrBundleId: String? = null,
-    public val adgeistAppId: String? = null,
-    public val versioning: String? = null,
+    backendDomain: String? = null,
+    packageOrBundleId: String? = null,
+    adgeistAppId: String? = null,
+    versioning: String? = null,
 ) {
+    public val backendDomain: String? = backendDomain?.takeIf { it.isNotBlank() }
+    public val packageOrBundleId: String? = packageOrBundleId?.takeIf { it.isNotBlank() }
+    public val adgeistAppId: String? = adgeistAppId?.takeIf { it.isNotBlank() }
+    public val versioning: String? = versioning?.takeIf { it.isNotBlank() }
 
     public class Builder {
         private var backendDomain: String? = null

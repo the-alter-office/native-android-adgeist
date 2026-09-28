@@ -18,6 +18,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.annotation.RequiresApi
 import com.adgeistkit.ads.JsBridge
+import com.adgeistkit.constants.Logs
 import com.adgeistkit.utilities.logD
 import com.adgeistkit.utilities.logI
 
@@ -77,14 +78,14 @@ internal object AdWebViewFactory {
             // system, never intent://, market://, or custom app schemes
             val scheme = uri.scheme?.lowercase()
             if (scheme != "http" && scheme != "https") {
-                Log.w(TAG, "Blocked non-http(s) ad click URL: $url")
+                Log.w(TAG, Logs.Warning.blockedClickUrl(url))
                 return
             }
             val intent = Intent(Intent.ACTION_VIEW, uri)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to open external URL: $url", e)
+            Log.e(TAG, Logs.Error.externalUrlOpenFailed(url), e)
         }
     }
 
@@ -106,7 +107,7 @@ internal object AdWebViewFactory {
 
         override fun onPageFinished(view: WebView, url: String) {
             super.onPageFinished(view, url)
-            logI(TAG) { "✅ WebView page finished loading: $url" }
+            logI(TAG) { Logs.Debug.pageFinished(url) }
             bridge.onShellPageFinished()
         }
 
@@ -118,7 +119,7 @@ internal object AdWebViewFactory {
 
         override fun onLoadResource(view: WebView, url: String) {
             super.onLoadResource(view, url)
-            logD(TAG) { "📦 Loading resource: $url" }
+            logD(TAG) { Logs.Debug.loadingResource(url) }
         }
     }
 
@@ -131,9 +132,9 @@ internal object AdWebViewFactory {
 
             val fullLog = String.format("[%s] %s (%s:%d)", logLevel, message, source, line)
             when (consoleMessage.messageLevel()) {
-                MessageLevel.ERROR -> Log.e(TAG, "JS Error: $fullLog")
-                MessageLevel.WARNING -> Log.w(TAG, "JS Warning: $fullLog")
-                else -> logD(TAG) { "🔵 JS Log: $fullLog" }
+                MessageLevel.ERROR -> Log.e(TAG, Logs.Error.jsError(fullLog))
+                MessageLevel.WARNING -> Log.w(TAG, Logs.Warning.jsWarning(fullLog))
+                else -> logD(TAG) { Logs.Debug.jsLog(fullLog) }
             }
             return true
         }

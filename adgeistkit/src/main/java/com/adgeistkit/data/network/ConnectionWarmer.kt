@@ -1,6 +1,8 @@
 package com.adgeistkit.data.network
 
 import android.os.SystemClock
+import com.adgeistkit.constants.General
+import com.adgeistkit.constants.Logs
 import com.adgeistkit.utilities.logD
 import okhttp3.Call
 import okhttp3.Callback
@@ -12,7 +14,6 @@ import java.util.concurrent.atomic.AtomicLong
 internal object ConnectionWarmer {
 
     private const val TAG = "ConnectionWarmer"
-    private const val MIN_INTERVAL_MS = 60_000L
 
     private val lastWarmed = AtomicLong(0)
 
@@ -20,7 +21,7 @@ internal object ConnectionWarmer {
         val now = SystemClock.elapsedRealtime()
         val previous = lastWarmed.get()
 
-        if (previous != 0L && now - previous < MIN_INTERVAL_MS) return
+        if (previous != 0L && now - previous < General.Timing.CONNECTION_WARM_MIN_INTERVAL_MS) return
         if (!lastWarmed.compareAndSet(previous, now)) return
 
         val request = try {
@@ -31,12 +32,12 @@ internal object ConnectionWarmer {
 
         NetworkModule.httpClient.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                logD(TAG) { "Warm-up failed: ${e.message}" }
+                logD(TAG) { Logs.Debug.warmUpFailed(e.message) }
             }
 
             override fun onResponse(call: Call, response: Response) {
                 response.close()
-                logD(TAG) { "Warm-up complete (${response.code})" }
+                logD(TAG) { Logs.Debug.warmUpComplete(response.code) }
             }
         })
     }

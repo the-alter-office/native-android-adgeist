@@ -3,6 +3,7 @@ package com.adgeistkit.ads.render
 import com.adgeistkit.data.models.FixedAdResponse
 import com.google.gson.Gson
 import com.adgeistkit.ads.AdSize
+import com.adgeistkit.constants.Messages
 
 internal object AdCreativePayload {
 
@@ -28,7 +29,7 @@ internal object AdCreativePayload {
         val options = response.displayOptions
 
         if (response.creativesV1.isEmpty()) {
-            return Result.Failure("Empty creative")
+            return Result.Failure(Messages.Listener.EMPTY_CREATIVE)
         }
 
         val width: Int
@@ -38,9 +39,7 @@ internal object AdCreativePayload {
             height = measuredHeightDp
         } else {
             if (adSize == null) {
-                return Result.Failure(
-                    "adSize not set. Call setAdDimension() or set adIsResponsive = true before loadAd()"
-                )
+                return Result.Failure(Messages.Listener.AD_SIZE_NOT_SET)
             }
             if(options != null && options.dimensions != null){
                 width = options.dimensions.width ?: 0

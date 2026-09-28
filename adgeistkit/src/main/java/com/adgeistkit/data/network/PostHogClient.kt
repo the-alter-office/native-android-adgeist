@@ -16,8 +16,7 @@ internal object PostHogClient {
     private val JSON = "application/json".toMediaType()
 
     fun capture(event: String, properties: Map<String, Any?>) {
-        if (!AdgeistCore.isInitialized()) return
-        val core = AdgeistCore.getInstance()
+        val core = AdgeistCore.getInstance() ?: return
         if (!core.isPerformanceTelemetryEnabled()) return
 
         core.ioScope.launch {

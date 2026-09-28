@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
+import com.adgeistkit.constants.General
 import java.util.UUID
 
 internal class AdViewModel : ViewModel() {
@@ -13,15 +14,13 @@ internal class AdViewModel : ViewModel() {
 
         // Explicit key and factory so the SDK never collides with a host's own
         // ViewModel and never depends on the owner supplying a default factory.
-        private const val STORE_KEY = "com.adgeistkit.ads.AdViewModel"
-
         private val FACTORY = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T = AdViewModel() as T
         }
 
         fun of(owner: ViewModelStoreOwner): AdViewModel =
-            ViewModelProvider(owner.viewModelStore, FACTORY)[STORE_KEY, AdViewModel::class.java]
+            ViewModelProvider(owner.viewModelStore, FACTORY)[General.Storage.VIEW_MODEL_STORE_KEY, AdViewModel::class.java]
     }
 
     /**

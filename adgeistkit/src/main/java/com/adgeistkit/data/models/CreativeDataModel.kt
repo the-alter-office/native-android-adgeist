@@ -1,6 +1,7 @@
 package com.adgeistkit.data.models
 
 import com.adgeistkit.benchmark.FetchTimings
+import com.adgeistkit.constants.Messages
 import com.google.gson.annotations.SerializedName
 
 public sealed interface AdResponseData
@@ -86,5 +87,5 @@ public data class AdData(
         get() = error == null && data != null
 
     val errorMessage: String
-        get() = error?.errorMessage ?: "Unknown error occurred"
+        get() = error?.errorMessage ?: Messages.Listener.UNKNOWN_ERROR
 }

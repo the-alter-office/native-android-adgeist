@@ -5,6 +5,8 @@ import android.os.Handler
 import android.webkit.WebView
 import com.adgeistkit.benchmark.AdRenderBenchmark
 import com.adgeistkit.data.models.AdSpaceType
+import com.adgeistkit.constants.General
+import com.adgeistkit.constants.Messages
 
 internal class AdShellPreloader(
     private val benchmark: AdRenderBenchmark,
@@ -16,15 +18,6 @@ internal class AdShellPreloader(
         private const val BASE_URL = "https://adgeist.ai"
         private const val MIME_TYPE = "text/html"
         private const val ENCODING = "UTF-8"
-
-        private const val STALLED_HANDSHAKE_GRACE_MS = 300L
-
-        private const val BLANK_SHELL_MESSAGE =
-            "Ad failed to render: ad page assets could not be read"
-        private const val STALLED_HANDSHAKE_MESSAGE =
-            "Ad failed to render: the ad page loaded but never reported ready"
-        private const val RENDERER_LOST_MESSAGE =
-            "Ad failed to render: the WebView renderer process was lost"
     }
 
     private var shellReady = false
@@ -46,11 +39,17 @@ internal class AdShellPreloader(
         benchmark.onShellAssetsRead()
 
         if (shell.isBlank()) {
-            onShellFailed(BLANK_SHELL_MESSAGE)
+            onShellFailed(Messages.Listener.SHELL_BLANK)
             return false
         }
 
-        webView.loadDataWithBaseURL(BASE_URL, shell, MIME_TYPE, ENCODING, null)
+        webView.loadDataWithBaseURL(
+            BASE_URL,
+            shell,
+            MIME_TYPE,
+            ENCODING,
+            null
+        )
         benchmark.onShellHandedToWebView()
         return true
     }
@@ -90,7 +89,7 @@ internal class AdShellPreloader(
 
     fun onRendererProcessLost(didCrash: Boolean) {
         cancelStalledHandshakeDeadline()
-        onShellFailed("$RENDERER_LOST_MESSAGE (crashed: $didCrash)")
+        onShellFailed(Messages.Listener.shellRendererLost(didCrash))
     }
 
     private fun scheduleStalledHandshakeDeadline() {
@@ -99,11 +98,11 @@ internal class AdShellPreloader(
         val deadline = Runnable {
             stalledHandshakeDeadline = null
             if (shellReady) return@Runnable
-            onShellFailed(STALLED_HANDSHAKE_MESSAGE)
+            onShellFailed(Messages.Listener.SHELL_STALLED_HANDSHAKE)
         }
 
         stalledHandshakeDeadline = deadline
-        handler.postDelayed(deadline, STALLED_HANDSHAKE_GRACE_MS)
+        handler.postDelayed(deadline, General.Timing.STALLED_HANDSHAKE_GRACE_MS)
     }
 
     private fun cancelStalledHandshakeDeadline() {

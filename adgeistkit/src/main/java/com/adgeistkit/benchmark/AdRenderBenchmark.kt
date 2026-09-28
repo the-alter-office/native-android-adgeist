@@ -204,7 +204,8 @@ internal class AdRenderBenchmark {
             - Total Time To First Frame:        ${totalMs}ms
         """.trimIndent() }
 
-        if (!AdgeistCore.isInitialized() || AdgeistCore.getInstance().isHostAppDebuggable) return
+        val core = AdgeistCore.getInstance() ?: return
+        if (core.isHostAppDebuggable) return
 
         PostHogClient.capture(
             EVENT_NAME,

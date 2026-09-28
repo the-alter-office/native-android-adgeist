@@ -1,11 +1,16 @@
 package com.adgeistkit.ads
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.webkit.JavascriptInterface
 import org.json.JSONObject
 import com.adgeistkit.ads.tracking.AdActivity
 import com.adgeistkit.benchmark.AdRenderBenchmark
+import com.adgeistkit.constants.General
+import com.adgeistkit.constants.Logs
+import com.adgeistkit.constants.Messages
 
 /**
  * JS <-> native bridge registered on the ad WebView as the "Android" object, and
@@ -21,6 +26,7 @@ internal class JsBridge(
     }
 
     private var adActivity: AdActivity? = AdActivity(baseAdView)
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     // ---- Host lifecycle (called by BaseAdView) ----
 
@@ -67,16 +73,16 @@ internal class JsBridge(
                 AdRenderBenchmark.jsPhaseOf(msg)?.let { baseAdView.markJsPhase(it) }
             }
 
-            if ("SHELL_READY" == type) {
-                baseAdView.post { baseAdView.onShellReady() }
+            if (General.Bridge.SHELL_READY == type) {
+                mainHandler.post { baseAdView.onShellReady() }
             }
 
-            if ("RENDER_STATUS" == type && "Success" == msg) {
+            if (General.Bridge.RENDER_STATUS == type && General.Bridge.RENDER_SUCCESS == msg) {
                 adActivity?.captureImpression()
                 baseAdView.reportFirstFrame()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Invalid JSON: $json")
+            Log.e(TAG, Logs.Error.invalidJson(json))
         }
     }
 
@@ -85,23 +91,21 @@ internal class JsBridge(
         try {
             val obj = JSONObject(json)
             when (obj.optString("type")) {
-                "PLAY" -> adActivity?.onVideoPlay()
-                "PAUSE" -> adActivity?.onVideoPause()
-                "ENDED" -> adActivity?.onVideoEnd()
+                General.Bridge.VIDEO_PLAY -> adActivity?.onVideoPlay()
+                General.Bridge.VIDEO_PAUSE -> adActivity?.onVideoPause()
+                General.Bridge.VIDEO_ENDED -> adActivity?.onVideoEnd()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Invalid JSON in postVideoStatus: $json", e)
+            Log.e(TAG, Logs.Error.invalidVideoStatusJson(json), e)
         }
     }
 
     @JavascriptInterface
     public fun reportOverflow(contentWidth: Int, contentHeight: Int, viewWidth: Int, viewHeight: Int) {
-        Log.e(TAG, "Ad overflow: content ${contentWidth}x${contentHeight} > view ${viewWidth}x${viewHeight}")
+        Log.e(TAG, Logs.Error.adOverflow(contentWidth, contentHeight, viewWidth, viewHeight))
         baseAdView.post {
             baseAdView.listener?.onAdFailedToLoad(
-                "For companion ads, you should have minimum 320x320 dimensions. But available " +
-                    "space is ${viewWidth}x${viewHeight}. So we are collapsing the ad, we won't " +
-                    "track impressions, clicks etc for this ad."
+                Messages.Listener.companionOverflow(viewWidth, viewHeight)
             )
             baseAdView.destroyAd()
         }
