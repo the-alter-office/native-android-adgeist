@@ -28,6 +28,9 @@ internal class JsBridge(
     private var adActivity: AdActivity? = AdActivity(baseAdView)
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    public val deepLinkUrl: String?
+        get() = baseAdView.deepLinkUrl
+
     // ---- Host lifecycle (called by BaseAdView) ----
 
     public fun onHostDetached() {

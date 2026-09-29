@@ -37,6 +37,7 @@ public data class CreativeV1(
     @SerializedName("title") val title: String?,
     @SerializedName("description") val description: String?,
     @SerializedName("ctaUrl") val ctaUrl: String?,
+    @SerializedName("deepLinkUrl") val deepLinkUrl: String?,
     @SerializedName("primary") val primary: MediaItem?,
     @SerializedName("companions") val companions: List<MediaItem>?
 )

@@ -1,6 +1,7 @@
 package com.adgeistkit.ads.render
 
 import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -71,6 +72,34 @@ internal object AdWebViewFactory {
         ViewGroup.LayoutParams.MATCH_PARENT
     )
 
+    private val blockedDeepLinkSchemes = setOf("javascript", "file", "content", "data", "intent")
+
+    private fun handleClick(context: Context, url: String, bridge: JsBridge) {
+        val deepLinkUrl = bridge.deepLinkUrl
+        if (deepLinkUrl.isNullOrBlank() || !openDeepLink(context, deepLinkUrl)) {
+            openInBrowser(context, url)
+        }
+        bridge.recordClickListener()
+    }
+
+    private fun openDeepLink(context: Context, url: String): Boolean {
+        val uri = runCatching { Uri.parse(url) }.getOrNull() ?: return false
+        val scheme = uri.scheme?.lowercase() ?: return false
+        if (scheme in blockedDeepLinkSchemes) return false
+
+        return try {
+            context.startActivity(
+            Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+            true
+        } catch (_: ActivityNotFoundException) {
+            false
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+
     private fun openInBrowser(context: Context, url: String) {
         try {
             val uri = Uri.parse(url)
@@ -90,9 +119,9 @@ internal object AdWebViewFactory {
     }
 
     private class AdWebViewClient(private val bridge: JsBridge) : WebViewClient() {
+        @Deprecated("Deprecated in Java")
         override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-            openInBrowser(view.context, url)
-            bridge.recordClickListener()
+            handleClick(view.context, url, bridge)
             return true
         }
 
@@ -100,8 +129,7 @@ internal object AdWebViewFactory {
             view: WebView,
             request: WebResourceRequest
         ): Boolean {
-            openInBrowser(view.context, request.url.toString())
-            bridge.recordClickListener()
+            handleClick(view.context, request.url.toString(), bridge)
             return true
         }
 
