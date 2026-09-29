@@ -105,7 +105,7 @@ Add your Adgeist publisher ID (as identified in the Adgeist web interface) to yo
 </manifest>
 ```
 
-Replace `YOUR_ADGEIST_ID` with your actual Adgeist publisher ID.
+Replace `YOUR_ADGEIST_ID` with your actual Adgeist publisher ID. The `android:name` attribute must stay as is.
 
 Also make sure your app requests the INTERNET permission, which `loadAd()` requires:
 
@@ -169,121 +169,70 @@ Banner ads are rectangular ads that occupy a portion of an app's layout. They st
 > splash) and place the `AdView` there. If your app has no such screen, assign the ad unit to
 > another placement instead.
 
-#### Define the Ad View
+#### Implement Ad Placement
 
-Banner and display ads are displayed in `AdView` objects, so the first step toward integrating ads is to include an `AdView` in your view hierarchy. Create an `AdView` and add it to your view hierarchy programmatically:
+Banner, display and companion ads are shown in an `AdView`. Create one, give it your ad unit ID, add it to your layout, and call `loadAd()` — the SDK loads and renders the ad content.
 
-```kotlin
-val adView = AdView(this)
-```
+An adspace is either **fixed-size** or **responsive**, depending on what you chose while creating it on [adgeist.ai](https://adgeist.ai). Use the snippet below that matches yours. Each one is complete — copy it into your screen and the ad placement is done.
 
-#### Set the Ad Size
+In the snippets, `context` is your screen's `Context`, and `adContainer` is the view in your layout that holds the ad.
 
-For a fixed-size ad, set the `AdSize` to one of the predefined sizes or create a custom size:
+**Fixed-size adspace** — you entered a width and a height when you created it:
 
 ```kotlin
-adView.setAdDimension(AdSize(360, 360))
+import com.adgeistkit.ads.AdSize
+import com.adgeistkit.ads.AdView
+import com.adgeistkit.request.AdRequest
+
+// Sample Adgeist ad unit ID: 6932a4c022f6786424ce3b84
+// Sample ad size: AdSize(320, 480)
+
+val adView = AdView(context).apply {
+    adUnitId = "YOUR_ADUNIT_ID"
+    setAdDimension(AdSize(YOUR_AD_WIDTH, YOUR_AD_HEIGHT))
+}
+
+adContainer.addView(adView)
+adView.loadAd(AdRequest.Builder().build())
 ```
 
-The size you request is a layout hint, not a guarantee — the creative that comes back decides the
-real size. If the server returns a creative of a different size, the SDK resizes the `AdView` to
-match it and reports the mismatch through [`onAdWarning()`](#ad-events). Update your layout to the
-size named in that warning so the ad does not shift your content when it arrives.
-
-#### Responsive ads
-
-A **responsive** ad takes its size from your layout instead of from `AdSize`:
+**Responsive adspace** — it takes its size from your layout, so it carries no dimensions:
 
 ```kotlin
-adView.adIsResponsive = true
+import com.adgeistkit.ads.AdView
+import com.adgeistkit.request.AdRequest
+
+// adContainer is a box with a real size, for example 300dp x 250dp
+
+val adView = AdView(context).apply {
+    adUnitId = "YOUR_ADUNIT_ID"
+    adIsResponsive = true
+}
+
+adContainer.addView(adView)
+adView.loadAd(AdRequest.Builder().build())
 ```
 
-Each axis is resolved independently:
+Replace `YOUR_ADUNIT_ID` with your Adgeist Ad Unit ID, as identified in the Adgeist web interface. Each ad placement in your app requires its own ad unit ID.
 
-| What the parent layout gives the `AdView` | Where that axis comes from |
+To react to loads, failures, clicks and warnings, add a listener before `loadAd()` — see [Ad Events](#ad-events). To release the ad when the screen goes away, see [Destroy the Ad](#destroy-the-ad).
+
+#### What `setAdDimension` actually does
+
+`setAdDimension()` sets the space your layout hands the ad. The `AdView` takes that box as soon as it is laid out, before any ad has been fetched, so your screen is laid out correctly while the request is in flight.
+
+It is **not** what decides the creative's size. That comes from the adspace you configured on adgeist.ai. When the ad arrives the SDK compares the two:
+
+| | What happens |
 |---|---|
-| A fixed size (`match_parent` in a bounded parent, or a fixed `dp` value) | Your layout |
-| `wrap_content`, or no constraint at all (inside a `ScrollView`) | `AdSize` |
+| Your `AdSize` matches the adspace | The creative fills the box you reserved. Nothing moves. |
+| They differ | The SDK resizes the `AdView` to the creative's real size, so content around it shifts. [`onAdWarning()`](#ad-events) fires, naming the real size. Change your `AdSize` to that size. |
 
-If your layout fixes **both** axes, you need no `AdSize` at all:
+So replace `YOUR_AD_WIDTH` and `YOUR_AD_HEIGHT` with the exact dimensions you entered on adgeist.ai when you created the adspace, and the two can never disagree.
 
-```kotlin
-// container is, for example, 300dp x 250dp
-adView.adIsResponsive = true
-```
+> The SDK corrects the size for you so the creative is never cropped, but the correction happens after the ad arrives — which is the layout shift you reserved the box to avoid. Read `onAdWarning()` as "your `AdSize` is wrong, here is the right one", and treat it as a bug to fix rather than a runtime condition to handle.
 
-If your layout fixes only **one** axis, supply the other with `AdSize.width()` or
-`AdSize.height()`:
-
-```kotlin
-// Bottom banner: match_parent wide, wrap_content tall - you supply the height
-adView.adIsResponsive = true
-adView.setAdDimension(AdSize.height(50))
-
-// Side rail: wrap_content wide, match_parent tall - you supply the width
-adView.adIsResponsive = true
-adView.setAdDimension(AdSize.width(120))
-```
-
-If **neither** your layout nor `AdSize` determines an axis, the `AdView` measures `0` on that axis
-and the ad never becomes visible. The SDK reports this through [`onAdWarning()`](#ad-events) rather
-than failing silently. The most common cause is a responsive ad placed directly inside a
-`ScrollView`, which tells its children nothing about height — give it `AdSize.height(...)`.
-
-#### Set Required Properties
-
-Configure the following properties on your `AdView`:
-
-**Ad Unit ID:**
-
-```kotlin
-adView.adUnitId = "YOUR_AD_UNIT_ID"
-```
-
-Replace `YOUR_AD_UNIT_ID` with the ad unit ID you created in the Adgeist dashboard.
-
-#### Create an Ad Request
-
-Once the `AdView` is configured with its properties (`adUnitId`, `setAdDimension`), create an ad request using the builder pattern:
-
-```kotlin
-val adRequest = AdRequest.Builder().build()
-```
-
-#### Load an Ad
-
-Now it's time to load an ad. This is done by calling `loadAd()` on the `AdView` object:
-
-```kotlin
-adView.loadAd(adRequest)
-```
-
-#### Reserve space for failed loads
-
-Not every request returns an ad. By default the `AdView` keeps its reserved box when a load fails,
-so nothing below it moves:
-
-```kotlin
-adView.reserveSpace = true    // default
-```
-
-Set it to `false` if you would rather the slot collapse when there is nothing to show:
-
-```kotlin
-adView.reserveSpace = false
-```
-
-| `reserveSpace` | After `onAdFailedToLoad()` |
-|---|---|
-| `true` (default) | The `AdView` stays in your layout at its full size, empty. No layout shift. |
-| `false` | The `AdView` removes itself from its parent. Content below it moves up. |
-
-Two things to know:
-
-- This applies to **failed loads only**. `destroyAd()` always removes the `AdView` from its parent,
-  whatever `reserveSpace` is set to.
-- Reserving space only works if the `AdView` has a size to hold. A fixed-size ad always does; a
-  responsive ad only does when its axes resolve — see [Responsive ads](#responsive-ads).
+This comparison applies to fixed-size ads only. A responsive ad is never resized to the creative — it keeps the size your layout gives it.
 
 #### Destroy the Ad
 
@@ -300,93 +249,10 @@ Calling `destroyAd()` stops any in-progress ad load, releases the underlying Web
 
 The SDK also invokes `destroyAd()` automatically when the host screen is popped or the activity is destroyed, but calling it explicitly is recommended so cleanup happens deterministically.
 
-#### Complete Example
-
-Here's a complete example of loading a banner ad programmatically:
-
-```kotlin
-import android.os.Bundle
-import android.widget.LinearLayout
-import androidx.appcompat.app.AppCompatActivity
-import com.adgeistkit.AdgeistCore
-import com.adgeistkit.ads.AdSize
-import com.adgeistkit.ads.AdView
-import com.adgeistkit.request.AdRequest
-
-class MainActivity : AppCompatActivity() {
-    private var adGeist: AdgeistCore? = null
-    private var adView: AdView? = null
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-
-        // Initialize SDK
-        adGeist = AdgeistCore.initialize(applicationContext)
-
-        // Create AdView
-        val newAdView = AdView(this).apply {
-            adUnitId = "YOUR_AD_UNIT_ID"
-            setAdDimension(AdSize(320, 50))
-        }
-        adView = newAdView
-
-        // Create ad request
-        val adRequest = AdRequest.Builder().build()
-
-        // Load ad
-        newAdView.loadAd(adRequest)
-
-        // Add to layout
-        val container = findViewById<LinearLayout>(R.id.adContainer)
-        container.addView(newAdView)
-    }
-
-    override fun onDestroy() {
-        adView?.destroyAd()
-        super.onDestroy()
-    }
-}
-```
-
-#### Responsive Ad Example
-
-When the container fixes **both** axes, skip `setAdDimension()` entirely:
-
-```kotlin
-val adView = AdView(this).apply {
-    adUnitId = "YOUR_AD_UNIT_ID"
-    adIsResponsive = true
-}
-
-// adContainer is a fixed box, for example 300dp x 250dp
-val container = findViewById<FrameLayout>(R.id.adContainer)
-container.addView(adView)
-adView.loadAd(AdRequest.Builder().build())
-```
-
-When the container fixes only **one** axis, supply the other. A bottom banner is `match_parent`
-wide and `wrap_content` tall, so the width comes from the layout and you provide the height:
-
-```kotlin
-val adView = AdView(this).apply {
-    adUnitId = "YOUR_AD_UNIT_ID"
-    adIsResponsive = true
-    setAdDimension(AdSize.height(50))
-}
-
-val container = findViewById<FrameLayout>(R.id.bottomBannerContainer)
-container.addView(adView)
-adView.loadAd(AdRequest.Builder().build())
-```
-
-A side rail is the mirror image — `wrap_content` wide and `match_parent` tall — so use
-`AdSize.width(120)` instead.
-
 #### Compose hosts
 
 In Compose, host the `AdView` inside an `AndroidView` and connect it to your screen with
-— `viewModelStoreOwner`:
+`viewModelStoreOwner`:
 
 ```kotlin
 val owner = LocalViewModelStoreOwner.current
@@ -395,7 +261,7 @@ AndroidView(
     factory = { ctx ->
         AdView(ctx).apply {
             viewModelStoreOwner = owner   // must be set before loadAd()
-            adUnitId = "YOUR_AD_UNIT_ID"
+            adUnitId = "YOUR_ADUNIT_ID"
             setAdDimension(AdSize(320, 320))
             loadAd(AdRequest.Builder().build())
         }
@@ -410,44 +276,121 @@ spending a new request on it. In Compose, the screen's scope lives in the compos
 `LocalViewModelStoreOwner.current` is how you hand it over. Assign it before `loadAd()`, which is
 when the SDK reads it.
 
-#### Ad Events
+---
 
-You can listen for a number of events in the ad's lifecycle, including loading, impression, click, as well as open and close events. It is recommended to set the listener before loading the ad:
+## Extra options
+
+The options below are not part of the snippet adgeist.ai gives you. Your ad placement works without them — reach for one only when your layout calls for it.
+
+### `reserveSpace` — keep the slot when an ad fails
+
+Optional. **Defaults to `true`** — leave it out entirely unless you specifically want `false`.
+
+Not every request returns an ad. By default the `AdView` holds its box after a failed load, so the rest of your screen stays exactly where it was:
 
 ```kotlin
-adView?.setAdListener(object : AdListener() {
-    override fun onAdClicked() {
-        // Code to be executed when the user clicks on an ad.
-    }
+val adView = AdView(context).apply {
+    adUnitId = "YOUR_ADUNIT_ID"
+    setAdDimension(AdSize(320, 480))
+    reserveSpace = true   // default, identical to leaving it out
+}
+```
 
-    override fun onAdClosed() {
-        // Code to be executed when the ad is completely removes 
-        // from the screen
+Set it to `false` if you would rather the ad give up its place when there is nothing to show:
+
+| `reserveSpace` | After `onAdFailedToLoad()` |
+|---|---|
+| `true` (default) | The `AdView` keeps its full box in your layout, empty. No layout shift. |
+| `false` | The `AdView` removes itself from its parent. Content below it moves up. |
+
+**Whether there is any space to reserve depends on how the ad is sized:**
+
+| Ad | Does reserving work? |
+|---|---|
+| Fixed (`AdSize` with both width and height) | Always. The box has a size of its own to hold, ad or no ad. |
+| Responsive | Only on the axes that actually resolve. An axis that nothing determines measures `0`, and there is no space to hold open. See [Responsive ads and `AdSize`](#responsive-ads-and-adsize). |
+
+This applies to **failed loads only**. `destroyAd()` always removes the `AdView` from its parent, whatever `reserveSpace` is set to.
+
+### Responsive ads and `AdSize`
+
+Optional. A responsive adspace normally needs no `AdSize` at all — that is the point of it. You only reach for this when your layout fixes one axis and leaves the other open.
+
+A responsive ad takes each axis independently:
+
+| What the parent layout gives the `AdView` on that axis | Where that axis comes from |
+|---|---|
+| A fixed size (`match_parent` in a bounded parent, or a fixed `dp` value) | Your layout |
+| `wrap_content`, or no constraint at all (inside a `ScrollView`) | `AdSize` |
+
+**Both axes from the layout** — the usual case, no `AdSize`:
+
+```kotlin
+// adContainer is a fixed box, for example 300dp x 250dp
+val adView = AdView(context).apply {
+    adUnitId = "YOUR_ADUNIT_ID"
+    adIsResponsive = true
+}
+```
+
+**One axis from the layout, one from you** — use `AdSize.width()` or `AdSize.height()`:
+
+```kotlin
+// Bottom banner: match_parent wide, wrap_content tall - you supply the height
+val bottomBanner = AdView(context).apply {
+    adUnitId = "YOUR_ADUNIT_ID"
+    adIsResponsive = true
+    setAdDimension(AdSize.height(50))
+}
+
+// Side rail: wrap_content wide, match_parent tall - you supply the width
+val sideRail = AdView(context).apply {
+    adUnitId = "YOUR_ADUNIT_ID"
+    adIsResponsive = true
+    setAdDimension(AdSize.width(120))
+}
+```
+
+If **neither** your layout nor `AdSize` determines an axis, the `AdView` measures `0` on that axis and the ad never becomes visible. The SDK reports this through [`onAdWarning()`](#ad-events) rather than failing silently. The case that catches people out is a `ScrollView`: it gives its children no definite height, so a responsive ad inside one should declare `AdSize.height(...)`.
+
+---
+
+## Ad Events
+
+Set an `AdListener` before calling `loadAd()`:
+
+| Callback | Fires when |
+|---|---|
+| `onAdLoaded()` | The ad finished loading. |
+| `onAdFailedToLoad(error)` | The request failed. `error` carries the reason. |
+| `onAdImpression()` | An impression was recorded for the ad. |
+| `onAdOpened()` | The ad opened an overlay covering the screen. |
+| `onAdClosed()` | The ad was removed from the screen. |
+| `onAdClicked()` | The user clicked the ad. |
+| `onAdWarning(message)` | The SDK found a problem that did not stop the ad from loading, but that you should fix. `message` describes the problem and what to change. |
+
+```kotlin
+adView.setAdListener(object : AdListener() {
+    override fun onAdLoaded() {
     }
 
     override fun onAdFailedToLoad(error: String) {
-        // Code to be executed when an ad request fails.
         Log.e("AdView", "Ad Failed to Load: $error")
     }
 
     override fun onAdImpression() {
-        // Code to be executed when an impression is recorded
-        // for an ad.
-    }
-
-    override fun onAdLoaded() {
-        // Code to be executed when an ad finishes loading.
-        Log.d("AdView", "Ad Loaded Successfully!")
     }
 
     override fun onAdOpened() {
-        // Code to be executed when an ad opens an overlay that
-        // covers the screen.
+    }
+
+    override fun onAdClosed() {
+    }
+
+    override fun onAdClicked() {
     }
 
     override fun onAdWarning(message: String) {
-        // Code to be executed when the SDK finds a problem that did not
-        // stop the ad from loading.
         Log.w("AdView", message)
     }
 })
@@ -457,4 +400,4 @@ adView?.setAdListener(object : AdListener() {
 
 ## Support
 
-If you run into any difficulties while integrating or using the Adgeist Mobile Ads SDK, reach out to beast@thealteroffice.com and we'll help you get it sorted out.
+If you run into any difficulties while integrating or using the Adgeist Mobile Ads SDK, reach out to beast@thealteroffice.com or kishore@thealteroffice.com and we'll help you get it sorted out.

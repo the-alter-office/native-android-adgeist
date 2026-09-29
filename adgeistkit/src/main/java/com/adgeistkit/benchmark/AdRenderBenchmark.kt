@@ -210,7 +210,11 @@ internal class AdRenderBenchmark {
         PostHogClient.capture(
             EVENT_NAME,
             mapOf(
-                "ad_unit_id" to adUnitId,
+                "adSpaceId" to adUnitId,
+                "companyId" to core.adgeistAppID,
+                "bundleId" to core.packageOrBundleID,
+                "sdkVersion" to core.version,
+                "platform" to "android", 
                 "from_cache" to fromCache,
 
                 "load_dispatched_at_ms" to loadDispatchedAt - loadAdAt,

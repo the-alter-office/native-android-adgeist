@@ -101,11 +101,11 @@ public open class BaseAdView : ViewGroup {
         ::failShellLoad
     )
 
-    protected constructor(context: Context, adViewType: Int) : super(context) {
+    protected constructor(context: Context) : super(context) {
         initialize(context, null)
     }
 
-    protected constructor(context: Context, attrs: AttributeSet, adViewType: Int) : super(
+    protected constructor(context: Context, attrs: AttributeSet) : super(
         context,
         attrs
     ) {
@@ -115,8 +115,7 @@ public open class BaseAdView : ViewGroup {
     protected constructor(
         context: Context,
         attrs: AttributeSet,
-        defStyle: Int,
-        adViewType: Int
+        defStyle: Int
     ) : super(context, attrs, defStyle) {
         initialize(context, attrs)
     }

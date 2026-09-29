@@ -41,7 +41,6 @@ internal object Messages {
     }
 
     object Exceptions {
-        const val CONTEXT_NULL = "Context cannot be null"
         const val AD_SIZE_NULL = "AdSize cannot be null"
     }
 }

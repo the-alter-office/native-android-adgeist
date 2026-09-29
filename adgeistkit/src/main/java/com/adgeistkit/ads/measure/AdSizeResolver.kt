@@ -97,6 +97,9 @@ internal object AdSizeResolver {
         return declaredPx
     }
 
-    private fun isAxisUndetermined(measureSpec: Int, declaredPx: Int): Boolean =
-        MeasureSpec.getMode(measureSpec) != MeasureSpec.EXACTLY && declaredPx <= 0
+    private fun isAxisUndetermined(measureSpec: Int, declaredPx: Int): Boolean {
+        if (declaredPx > 0) return false
+        return MeasureSpec.getMode(measureSpec) != MeasureSpec.EXACTLY ||
+                MeasureSpec.getSize(measureSpec) == 0
+    }
 }
