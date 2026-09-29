@@ -205,15 +205,12 @@ internal class AdRenderBenchmark {
         """.trimIndent() }
 
         val core = AdgeistCore.getInstance() ?: return
-        if (core.isHostAppDebuggable) return
+//        if (core.isHostAppDebuggable) return
 
         PostHogClient.capture(
             EVENT_NAME,
             mapOf(
                 "adSpaceId" to adUnitId,
-                "companyId" to core.adgeistAppID,
-                "bundleId" to core.packageOrBundleID,
-                "sdkVersion" to core.version,
                 "platform" to "android", 
                 "from_cache" to fromCache,
 
