@@ -1,5 +1,32 @@
 # Contributing to AdgeistKit
 
+## Branching
+
+### Branches
+
+| Branch | Purpose |
+| --- | --- |
+| `main` | Production.  Branch all feature work from here.  |
+| `qa` | Release candidate.|
+| `dev` | Beta testing. Integration only. |
+| `feat/*`, `fix/*`, `chore/*` | Your work. |
+
+### Flow
+
+1. Branch from `main`.
+
+   ```bash
+   git fetch origin
+   git switch -c feat/my-change origin/main
+   ```
+
+2. Open a PR into `dev`. After review, merge to ship it to beta.
+3. Test in beta.
+4. Open a PR from the same feature branch into `qa`.
+5. `qa` → `main` releases to production.
+
+Never merge `dev` into a feature branch — it carries other people's unreleased work. Rebase on `main` instead.
+
 ## Build the SDK
 
 Test build of `adgeistkit` using:
