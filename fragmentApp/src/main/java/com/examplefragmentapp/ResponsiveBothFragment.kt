@@ -1,4 +1,4 @@
-package com.examplenativeandroidapp
+package com.examplefragmentapp
 
 import android.os.Bundle
 import android.util.Log
@@ -9,14 +9,13 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.adgeistkit.ads.AdListener
-import com.adgeistkit.ads.AdSize
 import com.adgeistkit.ads.AdView
 import com.adgeistkit.request.AdRequest
 
-class ResponsiveVerticalFragment : Fragment() {
+class ResponsiveBothFragment : Fragment() {
 
     companion object {
-        private const val TAG = "ResponsiveVerticalFragment"
+        private const val TAG = "ResponsiveBothFragment"
         private const val RESPONSIVE_AD_UNIT_ID = "6aacd3a4fff212e2a8031309"
     }
 
@@ -27,19 +26,18 @@ class ResponsiveVerticalFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        return inflater.inflate(R.layout.fragment_responsive_vertical, container, false)
+        return inflater.inflate(R.layout.fragment_responsive_both, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         logPanel = view.findViewById(R.id.logPanel)
-        val container = view.findViewById<FrameLayout>(R.id.verticalAdContainer)
+        val container = view.findViewById<FrameLayout>(R.id.responsiveBothContainer)
 
         val adView = AdView(requireContext()).apply {
             adUnitId = RESPONSIVE_AD_UNIT_ID
             adIsResponsive = true
-            setAdDimension(AdSize.width(120))
         }
 
         adView.setAdListener(object : AdListener() {
@@ -59,7 +57,7 @@ class ResponsiveVerticalFragment : Fragment() {
         container.addView(
             adView,
             FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
         )

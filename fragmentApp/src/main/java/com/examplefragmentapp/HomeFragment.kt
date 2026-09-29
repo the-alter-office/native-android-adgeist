@@ -1,4 +1,4 @@
-package com.examplenativeandroidapp
+package com.examplefragmentapp
 
 import android.content.DialogInterface
 import android.os.Bundle
@@ -25,7 +25,7 @@ import com.adgeistkit.ads.AdListener
 import com.adgeistkit.ads.AdSize
 import com.adgeistkit.ads.AdView
 import com.adgeistkit.request.AdRequest
-import com.examplenativeandroidapp.ui.viewmodel.HomeViewModel
+import com.examplefragmentapp.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.launch
 
 class HomeFragment : Fragment() {

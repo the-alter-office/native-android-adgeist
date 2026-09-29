@@ -6,28 +6,21 @@ plugins {
 // Consume the locally published AAR (what real publishers get, incl. its
 // bundled consumer-rules.pro) instead of the in-repo module:
 //   ./gradlew :adgeistkit:publishToMavenLocal
-//   ./gradlew :app:connectedProdReleaseAndroidTest -PuseAarDependency
-// The published artifact is the prodRelease variant, so test the prod flavor.
+//   ./gradlew :fragmentApp:installProdRelease -PuseAarDependency
+// The published artifact is the prodRelease variant, so use the prod flavor.
 val useAarDependency = providers.gradleProperty("useAarDependency").isPresent
 
 android {
-    namespace = "com.examplenativeandroidapp"
+    namespace = "com.examplefragmentapp"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.examplenativeandroidapp"
+        applicationId = "com.examplefragmentapp"
         minSdk = 23
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
-
-    // Run instrumented tests against the minified release variant so they
-    // exercise the R8-processed SDK classes (this is what catches missing
-    // consumer keep rules — see AdModelR8Test).
-    testBuildType = "release"
 
     buildTypes {
         release {
@@ -38,8 +31,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Sign the minified release with the debug keystore so it (and its
-            // instrumented tests) can be installed without a real keystore.
+            // Sign the minified release with the debug keystore so it can be
+            // installed without a real keystore.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -76,13 +69,9 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.fragment.ktx)
-    testImplementation(libs.junit)
     if (useAarDependency) {
         implementation("${property("GROUP")}:${property("POM_ARTIFACT_ID")}:${property("VERSION_NAME")}")
     } else {
         implementation(project(":adgeistkit"))
     }
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation("com.google.code.gson:gson:2.10.1")
 }

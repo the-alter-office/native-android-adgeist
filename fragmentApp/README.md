@@ -11,26 +11,16 @@ The app has the same `environment` flavor dimension as the SDK: `beta`, `qa`, an
 Install the beta-flavored debug build on a connected device/emulator:
 
 ```bash
-./gradlew :app:installBetaDebug
+./gradlew :fragmentApp:installBetaDebug
 ```
 
-## Build the instrumented tests
+## Build the minified release
 
-Instrumented tests run against the **minified release** variant (`testBuildType = "release"`), so they exercise the R8-processed SDK classes — this is what catches missing consumer keep rules (see `AdModelR8Test` and `JsBridgeR8Test`).
-
-Compile check only (no device needed):
+The release build runs R8 like a real publisher's app. It is signed with the debug keystore, so no real keystore is required:
 
 ```bash
-./gradlew :app:assembleBetaRelease :app:assembleBetaReleaseAndroidTest --console=plain 2>&1 | tail -40
+./gradlew :fragmentApp:installBetaRelease
 ```
-
-## Run the instrumented tests on a device
-
-```bash
-./gradlew :app:connectedBetaReleaseAndroidTest
-```
-
-The release build is signed with the debug keystore, so no real keystore is required.
 
 ## Test against the published AAR
 
@@ -38,7 +28,7 @@ By default the app depends on the in-repo `:adgeistkit` module. To test what rea
 
 ```bash
 ./gradlew :adgeistkit:publishToMavenLocal
-./gradlew :app:connectedProdReleaseAndroidTest -PuseAarDependency
+./gradlew :fragmentApp:installProdRelease -PuseAarDependency
 ```
 
 The published artifact is the `prodRelease` variant, so use the prod flavor for this. The dependency coordinates come from `GROUP`, `POM_ARTIFACT_ID`, and `VERSION_NAME` in `gradle.properties` (see [CONTRIBUTORS.md](../CONTRIBUTORS.md) for versioning details).

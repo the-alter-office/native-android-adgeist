@@ -14,7 +14,7 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        // Only consulted in AAR-consumer test mode (see app/build.gradle.kts);
+        // Only consulted in AAR-consumer test mode (see fragmentApp/build.gradle.kts);
         // scoped to our group so mavenLocal can't shadow anything else.
         if (providers.gradleProperty("useAarDependency").isPresent) {
             mavenLocal { content { includeGroup("ai.adgeist") } }
@@ -25,5 +25,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "native-android-adgeist"
-include(":app")
+include(":fragmentApp")
+include(":composeApp")
 include(":adgeistkit")

@@ -1,4 +1,4 @@
-package com.examplenativeandroidapp.ui.viewmodel
+package com.examplefragmentapp.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

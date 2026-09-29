@@ -1,4 +1,4 @@
-package com.examplenativeandroidapp
+package com.examplefragmentapp
 
 import android.os.Bundle
 import android.view.View

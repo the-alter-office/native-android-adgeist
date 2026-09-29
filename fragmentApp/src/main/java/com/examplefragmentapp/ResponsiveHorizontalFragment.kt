@@ -1,4 +1,4 @@
-package com.examplenativeandroidapp
+package com.examplefragmentapp
 
 import android.os.Bundle
 import android.util.Log
@@ -13,10 +13,10 @@ import com.adgeistkit.ads.AdSize
 import com.adgeistkit.ads.AdView
 import com.adgeistkit.request.AdRequest
 
-class ResponsiveScrollFragment : Fragment() {
+class ResponsiveHorizontalFragment : Fragment() {
 
     companion object {
-        private const val TAG = "ResponsiveScrollFragment"
+        private const val TAG = "ResponsiveHorizontalFragment"
         private const val RESPONSIVE_AD_UNIT_ID = "6aacd3a4fff212e2a8031309"
     }
 
@@ -27,36 +27,32 @@ class ResponsiveScrollFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        return inflater.inflate(R.layout.fragment_responsive_scroll, container, false)
+        return inflater.inflate(R.layout.fragment_responsive_horizontal, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         logPanel = view.findViewById(R.id.logPanel)
+        val container = view.findViewById<FrameLayout>(R.id.horizontalAdContainer)
 
-        loadAd(view.findViewById(R.id.scrollAdGoodContainer), AdSize.height(250), "A")
-        loadAd(view.findViewById(R.id.scrollAdBadContainer), null, "B")
-    }
-
-    private fun loadAd(container: FrameLayout, size: AdSize?, tag: String) {
         val adView = AdView(requireContext()).apply {
             adUnitId = RESPONSIVE_AD_UNIT_ID
             adIsResponsive = true
-            size?.let { setAdDimension(it) }
+            setAdDimension(AdSize.height(50))
         }
 
         adView.setAdListener(object : AdListener() {
             override fun onAdLoaded() {
-                appendLog("[$tag] onAdLoaded")
+                appendLog("onAdLoaded")
             }
 
             override fun onAdWarning(message: String) {
-                appendLog("[$tag] onAdWarning: $message")
+                appendLog("onAdWarning: $message")
             }
 
             override fun onAdFailedToLoad(error: String) {
-                appendLog("[$tag] onAdFailedToLoad: $error")
+                appendLog("onAdFailedToLoad: $error")
             }
         })
 

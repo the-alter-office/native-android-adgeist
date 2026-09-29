@@ -31,11 +31,12 @@ impressions, clicks and viewability back.
 
 ## Modules
 - `adgeistkit` — the published library (Maven Central)
-- `app` — example host app for manual testing
+- `fragmentApp` — example host app (Activity + Fragments) for manual testing
+- `composeApp` — example host app (Activity + Jetpack Compose + Navigation) with the same screens
 
 ## Commands
 - Unit tests: `./gradlew :adgeistkit:test`
-- Run the example app: `./gradlew :app:installBetaDebug`
+- Run the example apps: `./gradlew :fragmentApp:installBetaDebug` / `./gradlew :composeApp:installBetaDebug`
 - Release build check: `./gradlew :adgeistkit:assembleRelease -PpublishVariant=prodRelease`
 
 ## Architecture, in four facts
