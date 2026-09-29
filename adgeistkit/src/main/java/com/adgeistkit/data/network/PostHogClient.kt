@@ -16,8 +16,7 @@ internal object PostHogClient {
     private val JSON = "application/json".toMediaType()
 
     fun capture(event: String, properties: Map<String, Any?>) {
-        if (!AdgeistCore.isInitialized()) return
-        val core = AdgeistCore.getInstance()
+        val core = AdgeistCore.getInstance() ?: return
         if (!core.isPerformanceTelemetryEnabled()) return
 
         core.ioScope.launch {
@@ -26,10 +25,9 @@ internal object PostHogClient {
 
             val props = JSONObject()
             properties.forEach { (key, value) -> props.put(key, value ?: JSONObject.NULL) }
-            props.put("sdk_version", core.version)
-            props.put("app_bundle_id", core.packageOrBundleID)
-            props.put("adgeist_app_id", core.adgeistAppID)
-            props.put("\$lib", "adgeist-android")
+            props.put("sdkVersion", core.version)
+            props.put("bundleId", core.packageOrBundleID)
+            props.put("companyId", core.adgeistAppID)
 
             val payload = JSONObject()
                 .put("api_key", API_KEY)

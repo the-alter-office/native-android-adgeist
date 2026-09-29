@@ -11,9 +11,11 @@ import android.webkit.WebView
 import androidx.annotation.RequiresPermission
 import androidx.core.view.doOnLayout
 import androidx.lifecycle.ViewModelStoreOwner
-import com.adgeistkit.AdgeistCore.Companion.getInstance
+import com.adgeistkit.AdgeistCore
 import com.adgeistkit.R
 import com.adgeistkit.utilities.AdgeistEmbedderApi
+import com.adgeistkit.constants.Logs
+import com.adgeistkit.constants.Messages
 import com.adgeistkit.utilities.logD
 import com.adgeistkit.request.AdRequest
 import com.adgeistkit.data.models.FixedAdResponse
@@ -99,11 +101,11 @@ public open class BaseAdView : ViewGroup {
         ::failShellLoad
     )
 
-    protected constructor(context: Context, adViewType: Int) : super(context) {
+    protected constructor(context: Context) : super(context) {
         initialize(context, null)
     }
 
-    protected constructor(context: Context, attrs: AttributeSet, adViewType: Int) : super(
+    protected constructor(context: Context, attrs: AttributeSet) : super(
         context,
         attrs
     ) {
@@ -113,8 +115,7 @@ public open class BaseAdView : ViewGroup {
     protected constructor(
         context: Context,
         attrs: AttributeSet,
-        defStyle: Int,
-        adViewType: Int
+        defStyle: Int
     ) : super(context, attrs, defStyle) {
         initialize(context, attrs)
     }
@@ -140,7 +141,7 @@ public open class BaseAdView : ViewGroup {
     }
 
     public fun setAdDimension(adSize: AdSize) {
-        requireNotNull(adSize) { "AdSize cannot be null" }
+        requireNotNull(adSize) { Messages.Exceptions.AD_SIZE_NULL }
         this.adSize = adSize
         requestLayout()
     }
@@ -148,12 +149,17 @@ public open class BaseAdView : ViewGroup {
     @RequiresPermission("android.permission.INTERNET")
     public fun loadAd(adRequest: AdRequest) {
         if (adUnitId.isEmpty()) {
-            notifyAdFailedToLoad("Ad unit ID is null or empty")
+            notifyAdFailedToLoad(Messages.Listener.AD_UNIT_ID_EMPTY)
+            return
+        }
+
+        if (AdgeistCore.getInstance() == null) {
+            notifyAdFailedToLoad(Messages.Listener.LOAD_BEFORE_INITIALIZE)
             return
         }
 
         if (isLoading) {
-            listener?.onAdFailedToLoad("Ad unit ID is already loading")
+            listener?.onAdFailedToLoad(Messages.Listener.AD_ALREADY_LOADING)
             return
         }
 
@@ -183,8 +189,15 @@ public open class BaseAdView : ViewGroup {
         }
 
         mainHandler?.post {
+            val coreInstance = AdgeistCore.getInstance()
+            if (coreInstance == null) {
+                isLoading = false
+                notifyAdFailedToLoad(Messages.Listener.LOAD_BEFORE_INITIALIZE)
+                return@post
+            }
+
             isDestroyed = false
-            startAdLoad()
+            startAdLoad(coreInstance)
             preloadShell()
         }
     }
@@ -201,6 +214,12 @@ public open class BaseAdView : ViewGroup {
         mediaType = retained.response.creativesV1.firstOrNull()?.primary?.type ?: ""
 
         mainHandler?.post {
+            if (AdgeistCore.getInstance() == null) {
+                isLoading = false
+                notifyAdFailedToLoad(Messages.Listener.LOAD_BEFORE_INITIALIZE)
+                return@post
+            }
+
             isDestroyed = false
             preloadShell()
 
@@ -292,9 +311,7 @@ public open class BaseAdView : ViewGroup {
         if (requested == null || requested == resolved) return
 
         listener?.onAdWarning(
-            "Ad unit '$adUnitId': the requested size $requested does not match the creative " +
-                "size $resolved returned for this ad unit. The AdView has been resized to " +
-                "$resolved. Set the ad unit's size to $resolved to avoid a layout shift."
+            Messages.Listener.adSizeMismatch(adUnitId, requested, resolved)
         )
     }
 
@@ -328,7 +345,7 @@ public open class BaseAdView : ViewGroup {
         val handler = mainHandler ?: return
         handler.post {
             AdWebViewTeardown.destroy(webViewToDestroy, handler) {
-                logD(TAG) { "WebView destroyed" }
+                logD(TAG) { Logs.Debug.WEBVIEW_DESTROYED }
             }
             removeAllViews()
         }
@@ -347,9 +364,8 @@ public open class BaseAdView : ViewGroup {
 
     // ---- Loading and rendering ----
 
-    private fun startAdLoad() {
-        val adgeist = getInstance()
-        val fetchCreative: FetchCreative = adgeist.getCreative()
+    private fun startAdLoad(coreInstance: AdgeistCore) {
+        val fetchCreative: FetchCreative = coreInstance.getCreative()
 
         benchmark.onFetchStart()
 
@@ -376,7 +392,7 @@ public open class BaseAdView : ViewGroup {
                         adSize = adSize,
                         measuredWidthDp = pxToDp(measuredWidth),
                         measuredHeightDp = pxToDp(measuredHeight),
-                    )
+                    ) 
 
                     when (payload) {
                         is AdCreativePayload.Result.Failure -> {
@@ -395,9 +411,9 @@ public open class BaseAdView : ViewGroup {
                         }
                     }
                 } catch (err: Exception) {
-                    Log.e(TAG, "Parsing error: ${err.message}", err)
+                    Log.e(TAG, Logs.Error.parsingError(err.message), err)
                     safelyDestroyWebView()
-                    notifyAdFailedToLoad(err.message ?: "Error")
+                    notifyAdFailedToLoad(err.message ?: Messages.Listener.GENERIC_ERROR)
                 }
             }
         }

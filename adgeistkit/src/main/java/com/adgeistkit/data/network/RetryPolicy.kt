@@ -1,5 +1,6 @@
 package com.adgeistkit.data.network
 
+import com.adgeistkit.constants.General
 import okhttp3.Response
 import java.util.concurrent.TimeUnit
 
@@ -7,9 +8,7 @@ internal object RetryPolicy {
 
     const val MAX_REATTEMPTS = 5
 
-    private val BASE_BACKOFF_MS = TimeUnit.MINUTES.toMillis(1)
-    private val MAX_BACKOFF_MS = TimeUnit.MINUTES.toMillis(15)
-    val MIN_RETRY_INTERVAL_MS = BASE_BACKOFF_MS
+    val MIN_RETRY_INTERVAL_MS = General.Timing.RETRY_BASE_BACKOFF_MS
 
     private const val NOT_IMPLEMENTED = 501
     private val RETRYABLE_CLIENT_CODES = setOf(408, 425, 429, 499)
@@ -18,12 +17,12 @@ internal object RetryPolicy {
         code in RETRYABLE_CLIENT_CODES || (code in 500..599 && code != NOT_IMPLEMENTED)
 
     fun backoffMillis(round: Int): Long {
-        if (round <= 0) return BASE_BACKOFF_MS
+        if (round <= 0) return General.Timing.RETRY_BASE_BACKOFF_MS
 
-        var delay = BASE_BACKOFF_MS
+        var delay = General.Timing.RETRY_BASE_BACKOFF_MS
         repeat(round) {
             delay *= 2
-            if (delay >= MAX_BACKOFF_MS) return MAX_BACKOFF_MS
+            if (delay >= General.Timing.RETRY_MAX_BACKOFF_MS) return General.Timing.RETRY_MAX_BACKOFF_MS
         }
 
         return delay
@@ -40,11 +39,11 @@ internal object RetryPolicy {
         val raw = response.header("Retry-After")?.trim() ?: return null
 
         raw.toLongOrNull()?.let { seconds ->
-            return TimeUnit.SECONDS.toMillis(seconds).coerceIn(0L, MAX_BACKOFF_MS)
+            return TimeUnit.SECONDS.toMillis(seconds).coerceIn(0L, General.Timing.RETRY_MAX_BACKOFF_MS)
         }
 
         val date = response.headers.getDate("Retry-After") ?: return null
 
-        return (date.time - nowMillis).coerceIn(0L, MAX_BACKOFF_MS)
+        return (date.time - nowMillis).coerceIn(0L, General.Timing.RETRY_MAX_BACKOFF_MS)
     }
 }

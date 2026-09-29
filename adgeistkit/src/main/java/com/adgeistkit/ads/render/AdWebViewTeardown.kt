@@ -3,10 +3,9 @@ package com.adgeistkit.ads.render
 import android.os.Handler
 import android.view.ViewGroup
 import android.webkit.WebView
+import com.adgeistkit.constants.General
 
 internal object AdWebViewTeardown {
-
-    private const val DESTROY_GRACE_MS = 600L
 
     fun destroy(webView: WebView, handler: Handler, onComplete: (() -> Unit)? = null) {
         try {
@@ -33,7 +32,7 @@ internal object AdWebViewTeardown {
                 } finally {
                     onComplete?.invoke()
                 }
-            }, DESTROY_GRACE_MS)
+            }, General.Timing.WEBVIEW_DESTROY_GRACE_MS)
         } catch (_: Exception) {
             onComplete?.invoke()
         }

@@ -1,5 +1,6 @@
 package com.adgeistkit.request
 
+import com.adgeistkit.constants.General
 import org.json.JSONObject
 
 public class AnalyticsRequest private constructor(analyticsRequest: AnalyticsRequestBuilder) {
@@ -33,7 +34,7 @@ public class AnalyticsRequest private constructor(analyticsRequest: AnalyticsReq
             scrollDepth: Float,
             visibilityRatio: Float
         ): AnalyticsRequestBuilder {
-            this.type = "VIEW"
+            this.type = General.Analytics.EVENT_TYPE_VIEW
             this.timeToVisible = timeToVisible
             this.scrollDepth = scrollDepth
             this.visibilityRatio = visibilityRatio
@@ -41,7 +42,7 @@ public class AnalyticsRequest private constructor(analyticsRequest: AnalyticsReq
         }
 
         public fun trackClick(): AnalyticsRequestBuilder {
-            this.type = "CLICK"
+            this.type = General.Analytics.EVENT_TYPE_CLICK
             return this
         }
 
@@ -58,13 +59,13 @@ public class AnalyticsRequest private constructor(analyticsRequest: AnalyticsReq
             json.put("type", type)
 
             when (type) {
-                "VIEW" -> {
+                General.Analytics.EVENT_TYPE_VIEW -> {
                     json.put("timeToVisible", timeToVisible)
                     json.put("scrollDepth", scrollDepth.toDouble())
                     json.put("visibilityRatio", visibilityRatio.toDouble())
                 }
 
-                "CLICK" -> {}
+                General.Analytics.EVENT_TYPE_CLICK -> {}
                 else -> {}
             }
         } catch (_: Exception) {

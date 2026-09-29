@@ -2,6 +2,7 @@ package com.adgeistkit.ads.render
 
 import android.content.res.AssetManager
 import android.util.Log
+import com.adgeistkit.constants.Logs
 
 internal object AdCardHtml {
 
@@ -58,7 +59,7 @@ internal object AdCardHtml {
             val adCardJs = assets.open(ADCARD_JS_ASSET).bufferedReader().use { it.readText() }
             template.replace(JS_PLACEHOLDER, adCardJs).also { cachedShell = it }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load ad view from assets", e)
+            Log.e(TAG, Logs.Error.SHELL_ASSETS_LOAD_FAILED, e)
             ""
         }
     }

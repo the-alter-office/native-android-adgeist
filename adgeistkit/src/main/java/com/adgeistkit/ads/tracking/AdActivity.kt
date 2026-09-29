@@ -11,9 +11,10 @@ import android.webkit.WebView
 import android.widget.HorizontalScrollView
 import android.widget.ScrollView
 import androidx.core.widget.NestedScrollView
-import com.adgeistkit.AdgeistCore.Companion.getInstance
+import com.adgeistkit.AdgeistCore
 import com.adgeistkit.request.AnalyticsRequest
 import com.adgeistkit.ads.BaseAdView
+import com.adgeistkit.constants.General
 
 /**
  * Tracks viewability, impressions, clicks and video playback for one ad.
@@ -28,13 +29,11 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
 
     companion object {
         private const val VISIBILITY_THRESHOLD = 0.5
-        private const val MIN_VIEW_TIME = 1000L
-        private const val CLICK_DEBOUNCE_MS = 1000L
     }
 
     // ---- Collaborators ----
 
-    private val postCreativeAnalytics = getInstance().postCreativeAnalytics()
+    private val postCreativeAnalytics = AdgeistCore.getInstance()?.postCreativeAnalytics()
     private val renderStartTime = SystemClock.elapsedRealtime()
     private val handler = Handler(Looper.getMainLooper())
 
@@ -186,8 +185,8 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
                 if (!isVisible || viewStartTime <= 0 || tracking.impressionSent) return
 
                 val timeInView = SystemClock.elapsedRealtime() - viewStartTime
-                if (timeInView < MIN_VIEW_TIME) {
-                    handler.postDelayed(this, MIN_VIEW_TIME - timeInView)
+                if (timeInView < General.Timing.MIN_VIEW_TIME_MS) {
+                    handler.postDelayed(this, General.Timing.MIN_VIEW_TIME_MS - timeInView)
                     return
                 }
 
@@ -204,14 +203,14 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
                             currentVisibilityRatio
                         )
                         .build()
-                postCreativeAnalytics.sendTrackingDataV2(analyticsRequest)
+                postCreativeAnalytics?.sendTrackingDataV2(analyticsRequest)
 
                 stopVisibilityCheck()
             }
         }
 
         visibilityCheckRunnable = runnable
-        handler.postDelayed(runnable, MIN_VIEW_TIME)
+        handler.postDelayed(runnable, General.Timing.MIN_VIEW_TIME_MS)
     }
 
     private fun stopVisibilityCheck() {
@@ -266,7 +265,7 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
     fun captureClick() {
         val now = SystemClock.elapsedRealtime()
         val sinceLastClick = now - tracking.lastClickTime
-        if (sinceLastClick < CLICK_DEBOUNCE_MS) {
+        if (sinceLastClick < General.Timing.CLICK_DEBOUNCE_MS) {
             return
         }
         tracking.lastClickTime = now
@@ -276,7 +275,7 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
             AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData)
                 .trackClick()
                 .build()
-        postCreativeAnalytics.sendTrackingDataV2(analyticsRequest)
+        postCreativeAnalytics?.sendTrackingDataV2(analyticsRequest)
     }
 
     fun onVideoPlay() {

@@ -13,6 +13,7 @@ import android.os.Looper
 import android.util.Log
 import com.adgeistkit.data.local.AnalyticsRetryQueueStore
 import com.adgeistkit.data.local.QueuedAnalyticsRequest
+import com.adgeistkit.constants.Logs
 import java.io.IOException
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
@@ -76,7 +77,7 @@ internal object AnalyticsRetryQueue {
             try {
                 store(context).insertAndTrim(url, body, dueAt)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to persist retry item - it will not be retried", e)
+                Log.e(TAG, Logs.Error.RETRY_PERSIST_FAILED, e)
                 return@execute
             }
             scheduleRetry(context)
@@ -114,7 +115,7 @@ internal object AnalyticsRetryQueue {
             connectivityManager.registerNetworkCallback(networkRequest, callback)
             networkCallback = callback
         } catch (e: Exception) {
-            Log.e(TAG, "Could not register connectivity callback", e)
+            Log.e(TAG, Logs.Error.CONNECTIVITY_CALLBACK_FAILED, e)
         }
     }
 
@@ -178,7 +179,7 @@ internal object AnalyticsRetryQueue {
         val earliest = try {
             store(context).earliestNextAttempt()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to read the retry queue", e)
+            Log.e(TAG, Logs.Error.RETRY_QUEUE_READ_FAILED, e)
             return
         } ?: return
 
@@ -208,7 +209,7 @@ internal object AnalyticsRetryQueue {
             val store = store(context)
             if (ignoreDueTimes) store.getAll() else store.getDue(System.currentTimeMillis())
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to read persisted retry queue", e)
+            Log.e(TAG, Logs.Error.RETRY_QUEUE_PERSISTED_READ_FAILED, e)
             return
         }
 
@@ -268,7 +269,7 @@ internal object AnalyticsRetryQueue {
             val reattempts = row.reattempts + 1
 
             if (reattempts >= RetryPolicy.MAX_REATTEMPTS) {
-                Log.w(TAG, "Giving up after ${RetryPolicy.MAX_REATTEMPTS} re-attempts: ${row.url}")
+                Log.w(TAG, Logs.Warning.retryGivenUp(RetryPolicy.MAX_REATTEMPTS, row.url))
                 store(context).deleteById(row.id)
             } else {
                 store(context).markRetry(
@@ -277,7 +278,7 @@ internal object AnalyticsRetryQueue {
                 )
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to update the retry queue", e)
+            Log.e(TAG, Logs.Error.RETRY_QUEUE_UPDATE_FAILED, e)
         }
     }
 

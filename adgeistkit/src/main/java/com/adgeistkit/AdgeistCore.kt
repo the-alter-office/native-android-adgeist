@@ -26,6 +26,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import com.adgeistkit.utilities.AdgeistInternalApi
 import com.adgeistkit.utilities.AdgeistLog
+import com.adgeistkit.constants.Logs
 import com.adgeistkit.utilities.CustomConfig
 import com.adgeistkit.utilities.ExperimentalAdgeistApi
 import com.adgeistkit.utilities.logI
@@ -62,16 +63,16 @@ public class AdgeistCore private constructor(
                     ).also {
                         instance = it
 
-                        logI(TAG) { "AdgeistCore initialized successfully" }
+                        logI(TAG) { Logs.Debug.CORE_INITIALIZED }
 
                         if (it.adgeistAppID.isEmpty()) {
-                            Log.w(TAG, "WARNING: adgeistAppID is empty. Set com.adgeistkit.ads.ADGEIST_APP_ID in AndroidManifest.xml")
+                            Log.w(TAG, Logs.Warning.APP_ID_EMPTY)
                         }
 
                         AnalyticsRetryQueue.start(it.context, it.bidRequestBackendDomain)
                     }
                 } catch (e: Throwable) {
-                    Log.e(TAG, "CRITICAL: AdgeistCore initialization failed", e)
+                    Log.e(TAG, Logs.Error.INITIALIZATION_FAILED, e)
                     null
                 }
             }
@@ -89,10 +90,10 @@ public class AdgeistCore private constructor(
         }
 
         @JvmStatic
-        public fun getInstance(): AdgeistCore {
+        public fun getInstance(): AdgeistCore? {
             return instance ?: run {
-                Log.e(TAG, "ERROR: AdgeistCore not initialized")
-                throw IllegalStateException("AdgeistCore is not initialized. Call AdgeistCore.initialize() first.")
+                Log.e(TAG, Logs.Error.NOT_INITIALIZED)
+                null
             }
         }
 
@@ -124,7 +125,7 @@ public class AdgeistCore private constructor(
      */
     internal val ioScope = CoroutineScope(
         SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, e ->
-            Log.e(TAG, "Uncaught exception in SDK coroutine", e)
+            Log.e(TAG, Logs.Error.UNCAUGHT_COROUTINE_EXCEPTION, e)
         }
     )
 
@@ -196,11 +197,11 @@ public class AdgeistCore private constructor(
     }
 
     public fun getCreative(): FetchCreative {
-        return FetchCreative(AdgeistCore.getInstance())
+        return FetchCreative(this)
     }
 
     public fun postCreativeAnalytics(): CreativeAnalytics {
-        return CreativeAnalytics(AdgeistCore.getInstance())
+        return CreativeAnalytics(this)
     }
 
     @ExperimentalAdgeistApi

@@ -2,6 +2,7 @@ package com.adgeistkit.data.network
 
 import com.adgeistkit.AdgeistCore
 import com.adgeistkit.request.AnalyticsRequest
+import com.adgeistkit.constants.General
 import kotlinx.coroutines.launch
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
@@ -22,7 +23,7 @@ public class CreativeAnalytics(private val adgeistCore: AdgeistCore) {
 
     public fun sendTrackingDataV2(analyticsRequest: AnalyticsRequest){
         scope.launch {
-            val url = "$bidRequestBackendDomain/v2/ssp/impression";
+            val url = "$bidRequestBackendDomain${General.Network.IMPRESSION_PATH}";
 
             val requestPayload = analyticsRequest.toJson().toString();
             val requestBody = requestPayload.toRequestBody("application/json".toMediaType());

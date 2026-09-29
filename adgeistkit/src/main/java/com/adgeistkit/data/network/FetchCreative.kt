@@ -2,6 +2,9 @@ package com.adgeistkit.data.network
 
 import android.os.SystemClock
 import com.adgeistkit.AdgeistCore
+import com.adgeistkit.constants.General
+import com.adgeistkit.constants.Logs
+import com.adgeistkit.constants.Messages
 import com.adgeistkit.utilities.logD
 import com.adgeistkit.benchmark.FetchTimings
 import com.adgeistkit.request.FetchCreativeRequest
@@ -29,7 +32,7 @@ public class FetchCreative(private val adgeistCore: AdgeistCore) {
 
         private val utcFormat = object : ThreadLocal<SimpleDateFormat>() {
             override fun initialValue(): SimpleDateFormat =
-                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+                SimpleDateFormat(General.Network.UTC_TIMESTAMP_PATTERN, Locale.US).apply {
                     timeZone = TimeZone.getTimeZone("UTC")
                 }
         }
@@ -61,7 +64,7 @@ public class FetchCreative(private val adgeistCore: AdgeistCore) {
             val deviceId = deviceIdentifier.getDeviceIdentifier()
             val tDeviceId = SystemClock.elapsedRealtime()
 
-            val url = "$bidRequestBackendDomain/v2/dsp/ad"
+            val url = "$bidRequestBackendDomain${General.Network.AD_PATH}"
 
             val requestBuilder = FetchCreativeRequest.FetchCreativeRequestBuilder(
                 adSpaceId = adUnitID,
@@ -111,8 +114,8 @@ public class FetchCreative(private val adgeistCore: AdgeistCore) {
 
             NetworkModule.httpClient.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    logD(TAG) { "Request Failed: ${bidRequestBackendDomain} - ${e.message}" }
-                    callback(createErrorProp(e.message ?: "Failed to connect to server", timings = timings()))
+                    logD(TAG) { Logs.Debug.requestFailed(bidRequestBackendDomain, e.message) }
+                    callback(createErrorProp(e.message ?: Messages.Listener.FETCH_CONNECT_FAILED, timings = timings()))
                 }
 
                 override fun onResponse(call: Call, response: Response) {
@@ -124,7 +127,7 @@ public class FetchCreative(private val adgeistCore: AdgeistCore) {
                         callback(createErrorProp(message, code, timings(tHeaders, tBody)))
 
                     if (jsonString.isNullOrBlank()) {
-                        fail("Server returned empty response", response.code)
+                        fail(Messages.Listener.FETCH_EMPTY_RESPONSE, response.code)
                         return
                     }
 
@@ -133,7 +136,7 @@ public class FetchCreative(private val adgeistCore: AdgeistCore) {
                             val errorResponse = gson.fromJson(jsonString, AdErrorResponse::class.java)
                             errorResponse.Error
                         } catch (e: Exception) {
-                            response.message.ifEmpty { "Request failed" }
+                            response.message.ifEmpty { Messages.Listener.FETCH_REQUEST_FAILED }
                         }
                         
                         fail(errorMessage, response.code)
@@ -144,14 +147,14 @@ public class FetchCreative(private val adgeistCore: AdgeistCore) {
                         val parsed = parseCreativeData(jsonString)
                         
                         if (parsed == null) {
-                            fail("Failed to parse creative data")
+                            fail(Messages.Listener.FETCH_PARSE_CREATIVE_FAILED)
                         } else if (isEmptyCreative(parsed)) {
-                            fail("No valid ad creative available")
+                            fail(Messages.Listener.FETCH_NO_VALID_CREATIVE)
                         } else {
                             callback(AdData(data = parsed, error = null, statusCode = response.code, timings = timings(tHeaders, tBody)))
                         }
                     } catch (e: Exception) {
-                        fail(e.message ?: "Failed to parse ad response")
+                        fail(e.message ?: Messages.Listener.FETCH_PARSE_RESPONSE_FAILED)
                     }
                 }
             })
