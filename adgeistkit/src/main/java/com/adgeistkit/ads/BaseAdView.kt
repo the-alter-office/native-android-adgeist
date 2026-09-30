@@ -72,6 +72,9 @@ public open class BaseAdView : ViewGroup {
     internal var mediaType: String = ""
         private set
 
+    internal var deepLinkUrl: String? = null
+        private set
+
     // ---- Collaborators ----
 
     public var listener: AdListener? = null
@@ -212,6 +215,7 @@ public open class BaseAdView : ViewGroup {
 
         tracking = retained.tracking
         mediaType = retained.response.creativesV1.firstOrNull()?.primary?.type ?: ""
+        deepLinkUrl = retained.response.creativesV1.firstOrNull()?.deepLinkUrl
 
         mainHandler?.post {
             if (AdgeistCore.getInstance() == null) {
@@ -403,6 +407,7 @@ public open class BaseAdView : ViewGroup {
                         is AdCreativePayload.Result.Success -> {
                             metaData = payload.metaData
                             mediaType = campaignDetails.creativesV1.firstOrNull()?.primary?.type ?: ""
+                            deepLinkUrl = campaignDetails.creativesV1.firstOrNull()?.deepLinkUrl
 
                             adViewModel?.retain(adUnitId, RetainedAd(campaignDetails, tracking))
 
