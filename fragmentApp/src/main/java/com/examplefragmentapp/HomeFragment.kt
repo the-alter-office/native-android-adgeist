@@ -55,8 +55,8 @@ class HomeFragment : Fragment() {
     // Ads currently on screen, stacked vertically inside adContainer
     private val activeAdViews = mutableListOf<AdView>()
 
-    private val defaultPackageId = "com.examplenativeandroidapp"
-    private val defaultAdgeistAppId = "6abbacbc1979b59913a3c0b5"
+    private val defaultPackageId = "com.leaguex.crm.beta"
+    private val defaultAdgeistAppId = "69a6777707df2b1527e357f9"
     private val defaultBidRequestBackendDomain = "https://beta.v2.bg-services.adgeist.ai"
 
 
