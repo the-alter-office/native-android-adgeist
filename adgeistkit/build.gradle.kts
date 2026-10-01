@@ -1,8 +1,9 @@
 import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.SourcesJar
 
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
     id("com.vanniktech.maven.publish")
 }
 
@@ -55,9 +56,15 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-        freeCompilerArgs = freeCompilerArgs + "-Xexplicit-api=strict"
+}
+
+kotlin {
+    coreLibrariesVersion = "1.8.0"
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_8)
+        apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_8)
+        freeCompilerArgs.add("-Xexplicit-api=strict")
     }
 }
 
@@ -85,7 +92,13 @@ dependencies {
 mavenPublishing {
     val publishVariant = findProperty("publishVariant")?.toString() ?: "prodRelease"
     // Real sources are proprietary; Maven Central still requires a -sources.jar, so a stub is attached below.
-    configure(AndroidSingleVariantLibrary(publishVariant, sourcesJar = false, publishJavadocJar = true))
+    configure(
+        AndroidSingleVariantLibrary(
+            javadocJar = JavadocJar.Javadoc(),
+            sourcesJar = SourcesJar.None(),
+            variant = publishVariant,
+        )
+    )
 }
 
 val stubSourcesJar by tasks.registering(Jar::class) {
