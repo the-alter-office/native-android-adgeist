@@ -107,8 +107,11 @@ internal class JsBridge(
     public fun reportOverflow(contentWidth: Int, contentHeight: Int, viewWidth: Int, viewHeight: Int) {
         Log.e(TAG, Logs.Error.adOverflow(contentWidth, contentHeight, viewWidth, viewHeight))
         baseAdView.post {
-            baseAdView.listener?.onAdFailedToLoad(
-                Messages.Listener.companionOverflow(viewWidth, viewHeight)
+            baseAdView.listener?.onAdEvent(
+                AdgeistEvent(
+                    AdgeistEventCode.AW8,
+                    AdgeistEventData(Messages.Listener.companionMinSizeNotMet(viewWidth, viewHeight))
+                )
             )
             baseAdView.destroyAd()
         }

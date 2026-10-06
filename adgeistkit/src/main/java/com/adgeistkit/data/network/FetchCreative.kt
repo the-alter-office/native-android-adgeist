@@ -2,17 +2,15 @@ package com.adgeistkit.data.network
 
 import android.os.SystemClock
 import com.adgeistkit.AdgeistCore
+import com.adgeistkit.ads.AdgeistEventCode
 import com.adgeistkit.constants.General
 import com.adgeistkit.constants.Logs
-import com.adgeistkit.constants.Messages
 import com.adgeistkit.utilities.logD
 import com.adgeistkit.benchmark.FetchTimings
 import com.adgeistkit.request.FetchCreativeRequest
 import com.adgeistkit.data.models.FixedAdResponse
 import com.adgeistkit.data.models.AdData
-import com.adgeistkit.data.models.AdErrorResponse
 import com.adgeistkit.data.models.AdResponseData
-import com.adgeistkit.data.models.AdVisibilityError
 import okhttp3.*
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
@@ -114,32 +112,30 @@ public class FetchCreative(private val adgeistCore: AdgeistCore) {
 
             NetworkModule.httpClient.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    logD(TAG) { Logs.Debug.requestFailed(bidRequestBackendDomain, e.message) }
-                    callback(createErrorProp(e.message ?: Messages.Listener.FETCH_CONNECT_FAILED, timings = timings()))
+                    callback(createErrorProp(AdgeistEventCode.AE2, timings = timings()))
                 }
 
                 override fun onResponse(call: Call, response: Response) {
                     val tHeaders = SystemClock.elapsedRealtime()
-                    val jsonString = response.body?.string()
+                    val jsonString = try {
+                        response.body?.string()
+                    } catch (e: Exception) {
+                        callback(createErrorProp(AdgeistEventCode.AE2, response.code, timings(tHeaders)))
+                        return
+                    }
                     val tBody = SystemClock.elapsedRealtime()
 
-                    fun fail(message: String, code: Int? = null) =
-                        callback(createErrorProp(message, code, timings(tHeaders, tBody)))
+                    fun fail(eventCode: AdgeistEventCode, code: Int? = null) =
+                        callback(createErrorProp(eventCode, code, timings(tHeaders, tBody)))
 
                     if (jsonString.isNullOrBlank()) {
-                        fail(Messages.Listener.FETCH_EMPTY_RESPONSE, response.code)
+                        val eventCode = if (response.isSuccessful) AdgeistEventCode.AE1 else codeForHttpStatus(response.code)
+                        fail(eventCode, response.code)
                         return
                     }
 
-                    if (!response.isSuccessful) {                        
-                        val errorMessage = try {
-                            val errorResponse = gson.fromJson(jsonString, AdErrorResponse::class.java)
-                            errorResponse.Error
-                        } catch (e: Exception) {
-                            response.message.ifEmpty { Messages.Listener.FETCH_REQUEST_FAILED }
-                        }
-                        
-                        fail(errorMessage, response.code)
+                    if (!response.isSuccessful) {
+                        fail(codeForHttpStatus(response.code), response.code)
                         return
                     }
 
@@ -147,42 +143,34 @@ public class FetchCreative(private val adgeistCore: AdgeistCore) {
                         val parsed = parseCreativeData(jsonString)
                         
                         if (parsed == null) {
-                            fail(Messages.Listener.FETCH_PARSE_CREATIVE_FAILED)
-                        } else if (isEmptyCreative(parsed)) {
-                            fail(Messages.Listener.FETCH_NO_VALID_CREATIVE)
+                            fail(AdgeistEventCode.AW10)
+                        } else if ((parsed as? FixedAdResponse)?.creativesV1.isNullOrEmpty()) {
+                            fail(AdgeistEventCode.AE1, response.code)
                         } else {
                             callback(AdData(data = parsed, error = null, statusCode = response.code, timings = timings(tHeaders, tBody)))
                         }
                     } catch (e: Exception) {
-                        fail(e.message ?: Messages.Listener.FETCH_PARSE_RESPONSE_FAILED)
+                        fail(AdgeistEventCode.AW10)
                     }
                 }
             })
         }
     }
 
+    private fun codeForHttpStatus(statusCode: Int): AdgeistEventCode =
+        if (statusCode in 400..499) AdgeistEventCode.AW6 else AdgeistEventCode.AE2
+
     private fun createErrorProp(
-        errorMessage: String,
+        eventCode: AdgeistEventCode,
         statusCode: Int? = null,
         timings: FetchTimings? = null
     ): AdData {
         return AdData(
             data = null,
-            error = AdVisibilityError(errorMessage),
+            error = eventCode,
             statusCode = statusCode,
             timings = timings
         )
-    }
-
-    private fun isEmptyCreative(ad: AdResponseData): Boolean {
-        return when (ad) {
-            is FixedAdResponse -> {
-                ad.id.isNullOrEmpty() ||
-                        ad.campaignId.isNullOrEmpty() ||
-                        ad.advertiser == null
-            }
-            else -> false
-        }
     }
 
     private fun parseCreativeData(json: String): AdResponseData? {

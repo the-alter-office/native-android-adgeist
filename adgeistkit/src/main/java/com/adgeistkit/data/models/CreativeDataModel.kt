@@ -1,7 +1,7 @@
 package com.adgeistkit.data.models
 
+import com.adgeistkit.ads.AdgeistEventCode
 import com.adgeistkit.benchmark.FetchTimings
-import com.adgeistkit.constants.Messages
 import com.google.gson.annotations.SerializedName
 
 public sealed interface AdResponseData
@@ -74,19 +74,9 @@ public data class AdErrorResponse(
     @SerializedName("Status") val Status: String
 )
 
-public data class AdVisibilityError(
-    val errorMessage: String
-)
-
 public data class AdData(
     val data: AdResponseData?,
-    val error: AdVisibilityError?,
+    val error: AdgeistEventCode?,
     val statusCode: Int?,
     val timings: FetchTimings? = null
-) {
-    val isSuccess: Boolean
-        get() = error == null && data != null
-
-    val errorMessage: String
-        get() = error?.errorMessage ?: Messages.Listener.UNKNOWN_ERROR
-}
+)
