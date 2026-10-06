@@ -26,7 +26,7 @@
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
             android:layout_marginTop="8dp"
-            android:text="adIsResponsive = false, setAdDimension(AdSize(360, 360)).\n\nThe AdView measures itself from AdSize alone. If the server returns a creative of a different size, the SDK adopts the creative's size, re-measures this box, and reports the mismatch through onAdWarning."
+            android:text="adIsResponsive = false, setAdDimension(AdSize(360, 360)).\n\nThe AdView measures itself from AdSize alone. If the server returns a creative of a different size, the SDK adopts the creative's size, re-measures this box, and reports the mismatch with an AW7 warning event."
             android:textSize="13sp" />
 
         <TextView
@@ -69,7 +69,7 @@
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
             android:layout_marginTop="8dp"
-            android:text="This ad unit does not exist, so the load fails. Because reserveSpace is false, the AdView removes itself from the layout after onAdFailedToLoad - the red box below should disappear."
+            android:text="This ad unit does not exist, so the load fails. Because reserveSpace is false, the AdView removes itself from the layout after the failed-load event (AW6) - the red box below should disappear."
             android:textSize="13sp" />
 
         <FrameLayout

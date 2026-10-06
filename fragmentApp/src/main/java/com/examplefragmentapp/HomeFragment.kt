@@ -24,6 +24,8 @@ import com.adgeistkit.utilities.CustomConfig
 import com.adgeistkit.ads.AdListener
 import com.adgeistkit.ads.AdSize
 import com.adgeistkit.ads.AdView
+import com.adgeistkit.ads.AdgeistEvent
+import com.adgeistkit.ads.AdgeistEventType
 import com.adgeistkit.request.AdRequest
 import com.examplefragmentapp.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.launch
@@ -260,33 +262,23 @@ class HomeFragment : Fragment() {
 
     private fun setupAdListener(adView: AdView) {
         adView.setAdListener(object : AdListener() {
-            override fun onAdLoaded() {
-                Log.d("AdView", "Ad Loaded Successfully!")
-                adView.visibility = View.VISIBLE
-            }
+            override fun onAdEvent(event: AdgeistEvent) {
+                when (event.type) {
+                    AdgeistEventType.AD_LOADED -> {
+                        Log.d("AdView", event.toString())
+                        adView.visibility = View.VISIBLE
+                    }
 
-            override fun onAdFailedToLoad(error: String) {
-                Log.e("AdView", "Ad Failed to Load ('${adView.adUnitId}'): $error")
-                if (isAdded) {
-                    showAlertDialog("Ad Load Failed", "Reason: $error")
+                    AdgeistEventType.AD_CLICKED, AdgeistEventType.AD_CLOSED -> Log.d("AdView", event.toString())
+
+                    else -> {
+                        Log.e("AdView", "'${adView.adUnitId}': $event")
+                        if (isAdded) {
+                            showAlertDialog("Ad Load Failed", "Reason: $event")
 //                    removeAd(adView)
+                        }
+                    }
                 }
-            }
-
-            override fun onAdClicked() {
-                Log.d("AdView", "Ad Clicked")
-            }
-
-            override fun onAdOpened() {
-                Log.d("AdView", "Ad Opened")
-            }
-
-            override fun onAdClosed() {
-                Log.d("AdView", "Ad Closed")
-            }
-
-            override fun onAdWarning(message: String) {
-                Log.w("AdView", message)
             }
         })
 

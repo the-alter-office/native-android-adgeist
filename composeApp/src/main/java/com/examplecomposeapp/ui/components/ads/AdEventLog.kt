@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.adgeistkit.ads.AdListener
 import com.adgeistkit.ads.AdView
+import com.adgeistkit.ads.AdgeistEvent
 import com.examplecomposeapp.R
 import com.examplecomposeapp.ui.components.SectionLabel
 
@@ -33,16 +34,8 @@ class AdEventLog(private val text: MutableState<String>) {
     fun listener(tag: String? = null): (AdView) -> AdListener = {
         val prefix = tag?.let { "[$it] " }.orEmpty()
         object : AdListener() {
-            override fun onAdLoaded() {
-                append("${prefix}onAdLoaded")
-            }
-
-            override fun onAdWarning(message: String) {
-                append("${prefix}onAdWarning: $message")
-            }
-
-            override fun onAdFailedToLoad(var1: String) {
-                append("${prefix}onAdFailedToLoad: $var1")
+            override fun onAdEvent(event: AdgeistEvent) {
+                append("$prefix$event")
             }
         }
     }

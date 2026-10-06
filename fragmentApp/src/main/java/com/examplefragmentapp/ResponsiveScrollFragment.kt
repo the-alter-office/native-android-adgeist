@@ -11,6 +11,7 @@ import androidx.fragment.app.Fragment
 import com.adgeistkit.ads.AdListener
 import com.adgeistkit.ads.AdSize
 import com.adgeistkit.ads.AdView
+import com.adgeistkit.ads.AdgeistEvent
 import com.adgeistkit.request.AdRequest
 
 class ResponsiveScrollFragment : Fragment() {
@@ -47,16 +48,8 @@ class ResponsiveScrollFragment : Fragment() {
         }
 
         adView.setAdListener(object : AdListener() {
-            override fun onAdLoaded() {
-                appendLog("[$tag] onAdLoaded")
-            }
-
-            override fun onAdWarning(message: String) {
-                appendLog("[$tag] onAdWarning: $message")
-            }
-
-            override fun onAdFailedToLoad(error: String) {
-                appendLog("[$tag] onAdFailedToLoad: $error")
+            override fun onAdEvent(event: AdgeistEvent) {
+                appendLog("[$tag] $event")
             }
         })
 

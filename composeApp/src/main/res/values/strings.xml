@@ -34,10 +34,10 @@
     <string name="field_container_width">Container Width</string>
     <string name="field_container_height">Container Height</string>
     <string name="fixed_title">1. Non-responsive Adspace</string>
-    <string name="fixed_description">adIsResponsive = false, setAdDimension(AdSize(360, 360)).\n\nThe AdView measures itself from AdSize alone. If the server returns a creative of a different size, the SDK adopts the creative\'s size, re-measures this box, and reports the mismatch through onAdWarning.</string>
+    <string name="fixed_description">adIsResponsive = false, setAdDimension(AdSize(360, 360)).\n\nThe AdView measures itself from AdSize alone. If the server returns a creative of a different size, the SDK adopts the creative\'s size, re-measures this box, and reports the mismatch with an AW7 warning event.</string>
     <string name="fixed_ad_a_label">Ad A - reserveSpace = true</string>
     <string name="fixed_ad_b_label">Ad B - invalid ad unit, reserveSpace = false</string>
-    <string name="fixed_ad_b_description">This ad unit does not exist, so the load fails. Because reserveSpace is false, the AdView removes itself from the layout after onAdFailedToLoad - the red box below should disappear.</string>
+    <string name="fixed_ad_b_description">This ad unit does not exist, so the load fails. Because reserveSpace is false, the AdView removes itself from the layout after the failed-load event (AW6) - the red box below should disappear.</string>
     <string name="fixed_ad_c_label">Ad C - invalid ad unit, reserveSpace = true</string>
     <string name="fixed_ad_c_description">Same invalid ad unit as Ad B, so it fails the same way. Because reserveSpace is true the AdView stays in the layout and keeps its 360dp x 360dp box - the blue box below should remain, empty, with nothing below it shifting up.</string>
     <string name="responsive_both_title">2. Responsive - both axes measurable</string>
@@ -50,7 +50,7 @@
     <string name="responsive_scroll_description">A ScrollView measures its child\'s height with MeasureSpec.UNSPECIFIED, whose size is 0. A wrap_content row inside it inherits that, so the AdView is told nothing at all about its height.\n\nThis is the silent failure: the ad fetches and renders fine, but measures 0 tall and is never visible.</string>
     <string name="responsive_scroll_ad_a_label">Ad A - AdSize.height(250), renders correctly</string>
     <string name="responsive_scroll_ad_b_label">Ad B - no AdSize, measures 0 and warns</string>
-    <string name="responsive_scroll_ad_b_description">Nothing can determine this ad\'s height: the parent supplies no fixed height and no AdSize supplies one. The red box below stays empty and onAdWarning fires.</string>
+    <string name="responsive_scroll_ad_b_description">Nothing can determine this ad\'s height: the parent supplies no fixed height and no AdSize supplies one. The red box below stays empty and an AW4 warning event fires.</string>
     <string name="ad_event_log_title">SDK callbacks</string>
     <string name="dialog_configured_title">Success</string>
     <string name="dialog_configured_message">SDK configured successfully with:\nPackage ID: %1$s\nApp ID: %2$s</string>

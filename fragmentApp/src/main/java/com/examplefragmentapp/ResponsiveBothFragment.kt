@@ -10,6 +10,7 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.adgeistkit.ads.AdListener
 import com.adgeistkit.ads.AdView
+import com.adgeistkit.ads.AdgeistEvent
 import com.adgeistkit.request.AdRequest
 
 class ResponsiveBothFragment : Fragment() {
@@ -41,16 +42,8 @@ class ResponsiveBothFragment : Fragment() {
         }
 
         adView.setAdListener(object : AdListener() {
-            override fun onAdLoaded() {
-                appendLog("onAdLoaded")
-            }
-
-            override fun onAdWarning(message: String) {
-                appendLog("onAdWarning: $message")
-            }
-
-            override fun onAdFailedToLoad(error: String) {
-                appendLog("onAdFailedToLoad: $error")
+            override fun onAdEvent(event: AdgeistEvent) {
+                appendLog("$event")
             }
         })
 

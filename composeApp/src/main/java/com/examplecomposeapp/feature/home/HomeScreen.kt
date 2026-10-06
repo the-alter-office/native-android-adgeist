@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import com.adgeistkit.ads.AdListener
 import com.adgeistkit.ads.AdSize
 import com.adgeistkit.ads.AdView
+import com.adgeistkit.ads.AdgeistEvent
+import com.adgeistkit.ads.AdgeistEventType
 import com.examplecomposeapp.R
 import com.examplecomposeapp.ui.components.AdPlaceholder
 import com.examplecomposeapp.ui.components.SectionDivider
@@ -234,30 +236,20 @@ private fun HomeAd(
 }
 
 private fun homeAdListener(adView: AdView, onAdFailed: (String) -> Unit) = object : AdListener() {
-    override fun onAdLoaded() {
-        Log.d(AD_LOG_TAG, "Ad Loaded Successfully!")
-        adView.visibility = View.VISIBLE
-    }
+    override fun onAdEvent(event: AdgeistEvent) {
+        when (event.type) {
+            AdgeistEventType.AD_LOADED -> {
+                Log.d(AD_LOG_TAG, event.toString())
+                adView.visibility = View.VISIBLE
+            }
 
-    override fun onAdFailedToLoad(var1: String) {
-        Log.e(AD_LOG_TAG, "Ad Failed to Load ('${adView.adUnitId}'): $var1")
-        onAdFailed(var1)
-    }
+            AdgeistEventType.AD_CLICKED, AdgeistEventType.AD_CLOSED -> Log.d(AD_LOG_TAG, event.toString())
 
-    override fun onAdClicked() {
-        Log.d(AD_LOG_TAG, "Ad Clicked")
-    }
-
-    override fun onAdOpened() {
-        Log.d(AD_LOG_TAG, "Ad Opened")
-    }
-
-    override fun onAdClosed() {
-        Log.d(AD_LOG_TAG, "Ad Closed")
-    }
-
-    override fun onAdWarning(message: String) {
-        Log.w(AD_LOG_TAG, message)
+            else -> {
+                Log.e(AD_LOG_TAG, "'${adView.adUnitId}': $event")
+                onAdFailed(event.toString())
+            }
+        }
     }
 }
 
