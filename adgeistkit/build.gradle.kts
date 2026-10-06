@@ -49,7 +49,7 @@ android {
             buildConfigField("String", "VERSION_NAME", "\"${project.property("VERSION_NAME")}\"")
         }
         debug {
-            buildConfigField("String", "VERSION_NAME", "\"${project.property("VERSION_NAME")}-${project.property("VERSION_SUFFIX")}\"")
+            buildConfigField("String", "VERSION_NAME", "\"${project.property("VERSION_NAME")}-debug\"")
         }
     }
     compileOptions {
