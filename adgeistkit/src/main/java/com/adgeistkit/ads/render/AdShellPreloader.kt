@@ -3,6 +3,9 @@ package com.adgeistkit.ads.render
 import android.content.res.AssetManager
 import android.os.Handler
 import android.webkit.WebView
+import com.adgeistkit.ads.AdgeistEvent
+import com.adgeistkit.ads.AdgeistEventCode
+import com.adgeistkit.ads.AdgeistEventData
 import com.adgeistkit.benchmark.AdRenderBenchmark
 import com.adgeistkit.data.models.AdSpaceType
 import com.adgeistkit.constants.General
@@ -11,7 +14,7 @@ import com.adgeistkit.constants.Messages
 internal class AdShellPreloader(
     private val benchmark: AdRenderBenchmark,
     private val handler: Handler,
-    private val onShellFailed: (String) -> Unit,
+    private val onShellFailed: (AdgeistEvent) -> Unit,
 ) {
 
     companion object {
@@ -39,7 +42,7 @@ internal class AdShellPreloader(
         benchmark.onShellAssetsRead()
 
         if (shell.isBlank()) {
-            onShellFailed(Messages.Listener.SHELL_BLANK)
+            onShellFailed(renderFailed(Messages.Listener.RENDER_ASSETS_UNREADABLE))
             return false
         }
 
@@ -89,7 +92,7 @@ internal class AdShellPreloader(
 
     fun onRendererProcessLost(didCrash: Boolean) {
         cancelStalledHandshakeDeadline()
-        onShellFailed(Messages.Listener.shellRendererLost(didCrash))
+        onShellFailed(renderFailed(Messages.Listener.renderProcessLost(didCrash)))
     }
 
     private fun scheduleStalledHandshakeDeadline() {
@@ -98,12 +101,15 @@ internal class AdShellPreloader(
         val deadline = Runnable {
             stalledHandshakeDeadline = null
             if (shellReady) return@Runnable
-            onShellFailed(Messages.Listener.SHELL_STALLED_HANDSHAKE)
+            onShellFailed(renderFailed(Messages.Listener.RENDER_PAGE_NOT_READY))
         }
 
         stalledHandshakeDeadline = deadline
         handler.postDelayed(deadline, General.Timing.STALLED_HANDSHAKE_GRACE_MS)
     }
+
+    private fun renderFailed(reason: String): AdgeistEvent =
+        AdgeistEvent(AdgeistEventCode.AE3, AdgeistEventData(reason))
 
     private fun cancelStalledHandshakeDeadline() {
         val deadline = stalledHandshakeDeadline ?: return

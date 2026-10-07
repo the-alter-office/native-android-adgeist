@@ -3,14 +3,14 @@ package com.adgeistkit.ads.render
 import com.adgeistkit.data.models.FixedAdResponse
 import com.google.gson.Gson
 import com.adgeistkit.ads.AdSize
-import com.adgeistkit.constants.Messages
+import com.adgeistkit.ads.AdgeistEventCode
 
 internal object AdCreativePayload {
 
     sealed interface Result {
         data class Success(val creativeJson: String, val metaData: String) : Result
 
-        data class Failure(val message: String) : Result
+        data class Failure(val code: AdgeistEventCode) : Result
     }
 
     private const val DEFAULT_ADVERTISER_NAME = "-"
@@ -28,10 +28,6 @@ internal object AdCreativePayload {
         val creative = response.creativesV1[0]
         val options = response.displayOptions
 
-        if (response.creativesV1.isEmpty()) {
-            return Result.Failure(Messages.Listener.EMPTY_CREATIVE)
-        }
-
         val width: Int
         val height: Int
         if (adIsResponsive) {
@@ -39,7 +35,7 @@ internal object AdCreativePayload {
             height = measuredHeightDp
         } else {
             if (adSize == null) {
-                return Result.Failure(Messages.Listener.AD_SIZE_NOT_SET)
+                return Result.Failure(AdgeistEventCode.AW3)
             }
             if(options != null && options.dimensions != null){
                 width = options.dimensions.width ?: 0

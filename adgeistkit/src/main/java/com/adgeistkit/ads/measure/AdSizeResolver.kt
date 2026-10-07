@@ -57,38 +57,6 @@ internal object AdSizeResolver {
         )
     }
 
-    fun undeterminedAxisWarning(
-        adUnitId: String,
-        widthUndetermined: Boolean,
-        heightUndetermined: Boolean
-    ): String? {
-        if (!widthUndetermined && !heightUndetermined) return null
-
-        val axis = when {
-            widthUndetermined && heightUndetermined -> "width or height"
-            widthUndetermined -> "width"
-            else -> "height"
-        }
-
-        val remedy = when {
-            widthUndetermined && heightUndetermined ->
-                "Give the AdView a fixed width and height in your layout, or set " +
-                    "adIsResponsive = false and call setAdDimension(AdSize(width, height))."
-
-            widthUndetermined ->
-                "Call setAdDimension(AdSize.width(...)) or give the AdView a fixed width " +
-                    "in your layout."
-
-            else ->
-                "Call setAdDimension(AdSize.height(...)) or give the AdView a fixed height " +
-                    "in your layout."
-        }
-
-        return "Ad unit '$adUnitId': this responsive AdView cannot determine its $axis. Its " +
-            "parent supplies no fixed $axis and no AdSize supplies one, so it measures " +
-            "0 and the ad will not be visible. $remedy"
-    }
-
     private fun axisSize(measureSpec: Int, declaredPx: Int): Int {
         if (MeasureSpec.getMode(measureSpec) == MeasureSpec.EXACTLY) {
             return MeasureSpec.getSize(measureSpec)

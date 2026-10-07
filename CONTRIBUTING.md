@@ -1,5 +1,86 @@
 # Contributing to AdgeistKit
 
+## Branches
+
+| Branch | Purpose | Backend | Publishes |
+|---|---|---|---|
+| `main` | Production releases | `qa.v2.bg-services` (`qaRelease`) | `x.y.z` to Maven Central, plus a GitHub Release and tag |
+| `dev` | Beta testing | `beta.v2.bg-services` (`betaRelease`) | `x.y.z-beta-SNAPSHOT` to the Maven Central snapshot repo |
+| `qa` | Staging for the next release | — | Nothing |
+| `feat/*`, `fix/*` | Individual changes | — | Nothing |
+
+Every push to `main` or `dev` triggers a publish through `.github/workflows/artifact-release.yaml`.
+
+### Workflow
+
+```
+main ──► feat/my-change ──► dev  (beta snapshot, test here)
+                    │
+                    └─────► qa ──► main  (release)
+```
+
+1. **Branch from `main`.** Always start from `main`, never from `dev` or `qa`:
+
+   ```bash
+   git switch main && git pull
+   git switch -c feat/my-change
+   ```
+
+2. **Open a PR into `dev`.** Once it is merged, CI publishes `x.y.z-beta-SNAPSHOT`. Test it in an integrating app (see [Testing a beta](#testing-a-beta)).
+3. **Open a PR from the same feature branch into `qa`** after it passes testing on `dev`. Do not merge `dev` into `qa`. `dev` can hold changes that are still being tested and must not reach a release.
+4. **Release by opening a PR from `qa` into `main`.** Merging it publishes `x.y.z` to Maven Central.
+
+If testing finds a problem, push fixes to the same feature branch and repeat from step 2.
+
+### Rules
+
+- `dev` is never merged into another branch.
+- `main` only receives merges from `qa`.
+- Feature branches are merged into `dev` and `qa` separately, never through each other.
+- Delete the feature branch after it lands in `main`.
+
+### Branch names
+
+- `feat/<short-description>` for new functionality
+- `fix/<short-description>` for bug fixes
+
+### Commit messages
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) prefixes, as in the existing history:
+
+```
+feat: add deep link support in ad components
+fix: fixed android scroll adview torn down issue
+refactor: shared preference move to data/local
+chore: plugins and module upgrade
+```
+
+## Versioning
+
+The version comes from `VERSION_NAME` in `gradle.properties` and must be plain semver `x.y.z`. CI adds the `-beta-SNAPSHOT` suffix on `dev`, so never add a suffix yourself.
+
+- Set `VERSION_NAME` in your feature branch to the version the change will ship in, unless `qa` has already been bumped to it.
+- Releases are immutable. CI fails on `main` if a GitHub Release or tag for `VERSION_NAME` already exists.
+- Beta snapshots are overwritten on every push to `dev` and deleted from Maven Central after 90 days.
+
+## Testing a beta
+
+Add the snapshot repository and depend on the beta version:
+
+```kotlin
+repositories {
+    maven("https://central.sonatype.com/repository/maven-snapshots/")
+}
+
+dependencies {
+    implementation("ai.adgeist:adgeistkit:1.1.37-beta-SNAPSHOT")
+}
+```
+
+Gradle caches snapshots for 24 hours. Run with `--refresh-dependencies` to pick up a newer build sooner.
+
+The example apps in this repository (`fragmentApp` and `composeApp`) depend on the `adgeistkit` module directly, so they always use your local code. Pass `-PuseAarDependency` to make them use the published artifact instead (see [Publish the SDK locally](#publish-the-sdk-locally-and-test-in-a-client-app)).
+
 ## Build the SDK
 
 Test build of `adgeistkit` using:
@@ -59,8 +140,7 @@ won't show up until a real minified build ships.
    ```
 
    - `publishVariant` selects which flavor/build-type variant is published (`betaRelease`, `qaRelease`, or `prodRelease`). Each flavor bakes in its own `BASE_API_URL`. Defaults to `prodRelease` when omitted.
-   - `VERSION_NAME` is used **as-is** for the published Maven version. If you want a pre-release version like `1.1.32-beta`, include the suffix directly in `VERSION_NAME` — the `VERSION_SUFFIX` property does *not* affect the published coordinates (it is only used for the debug `BuildConfig.VERSION_NAME`).
-   - Signing is skipped automatically for `publishToMavenLocal`, so no GPG key is needed.
+   - `VERSION_NAME` is used **as-is** for the published Maven version. If you want a pre-release version like `1.1.32-beta`, include the suffix directly in `VERSION_NAME`. This `-PVERSION_NAME` override is for local testing only; the value in `gradle.properties` must stay plain `x.y.z` (see [Versioning](#versioning)).
 
 2. In the client app's `settings.gradle(.kts)`, add `mavenLocal()` first in `dependencyResolutionManagement.repositories` so the locally published artifact is resolved before remote repositories.
 

@@ -1,0 +1,59 @@
+<resources>
+    <string name="app_name">adgeist-compose</string>
+    <string name="drawer_title">AdGeist Demo</string>
+    <string name="drawer_subtitle">Multi-screen AdView lifecycle test</string>
+    <string name="menu_content_description">Menu</string>
+    <string name="destination_home">Home (Ads)</string>
+    <string name="destination_fixed">1. Non-responsive</string>
+    <string name="destination_responsive_both">2. Responsive - Both Axes</string>
+    <string name="destination_responsive_vertical">3. Responsive - Vertical</string>
+    <string name="destination_responsive_horizontal">4. Responsive - Horizontal</string>
+    <string name="destination_responsive_scroll">5. Responsive - ScrollView</string>
+    <string name="home_sdk_configuration">SDK Configuration</string>
+    <string name="home_package_id">Package ID</string>
+    <string name="home_adgeist_app_id">Adgeist App ID</string>
+    <string name="home_configure_sdk">Configure SDK</string>
+    <string name="home_load_advertisement">Load Advertisement</string>
+    <string name="home_adspace_id">Adspace ID</string>
+    <string name="home_width">Enter Width (dp)</string>
+    <string name="home_height">Enter Height (dp)</string>
+    <string name="home_responsive_ad">Responsive Ad</string>
+    <string name="home_container_dimensions">Container Dimensions (for responsive ad)</string>
+    <string name="home_container_width">Container Width (dp)</string>
+    <string name="home_container_height">Container Height (dp)</string>
+    <string name="home_get_ad">Get Ad</string>
+    <string name="home_cancel">Cancel</string>
+    <string name="dialog_ok">OK</string>
+    <string name="dialog_invalid_configuration_title">Invalid Configuration</string>
+    <string name="dialog_invalid_configuration_message">Please enter valid Package ID and Adgeist App ID</string>
+    <string name="dialog_invalid_fields_title">Invalid Fields</string>
+    <string name="dialog_invalid_fields_message" formatted="true">Please enter valid values for: %1$s</string>
+    <string name="field_adspace_id">Adspace ID</string>
+    <string name="field_width">Width</string>
+    <string name="field_height">Height</string>
+    <string name="field_container_width">Container Width</string>
+    <string name="field_container_height">Container Height</string>
+    <string name="fixed_title">1. Non-responsive Adspace</string>
+    <string name="fixed_description">adIsResponsive = false, setAdDimension(AdSize(360, 360)).\n\nThe AdView measures itself from AdSize alone. If the server returns a creative of a different size, the SDK adopts the creative\'s size, re-measures this box, and reports the mismatch with an AW7 warning event.</string>
+    <string name="fixed_ad_a_label">Ad A - reserveSpace = true</string>
+    <string name="fixed_ad_b_label">Ad B - invalid ad unit, reserveSpace = false</string>
+    <string name="fixed_ad_b_description">This ad unit does not exist, so the load fails. Because reserveSpace is false, the AdView removes itself from the layout after the failed-load event (AW6) - the red box below should disappear.</string>
+    <string name="fixed_ad_c_label">Ad C - invalid ad unit, reserveSpace = true</string>
+    <string name="fixed_ad_c_description">Same invalid ad unit as Ad B, so it fails the same way. Because reserveSpace is true the AdView stays in the layout and keeps its 360dp x 360dp box - the blue box below should remain, empty, with nothing below it shifting up.</string>
+    <string name="responsive_both_title">2. Responsive - both axes measurable</string>
+    <string name="responsive_both_description">adIsResponsive = true, no AdSize set.\n\nThe container below is a fixed 300dp x 250dp box, so the AdView receives MeasureSpec.EXACTLY on both axes and takes both from the view tree. No warning is expected.\n\nThis is the only configuration that worked before per-axis measurement was added.</string>
+    <string name="responsive_vertical_title">3. Responsive - vertical</string>
+    <string name="responsive_vertical_description">adIsResponsive = true, setAdDimension(AdSize.width(120)).\n\nThe ad sits in the right-hand column, which is wrap_content wide and match_parent tall. So:\n\nheight - MeasureSpec.EXACTLY, taken from the view tree\nwidth - MeasureSpec.AT_MOST, taken from AdSize.width(120)\n\nBefore per-axis measurement the AT_MOST width was read as \'exactly this much\' and the column swallowed the whole screen width.</string>
+    <string name="responsive_horizontal_title">4. Responsive - horizontal</string>
+    <string name="responsive_horizontal_description">adIsResponsive = true, setAdDimension(AdSize.height(50)).\n\nThe ad is the bottom row, which is match_parent wide and wrap_content tall. So:\n\nwidth - MeasureSpec.EXACTLY, taken from the view tree\nheight - MeasureSpec.AT_MOST, taken from AdSize.height(50)\n\nBefore per-axis measurement the AT_MOST height was read as \'exactly this much\' and this banner expanded to fill every remaining pixel of the screen.</string>
+    <string name="responsive_scroll_title">5. Responsive inside a ScrollView</string>
+    <string name="responsive_scroll_description">A ScrollView measures its child\'s height with MeasureSpec.UNSPECIFIED, whose size is 0. A wrap_content row inside it inherits that, so the AdView is told nothing at all about its height.\n\nThis is the silent failure: the ad fetches and renders fine, but measures 0 tall and is never visible.</string>
+    <string name="responsive_scroll_ad_a_label">Ad A - AdSize.height(250), renders correctly</string>
+    <string name="responsive_scroll_ad_b_label">Ad B - no AdSize, measures 0 and warns</string>
+    <string name="responsive_scroll_ad_b_description">Nothing can determine this ad\'s height: the parent supplies no fixed height and no AdSize supplies one. The red box below stays empty and an AW4 warning event fires.</string>
+    <string name="ad_event_log_title">SDK callbacks</string>
+    <string name="dialog_configured_title">Success</string>
+    <string name="dialog_configured_message">SDK configured successfully with:\nPackage ID: %1$s\nApp ID: %2$s</string>
+    <string name="dialog_ad_failed_title">Ad Load Failed</string>
+    <string name="dialog_ad_failed_message">Reason: %1$s</string>
+</resources>

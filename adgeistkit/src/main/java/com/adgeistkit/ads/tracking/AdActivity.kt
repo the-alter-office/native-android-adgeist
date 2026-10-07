@@ -13,6 +13,8 @@ import android.widget.ScrollView
 import androidx.core.widget.NestedScrollView
 import com.adgeistkit.AdgeistCore
 import com.adgeistkit.request.AnalyticsRequest
+import com.adgeistkit.ads.AdgeistEvent
+import com.adgeistkit.ads.AdgeistEventCode
 import com.adgeistkit.ads.BaseAdView
 import com.adgeistkit.constants.General
 
@@ -191,7 +193,6 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
                 }
 
                 tracking.impressionSent = true
-                baseAdView.listener?.onAdImpression()
 
                 val scrollDepth: Float = scrollDepth()
                 val timeToVisible = SystemClock.elapsedRealtime() - renderStartTime
@@ -250,7 +251,7 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
     fun captureImpression() {
         handler.post {
             if (!hasImpression) {
-                baseAdView.listener?.onAdLoaded()
+                baseAdView.listener?.onAdEvent(AdgeistEvent(AdgeistEventCode.AL1))
                 hasImpression = true
             }
 
@@ -270,7 +271,7 @@ internal class AdActivity(private var baseAdView: BaseAdView) {
         }
         tracking.lastClickTime = now
 
-        baseAdView.listener?.onAdClicked()
+        baseAdView.listener?.onAdEvent(AdgeistEvent(AdgeistEventCode.AI1))
         val analyticsRequest: AnalyticsRequest =
             AnalyticsRequest.AnalyticsRequestBuilder(baseAdView.metaData)
                 .trackClick()

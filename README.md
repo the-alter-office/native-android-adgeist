@@ -36,7 +36,7 @@ Make sure your project meets the following minimum versions:
 When registering your app in the Adgeist web interface, the **Package Id** field must contain the
 exact effective `applicationId` your build ships. The SDK sends this `applicationId` as the request
 origin, and the ad server rejects any origin not registered for your publisher app id — ads then
-fail with `onAdFailedToLoad` reporting an invalid adspace or origin.
+fail with an [`AW6`](#event-reference) event (ad request rejected).
 
 Include any `applicationIdSuffix` (e.g. a debug build with `applicationIdSuffix = ".debug"` must be
 registered as `com.example.app.debug`, not `com.example.app`) as well as any product-flavor
@@ -226,11 +226,11 @@ It is **not** what decides the creative's size. That comes from the adspace you 
 | | What happens |
 |---|---|
 | Your `AdSize` matches the adspace | The creative fills the box you reserved. Nothing moves. |
-| They differ | The SDK resizes the `AdView` to the creative's real size, so content around it shifts. [`onAdWarning()`](#ad-events) fires, naming the real size. Change your `AdSize` to that size. |
+| They differ | The SDK resizes the `AdView` to the creative's real size, so content around it shifts. An [`AW7`](#event-reference) event fires, with the real size in `data.reason`. Change your `AdSize` to that size. |
 
 So replace `YOUR_AD_WIDTH` and `YOUR_AD_HEIGHT` with the exact dimensions you entered on adgeist.ai when you created the adspace, and the two can never disagree.
 
-> The SDK corrects the size for you so the creative is never cropped, but the correction happens after the ad arrives — which is the layout shift you reserved the box to avoid. Read `onAdWarning()` as "your `AdSize` is wrong, here is the right one", and treat it as a bug to fix rather than a runtime condition to handle.
+> The SDK corrects the size for you so the creative is never cropped, but the correction happens after the ad arrives — which is the layout shift you reserved the box to avoid. Read `AW7` as "your `AdSize` is wrong, here is the right one", and treat it as a bug to fix rather than a runtime condition to handle.
 
 This comparison applies to fixed-size ads only. A responsive ad is never resized to the creative — it keeps the size your layout gives it.
 
@@ -245,7 +245,7 @@ override fun onDestroy() {
 }
 ```
 
-Calling `destroyAd()` stops any in-progress ad load, releases the underlying WebView, and triggers the `onAdClosed()` callback on your `AdListener`. A destroyed `AdView` should not be reused — create a new instance to show another ad.
+Calling `destroyAd()` stops any in-progress ad load, releases the underlying WebView, and sends an [`AL2`](#event-reference) (`AD_CLOSED`) event to your `AdListener`. A destroyed `AdView` should not be reused — create a new instance to show another ad.
 
 The SDK also invokes `destroyAd()` automatically when the host screen is popped or the activity is destroyed, but calling it explicitly is recommended so cleanup happens deterministically.
 
@@ -276,6 +276,43 @@ spending a new request on it. In Compose, the screen's scope lives in the compos
 `LocalViewModelStoreOwner.current` is how you hand it over. Assign it before `loadAd()`, which is
 when the SDK reads it.
 
+**Destroying the ad in Compose.** Leave `onRelease` empty, and do not call `destroyAd()` from it.
+Compose calls `onRelease` whenever the `AndroidView` leaves the composition — on rotation, and when
+you navigate to another screen — and `destroyAd()` discards the screen's ad, so coming back would
+request a new one. You do not need to clean up yourself: the SDK releases the WebView when the
+`AdView` leaves the window, and drops the stored ad when the screen is popped off the back stack.
+
+Call `destroyAd()` only to remove the ad for good while the user stays on the screen, for example
+when they close the ad placement. Keep a reference to the `AdView` from `factory`, call
+`destroyAd()` on it, and stop showing the `AndroidView`:
+
+```kotlin
+val owner = LocalViewModelStoreOwner.current
+var showAd by remember { mutableStateOf(true) }
+var adView by remember { mutableStateOf<AdView?>(null) }
+
+if (showAd) {
+    AndroidView(
+        factory = { ctx ->
+            AdView(ctx).apply {
+                viewModelStoreOwner = owner
+                adUnitId = "YOUR_ADUNIT_ID"
+                setAdDimension(AdSize(320, 320))
+                loadAd(AdRequest.Builder().build())
+            }.also { adView = it }
+        },
+        onRelease = { },
+    )
+}
+
+Button(onClick = {
+    adView?.destroyAd()
+    showAd = false
+}) {
+    Text("Close ad")
+}
+```
+
 ---
 
 ## Extra options
@@ -298,7 +335,7 @@ val adView = AdView(context).apply {
 
 Set it to `false` if you would rather the ad give up its place when there is nothing to show:
 
-| `reserveSpace` | After `onAdFailedToLoad()` |
+| `reserveSpace` | After a failed load |
 |---|---|
 | `true` (default) | The `AdView` keeps its full box in your layout, empty. No layout shift. |
 | `false` | The `AdView` removes itself from its parent. Content below it moves up. |
@@ -351,50 +388,70 @@ val sideRail = AdView(context).apply {
 }
 ```
 
-If **neither** your layout nor `AdSize` determines an axis, the `AdView` measures `0` on that axis and the ad never becomes visible. The SDK reports this through [`onAdWarning()`](#ad-events) rather than failing silently. The case that catches people out is a `ScrollView`: it gives its children no definite height, so a responsive ad inside one should declare `AdSize.height(...)`.
+If **neither** your layout nor `AdSize` determines an axis, the `AdView` measures `0` on that axis and the ad never becomes visible. The SDK reports this with an [`AW4`](#event-reference) event rather than failing silently. The case that catches people out is a `ScrollView`: it gives its children no definite height, so a responsive ad inside one should declare `AdSize.height(...)`.
 
 ---
 
 ## Ad Events
 
-Set an `AdListener` before calling `loadAd()`:
-
-| Callback | Fires when |
-|---|---|
-| `onAdLoaded()` | The ad finished loading. |
-| `onAdFailedToLoad(error)` | The request failed. `error` carries the reason. |
-| `onAdImpression()` | An impression was recorded for the ad. |
-| `onAdOpened()` | The ad opened an overlay covering the screen. |
-| `onAdClosed()` | The ad was removed from the screen. |
-| `onAdClicked()` | The user clicked the ad. |
-| `onAdWarning(message)` | The SDK found a problem that did not stop the ad from loading, but that you should fix. `message` describes the problem and what to change. |
+Set an `AdListener` before calling `loadAd()`. Every event arrives in one callback, `onAdEvent()`:
 
 ```kotlin
+import com.adgeistkit.ads.AdListener
+import com.adgeistkit.ads.AdgeistEvent
+import com.adgeistkit.ads.AdgeistEventType
+
 adView.setAdListener(object : AdListener() {
-    override fun onAdLoaded() {
-    }
-
-    override fun onAdFailedToLoad(error: String) {
-        Log.e("AdView", "Ad Failed to Load: $error")
-    }
-
-    override fun onAdImpression() {
-    }
-
-    override fun onAdOpened() {
-    }
-
-    override fun onAdClosed() {
-    }
-
-    override fun onAdClicked() {
-    }
-
-    override fun onAdWarning(message: String) {
-        Log.w("AdView", message)
+    override fun onAdEvent(event: AdgeistEvent) {
+        when (event.type) {
+            AdgeistEventType.AD_LOADED -> { }
+            AdgeistEventType.AD_CLICKED -> { }
+            AdgeistEventType.AD_CLOSED -> { }
+            AdgeistEventType.AD_NO_FILL -> { }
+            AdgeistEventType.AD_NETWORK_ERROR -> { }
+            AdgeistEventType.AD_INTERNAL_ERROR -> { }
+            AdgeistEventType.AD_WARNING -> Log.w("AdView", event.toString())
+        }
     }
 })
 ```
+
+### Event payload
+
+| Field | Type | Description |
+|---|---|---|
+| `code` | `AdgeistEventCode` | SDK reference code, e.g. `AE1` |
+| `type` | `AdgeistEventType` | Event kind, e.g. `AD_NO_FILL` |
+| `message` | `String` | Human-readable description |
+| `data` | `AdgeistEventData?` | Extra details; `data.reason` on the events marked below, `null` otherwise |
+
+`data.reason` is a detailed description of what went wrong. Use it for diagnostics only; match on `code` or `type`, never on the text.
+
+Code prefixes: `AL` lifecycle, `AI` interaction, `AE` error, `AW` warning.
+
+### Event reference
+
+| Code | type | Meaning | When it occurs | Possible cause | Recommended action |
+|---|---|---|---|---|---|
+| AL1 | `AD_LOADED` | Ad loaded successfully | Creative rendered | — | — |
+| AL2 | `AD_CLOSED` | Ad closed | `destroyAd()` is called, or the screen hosting the ad is destroyed | — | — |
+| AI1 | `AD_CLICKED` | Ad clicked | User taps the ad | — | — |
+| AE1 | `AD_NO_FILL` | No ad available | Server returns no ad | No active campaign for the ad unit | Hide the placement |
+| AE2 | `AD_NETWORK_ERROR` | Ad request failed | Ad request does not complete | Device offline, timeout, server error, or connection dropped mid-response | Retry later |
+| AE3 | `AD_INTERNAL_ERROR` | Ad failed to render | While rendering the creative | Web view error | Contact support with `code` and `data.reason` |
+| AE4 | `AD_INTERNAL_ERROR` | Ad response could not be parsed | After the ad response | Response format not supported by this SDK version | Retry later; if it keeps happening, contact support with `code` |
+| AW1 | `AD_WARNING` | SDK not initialized | On `loadAd()` | `AdgeistCore.initialize()` was not called | Initialize the SDK before `loadAd()` |
+| AW2 | `AD_WARNING` | Ad unit ID is empty | On `loadAd()` | No `adUnitId` was set | Set `adUnitId` before `loadAd()` |
+| AW3 | `AD_WARNING` | Ad has no size | After the ad response | Fixed-size ad with no `AdSize` | Call `setAdDimension()`, or set `adIsResponsive = true` |
+| AW4 | `AD_WARNING` | Responsive ad has no width or height | During layout | Neither the layout nor `AdSize` determines an axis, so it measures `0` | Follow `data.reason`, which names the axis and the fix |
+| AW5 | `AD_WARNING` | Ad is already loading | On `loadAd()` | `loadAd()` called again before the previous load finished | Wait for the previous load's event |
+| AW6 | `AD_WARNING` | Ad request rejected | During the ad request | Request rejected by the server (HTTP 4xx) | Check the ad unit ID and `ADGEIST_APP_ID` in `AndroidManifest.xml` |
+| AW7 | `AD_WARNING` | Ad size mismatch | After the ad response | Your `AdSize` differs from the adspace's size; the `AdView` was resized | Set `AdSize` to the size in `data.reason` |
+| AW8 | `AD_WARNING` | Not enough space for a companion ad | While rendering the creative | Less than 320x320 available; the ad is collapsed and not tracked | Give the `AdView` at least 320x320 |
+
+`data.reason` is set on AE3, AW4, AW7 and AW8.
+
+When a load fails with AE1, AE2, AE3, AE4, AW1, AW2, AW3 or AW6, the `AdView` keeps or gives up its space according to [`reserveSpace`](#reservespace--keep-the-slot-when-an-ad-fails).
 
 ---
 

@@ -151,18 +151,18 @@ public open class BaseAdView : ViewGroup {
 
     @RequiresPermission("android.permission.INTERNET")
     public fun loadAd(adRequest: AdRequest) {
-        if (adUnitId.isEmpty()) {
-            notifyAdFailedToLoad(Messages.Listener.AD_UNIT_ID_EMPTY)
+        if (AdgeistCore.getInstance() == null) {
+            notifyAdFailure(AdgeistEventCode.AW1)
             return
         }
 
-        if (AdgeistCore.getInstance() == null) {
-            notifyAdFailedToLoad(Messages.Listener.LOAD_BEFORE_INITIALIZE)
+        if (adUnitId.isEmpty()) {
+            notifyAdFailure(AdgeistEventCode.AW2)
             return
         }
 
         if (isLoading) {
-            listener?.onAdFailedToLoad(Messages.Listener.AD_ALREADY_LOADING)
+            listener?.onAdEvent(AdgeistEvent(AdgeistEventCode.AW5))
             return
         }
 
@@ -195,7 +195,7 @@ public open class BaseAdView : ViewGroup {
             val coreInstance = AdgeistCore.getInstance()
             if (coreInstance == null) {
                 isLoading = false
-                notifyAdFailedToLoad(Messages.Listener.LOAD_BEFORE_INITIALIZE)
+                notifyAdFailure(AdgeistEventCode.AW1)
                 return@post
             }
 
@@ -220,7 +220,7 @@ public open class BaseAdView : ViewGroup {
         mainHandler?.post {
             if (AdgeistCore.getInstance() == null) {
                 isLoading = false
-                notifyAdFailedToLoad(Messages.Listener.LOAD_BEFORE_INITIALIZE)
+                notifyAdFailure(AdgeistEventCode.AW1)
                 return@post
             }
 
@@ -248,7 +248,7 @@ public open class BaseAdView : ViewGroup {
                 when (payload) {
                     is AdCreativePayload.Result.Failure -> {
                         safelyDestroyWebView()
-                        notifyAdFailedToLoad(payload.message)
+                        notifyAdFailure(payload.code)
                     }
 
                     is AdCreativePayload.Result.Success -> {
@@ -272,7 +272,7 @@ public open class BaseAdView : ViewGroup {
 
         isLoading = false
         mainHandler?.removeCallbacksAndMessages(null)
-        listener?.onAdClosed()
+        listener?.onAdEvent(AdgeistEvent(AdgeistEventCode.AL2))
         safelyDestroyWebView()
     }
 
@@ -314,24 +314,31 @@ public open class BaseAdView : ViewGroup {
 
         if (requested == null || requested == resolved) return
 
-        listener?.onAdWarning(
-            Messages.Listener.adSizeMismatch(adUnitId, requested, resolved)
+        listener?.onAdEvent(
+            AdgeistEvent(
+                AdgeistEventCode.AW7,
+                AdgeistEventData(Messages.Listener.adSizeMismatch(adUnitId, requested, resolved))
+            )
         )
     }
 
-    private fun notifyAdFailedToLoad(message: String) {
-        listener?.onAdFailedToLoad(message)
+    private fun notifyAdFailure(code: AdgeistEventCode) {
+        notifyAdFailure(AdgeistEvent(code))
+    }
+
+    private fun notifyAdFailure(event: AdgeistEvent) {
+        listener?.onAdEvent(event)
 
         if (reserveSpace) return
 
         mainHandler?.post { removeFromParent() }
     }
 
-    private fun failShellLoad(message: String) {
+    private fun failShellLoad(event: AdgeistEvent) {
         if (isDestroyed) return
 
         safelyDestroyWebView()
-        notifyAdFailedToLoad(message)
+        notifyAdFailure(event)
     }
 
     private fun safelyDestroyWebView() {
@@ -380,9 +387,10 @@ public open class BaseAdView : ViewGroup {
                 isLoading = false
                 if (isDestroyed) return@post
 
-                if (!result.isSuccess) {
+                val errorCode = result.error
+                if (errorCode != null) {
                     safelyDestroyWebView()
-                    notifyAdFailedToLoad(result.errorMessage)
+                    notifyAdFailure(errorCode)
                     return@post
                 }
 
@@ -401,7 +409,7 @@ public open class BaseAdView : ViewGroup {
                     when (payload) {
                         is AdCreativePayload.Result.Failure -> {
                             safelyDestroyWebView()
-                            notifyAdFailedToLoad(payload.message)
+                            notifyAdFailure(payload.code)
                         }
 
                         is AdCreativePayload.Result.Success -> {
@@ -418,7 +426,7 @@ public open class BaseAdView : ViewGroup {
                 } catch (err: Exception) {
                     Log.e(TAG, Logs.Error.parsingError(err.message), err)
                     safelyDestroyWebView()
-                    notifyAdFailedToLoad(err.message ?: Messages.Listener.GENERIC_ERROR)
+                    notifyAdFailure(AdgeistEventCode.AE4)
                 }
             }
         }
@@ -474,7 +482,6 @@ public open class BaseAdView : ViewGroup {
         val adWebView = webView ?: return
 
         benchmark.onRenderStart()
-        listener?.onAdOpened()
 
         addView(adWebView, AdWebViewFactory.matchParentLayoutParams())
 
@@ -490,14 +497,16 @@ public open class BaseAdView : ViewGroup {
     private fun warnIfResponsiveAxisUndetermined(measurement: AdSizeResolver.Result) {
         if (responsiveAxisWarningSent) return
 
-        val message = AdSizeResolver.undeterminedAxisWarning(
+        if (!measurement.widthUndetermined && !measurement.heightUndetermined) return
+
+        val message = Messages.Listener.responsiveSizeUndetermined(
             adUnitId = adUnitId,
             widthUndetermined = measurement.widthUndetermined,
             heightUndetermined = measurement.heightUndetermined
-        ) ?: return
+        )
 
         responsiveAxisWarningSent = true
-        mainHandler?.post { listener?.onAdWarning(message) }
+        mainHandler?.post { listener?.onAdEvent(AdgeistEvent(AdgeistEventCode.AW4, AdgeistEventData(message))) }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
