@@ -143,14 +143,14 @@ public class FetchCreative(private val adgeistCore: AdgeistCore) {
                         val parsed = parseCreativeData(jsonString)
                         
                         if (parsed == null) {
-                            fail(AdgeistEventCode.AW10)
+                            fail(AdgeistEventCode.AE4)
                         } else if ((parsed as? FixedAdResponse)?.creativesV1.isNullOrEmpty()) {
                             fail(AdgeistEventCode.AE1, response.code)
                         } else {
                             callback(AdData(data = parsed, error = null, statusCode = response.code, timings = timings(tHeaders, tBody)))
                         }
                     } catch (e: Exception) {
-                        fail(AdgeistEventCode.AW10)
+                        fail(AdgeistEventCode.AE4)
                     }
                 }
             })

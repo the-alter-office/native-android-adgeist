@@ -109,7 +109,7 @@ internal class AdShellPreloader(
     }
 
     private fun renderFailed(reason: String): AdgeistEvent =
-        AdgeistEvent(AdgeistEventCode.AW9, AdgeistEventData(reason))
+        AdgeistEvent(AdgeistEventCode.AE3, AdgeistEventData(reason))
 
     private fun cancelStalledHandshakeDeadline() {
         val deadline = stalledHandshakeDeadline ?: return

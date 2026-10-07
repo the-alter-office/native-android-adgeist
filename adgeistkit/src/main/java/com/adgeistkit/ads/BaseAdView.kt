@@ -426,7 +426,7 @@ public open class BaseAdView : ViewGroup {
                 } catch (err: Exception) {
                     Log.e(TAG, Logs.Error.parsingError(err.message), err)
                     safelyDestroyWebView()
-                    notifyAdFailure(AdgeistEventCode.AW10)
+                    notifyAdFailure(AdgeistEventCode.AE4)
                 }
             }
         }

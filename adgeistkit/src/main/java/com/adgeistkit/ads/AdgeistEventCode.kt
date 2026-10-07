@@ -8,6 +8,7 @@ public enum class AdgeistEventType {
     AD_CLICKED,
     AD_NO_FILL,
     AD_NETWORK_ERROR,
+    AD_INTERNAL_ERROR,
     AD_WARNING
 }
 
@@ -17,6 +18,8 @@ public enum class AdgeistEventCode {
     AI1,
     AE1,
     AE2,
+    AE3,
+    AE4,
     AW1,
     AW2,
     AW3,
@@ -24,9 +27,7 @@ public enum class AdgeistEventCode {
     AW5,
     AW6,
     AW7,
-    AW8,
-    AW9,
-    AW10;
+    AW8;
 
     public val type: AdgeistEventType
         get() = when (this) {
@@ -35,8 +36,9 @@ public enum class AdgeistEventCode {
             AI1 -> AdgeistEventType.AD_CLICKED
             AE1 -> AdgeistEventType.AD_NO_FILL
             AE2 -> AdgeistEventType.AD_NETWORK_ERROR
+            AE3, AE4 -> AdgeistEventType.AD_INTERNAL_ERROR
             AW1, AW2, AW3, AW4, AW5, AW6,
-            AW7, AW8, AW9, AW10 -> AdgeistEventType.AD_WARNING
+            AW7, AW8 -> AdgeistEventType.AD_WARNING
         }
 }
 

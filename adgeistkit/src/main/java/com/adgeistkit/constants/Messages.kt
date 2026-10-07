@@ -34,7 +34,7 @@ internal object Messages {
         const val RENDER_PROCESS_LOST =
             "Ad failed to render: the WebView renderer process was lost"
         const val AD_RESPONSE_PARSE_FAILED =
-            "SDK could not read the ad response, possibly due to an SDK version mismatch. Contact AdGeist support with the event code"
+            "SDK could not parse the ad response: it does not match the format this SDK version expects. Retry later; if it keeps happening, contact AdGeist support with the event code"
 
         fun forCode(code: AdgeistEventCode): String = when (code) {
             AdgeistEventCode.AL1 -> AD_LOADED
@@ -42,6 +42,8 @@ internal object Messages {
             AdgeistEventCode.AI1 -> AD_CLICKED
             AdgeistEventCode.AE1 -> AD_NO_FILL
             AdgeistEventCode.AE2 -> AD_NETWORK_ERROR
+            AdgeistEventCode.AE3 -> AD_RENDER_FAILED
+            AdgeistEventCode.AE4 -> AD_RESPONSE_PARSE_FAILED
             AdgeistEventCode.AW1 -> SDK_NOT_INITIALIZED
             AdgeistEventCode.AW2 -> AD_UNIT_ID_EMPTY
             AdgeistEventCode.AW3 -> AD_SIZE_NOT_SET
@@ -50,8 +52,6 @@ internal object Messages {
             AdgeistEventCode.AW6 -> AD_REQUEST_REJECTED
             AdgeistEventCode.AW7 -> AD_SIZE_MISMATCH
             AdgeistEventCode.AW8 -> COMPANION_MIN_SIZE_NOT_MET
-            AdgeistEventCode.AW9 -> AD_RENDER_FAILED
-            AdgeistEventCode.AW10 -> AD_RESPONSE_PARSE_FAILED
         }
 
         fun renderProcessLost(didCrash: Boolean): String =

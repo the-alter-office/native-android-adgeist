@@ -409,6 +409,7 @@ adView.setAdListener(object : AdListener() {
             AdgeistEventType.AD_CLOSED -> { }
             AdgeistEventType.AD_NO_FILL -> { }
             AdgeistEventType.AD_NETWORK_ERROR -> { }
+            AdgeistEventType.AD_INTERNAL_ERROR -> { }
             AdgeistEventType.AD_WARNING -> Log.w("AdView", event.toString())
         }
     }
@@ -437,6 +438,8 @@ Code prefixes: `AL` lifecycle, `AI` interaction, `AE` error, `AW` warning.
 | AI1 | `AD_CLICKED` | Ad clicked | User taps the ad | — | — |
 | AE1 | `AD_NO_FILL` | No ad available | Server returns no ad | No active campaign for the ad unit | Hide the placement |
 | AE2 | `AD_NETWORK_ERROR` | Ad request failed | Ad request does not complete | Device offline, timeout, server error, or connection dropped mid-response | Retry later |
+| AE3 | `AD_INTERNAL_ERROR` | Ad failed to render | While rendering the creative | Web view error | Contact support with `code` and `data.reason` |
+| AE4 | `AD_INTERNAL_ERROR` | Ad response could not be parsed | After the ad response | Response format not supported by this SDK version | Retry later; if it keeps happening, contact support with `code` |
 | AW1 | `AD_WARNING` | SDK not initialized | On `loadAd()` | `AdgeistCore.initialize()` was not called | Initialize the SDK before `loadAd()` |
 | AW2 | `AD_WARNING` | Ad unit ID is empty | On `loadAd()` | No `adUnitId` was set | Set `adUnitId` before `loadAd()` |
 | AW3 | `AD_WARNING` | Ad has no size | After the ad response | Fixed-size ad with no `AdSize` | Call `setAdDimension()`, or set `adIsResponsive = true` |
@@ -445,12 +448,10 @@ Code prefixes: `AL` lifecycle, `AI` interaction, `AE` error, `AW` warning.
 | AW6 | `AD_WARNING` | Ad request rejected | During the ad request | Request rejected by the server (HTTP 4xx) | Check the ad unit ID and `ADGEIST_APP_ID` in `AndroidManifest.xml` |
 | AW7 | `AD_WARNING` | Ad size mismatch | After the ad response | Your `AdSize` differs from the adspace's size; the `AdView` was resized | Set `AdSize` to the size in `data.reason` |
 | AW8 | `AD_WARNING` | Not enough space for a companion ad | While rendering the creative | Less than 320x320 available; the ad is collapsed and not tracked | Give the `AdView` at least 320x320 |
-| AW9 | `AD_WARNING` | Ad failed to render | While rendering the creative | Web view error | Contact support with `code` and `data.reason` |
-| AW10 | `AD_WARNING` | Ad response could not be read | After the ad response | SDK version mismatch | Contact support with `code` |
 
-`data.reason` is set on AW4, AW7, AW8 and AW9.
+`data.reason` is set on AE3, AW4, AW7 and AW8.
 
-When a load fails with AE1, AE2, AW1, AW2, AW3, AW6, AW9 or AW10, the `AdView` keeps or gives up its space according to [`reserveSpace`](#reservespace--keep-the-slot-when-an-ad-fails).
+When a load fails with AE1, AE2, AE3, AE4, AW1, AW2, AW3 or AW6, the `AdView` keeps or gives up its space according to [`reserveSpace`](#reservespace--keep-the-slot-when-an-ad-fails).
 
 ---
 
